@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Bảng Điều Khiển - Chánh Điện AI Multi-Platform</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #12131a; color: #e2e8f0; padding: 24px; }
+        .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #1e202b; border: 1px solid #32364a; border-radius: 10px; padding: 18px; }
+        .card h2 { font-size: 16px; color: #ffd700; margin-bottom: 12px; border-bottom: 1px solid #32364a; padding-bottom: 8px; }
+        label { display: block; font-size: 12px; color: #94a3b8; margin: 8px 0 4px; }
+        input, select {
+            width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #475569;
+            background: #0f1016; color: #fff; font-size: 13px;
+        }
+        .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+        button {
+            padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold;
+            font-size: 12px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary { background: #eab308; color: #000; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .on { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .off { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .queue-item {
+            background: #14161f; border: 1px solid #2e3346; border-radius: 6px;
+            padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .full-width { grid-column: span 2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2>1. Kết nối TikTok LIVE</h2>
+            <p style="font-size:12px;">Trạng thái: <span id="tt-status" class="status-badge off">Chưa kết nối</span></p>
+            <label>TikTok Username (ví dụ: @primecase18):</label>
+            <input type="text" id="tt-user" value="@primecase18">
+            <div class="btn-row">
+                <button class="btn-success" onclick="controlPlatform('tiktok', 'start')">Kết nối TikTok</button>
+                <button class="btn-danger" onclick="controlPlatform('tiktok', 'stop')">Ngắt kết nối</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>2. Kết nối Facebook LIVE (Graph API)</h2>
+            <p style="font-size:12px;">Trạng thái: <span id="fb-status" class="status-badge off">Chưa kết nối</span></p>
+            <label>Facebook Live Video ID:</label>
+            <input type="text" id="fb-vid" placeholder="Nhập Video ID đang phát Live...">
+            <label>Page / User Access Token:</label>
+            <input type="password" id="fb-token" placeholder="EAABsbCS1iHgBO...">
+            <div class="btn-row">
+                <button class="btn-success" onclick="controlPlatform('facebook', 'start')">Kết nối Facebook</button>
+                <button class="btn-danger" onclick="controlPlatform('facebook', 'stop')">Ngắt kết nối</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>3. Giả lập Sự kiện & Kiểm thử AI (Simulator)</h2>
+            <label>Tên người xem:</label>
+            <input type="text" id="sim-user" value="Nguyễn Bá Vương">
+            <label>Lời cầu nguyện / Từ khóa đổi nhân vật (nam, nữ, sư, ni, tiểu, cao tăng):</label>
+            <input type="text" id="sim-text" value="Cao tăng xin quẻ triển khai dự án mới tại Hải Phòng">
+            <div class="btn-row">
+                <button class="btn-primary" onclick="simulate('FORTUNE')">🎋 Bắn Xin Quẻ AI</button>
+                <button class="btn-success" onclick="simulate('COMMENT')">🙏 Bắn Bình Luận</button>
+                <button class="btn-danger" onclick="simulate('GIFT')">🌸 Bắn Tặng Rose (+20 CĐ)</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>4. Quản trị Dữ liệu & Human-in-the-Loop</h2>
+            <p style="font-size:13px; margin-bottom:10px;">
+                Chế độ duyệt bình luận: <b id="auto-mode-label" style="color:#34d399;">TỰ ĐỘNG (AUTO)</b>
+            </p>
+            <div class="btn-row">
+                <button class="btn-primary" onclick="toggleAutoApprove(true)">Bật Tự Động Duyệt</button>
+                <button class="btn-danger" onclick="toggleAutoApprove(false)">Bật Duyệt Tay (Human-in-the-Loop)</button>
+            </div>
+            <hr style="border:0; border-top:1px solid #32364a; margin:14px 0;">
+            <button class="btn-danger" onclick="resetDB()">🗑️ Xóa & Đặt lại Bảng Xếp Hạng SQLite</button>
+        </div>
+
+        <div class="card full-width">
+            <h2>5. Hàng đợi Phê duyệt Thủ công (Human-in-the-Loop Queue)</h2>
+            <div id="pending-list"><p style="font-size:13px; color:#64748b;">Không có bình luận nào đang chờ duyệt.</p></div>
+        </div>
+    </div>
+
+    <script>
+        function connectControlWS() {
+            const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+            const ws = new WebSocket(`${wsProtocol}//${location.host}/ws/control`);
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "CONTROL_STATE") {
+                    const p = data.platforms;
+                    const ttBadge = document.getElementById("tt-status");
+                    ttBadge.className = "status-badge " + (p.tiktok_connected ? "on" : "off");
+                    ttBadge.innerText = p.tiktok_connected ? `Đang kết nối (${p.tiktok_username})` : "Chưa kết nối";
+
+                    const fbBadge = document.getElementById("fb-status");
+                    fbBadge.className = "status-badge " + (p.fb_connected ? "on" : "off");
+                    fbBadge.innerText = p.fb_connected ? `Đang kết nối (${p.fb_video_id})` : "Chưa kết nối";
+
+                    const modeLbl = document.getElementById("auto-mode-label");
+                    modeLbl.innerText = data.auto_approve ? "TỰ ĐỘNG (AUTO)" : "DUYỆT TAY (HUMAN-IN-THE-LOOP)";
+                    modeLbl.style.color = data.auto_approve ? "#34d399" : "#fbbf24";
+
+                    const qDiv = document.getElementById("pending-list");
+                    if (!data.pending_queue || data.pending_queue.length === 0) {
+                        qDiv.innerHTML = `<p style="font-size:13px; color:#64748b;">Không có bình luận nào đang chờ duyệt.</p>`;
+                    } else {
+                        qDiv.innerHTML = data.pending_queue.map(item => `
+                            <div class="queue-item">
+                                <div>
+                                    <span style="color:#ffd700; font-weight:bold;">[${item.platform.toUpperCase()}] ${item.user}:</span>
+                                    <span>${item.text}</span>
+                                </div>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-success" onclick="moderateItem('approve', '${item.id}')">✓ Duyệt lên Live</button>
+                                    <button class="btn-danger" onclick="moderateItem('reject', '${item.id}')">✕ Từ chối</button>
+                                </div>
+                            </div>
+                        `).join("");
+                    }
+                }
+            };
+            ws.onclose = () => setTimeout(connectControlWS, 2000);
+        }
+        connectControlWS();
+
+        async function controlPlatform(platform, action) {
+            await fetch("/api/platform", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    platform, action,
+                    tiktok_username: document.getElementById("tt-user").value,
+                    fb_video_id: document.getElementById("fb-vid").value,
+                    fb_access_token: document.getElementById("fb-token").value
+                })
+            });
+        }
+
+        async function simulate(eventType) {
+            await fetch("/api/simulate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    platform: "tiktok",
+                    event_type: eventType,
+                    user: document.getElementById("sim-user").value,
+                    text: document.getElementById("sim-text").value,
+                    gift_name: "ROSE",
+                    diamonds: 1
+                })
+            });
+        }
+
+        async function toggleAutoApprove(val) {
+            await fetch("/api/moderation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "toggle_auto", auto_approve: val })
+            });
+        }
+
+        async function moderateItem(action, itemId) {
+            await fetch("/api/moderation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action, item_id: itemId })
+            });
+        }
+
+        async function resetDB() {
+            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ điểm Công Đức và Bảng xếp hạng?")) {
+                await fetch("/api/moderation", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "reset_db" })
+                });
+            }
+        }
+    </script>
+</body>
+</html>

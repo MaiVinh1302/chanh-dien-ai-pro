@@ -1,0 +1,29 @@
+# Python environment & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Environment variables & secrets (Bảo mật API key)
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Large binaries (Tránh đẩy file exe nặng 55MB lên repo)
+cloudflared.exe
+*.exe
+
+# Logs & temp files
+*.log
+temp*.js
+temp*.py
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store

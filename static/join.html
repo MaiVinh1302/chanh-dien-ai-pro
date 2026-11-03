@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đăng Nhập Chánh Điện Online 2.5D</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, sans-serif; }
+        body {
+            background: radial-gradient(circle at 50% 15%, #2a150c 0%, #120905 70%, #080302 100%);
+            color: #f1f5f9; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .card {
+            background: rgba(26, 20, 16, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 18px; padding: 22px; width: 100%; max-width: 440px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85); text-align: center;
+        }
+        .header-icon { font-size: 42px; margin-bottom: 6px; display: inline-block; filter: drop-shadow(0 0 10px #ffd700); }
+        h1 { font-size: 20px; color: #ffd700; margin-bottom: 4px; letter-spacing: 0.5px; }
+        p.subtitle { font-size: 13px; color: #cbd5e1; margin-bottom: 18px; }
+        
+        label { display: block; text-align: left; font-size: 12px; font-weight: bold; color: #ffd700; margin: 10px 0 4px; }
+        input, select, textarea {
+            width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #0d0907; color: #fff; font-size: 14px; outline: none; transition: 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #ffd700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
+
+        .btn-enter {
+            width: 100%; margin-top: 20px; padding: 13px; background: linear-gradient(135deg, #d4af37, #aa820a);
+            color: #1a0b02; border: none; border-radius: 12px; font-size: 15px; font-weight: bold;
+            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+        }
+        .btn-enter:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6); }
+
+        /* MÀN HÌNH TỌA THIỀN CÁ NHÂN SAU KHI ĐĂNG NHẬP */
+        #active-panel { display: none; }
+        .user-tag {
+            background: rgba(212, 175, 55, 0.15); border: 1px solid #ffd700; border-radius: 20px;
+            padding: 6px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
+            font-weight: bold; color: #ffd700; margin-bottom: 16px;
+        }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+        .action-card {
+            background: #1f1712; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px;
+            padding: 16px 10px; cursor: pointer; transition: 0.2s;
+        }
+        .action-card:active { transform: scale(0.95); background: rgba(212, 175, 55, 0.2); }
+        .action-card .icon { font-size: 32px; margin-bottom: 4px; display: block; }
+        .action-card .label { font-size: 13px; font-weight: bold; color: #ffd700; }
+        .action-card .sub { font-size: 10px; color: #94a3b8; }
+
+        .pray-box { margin-top: 16px; display: flex; gap: 8px; }
+        .pray-box input { flex: 1; }
+        .pray-box button {
+            padding: 0 16px; background: #d4af37; border: none; border-radius: 10px; font-weight: bold;
+            color: #000; cursor: pointer;
+        }
+
+        .fortune-result-box {
+            margin-top: 14px; background: #26160e; border: 1px solid #d4af37; border-radius: 10px;
+            padding: 12px; font-size: 12px; display: none; text-align: left;
+        }
+        .f-title-h { color: #ffd700; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .f-poem-t { font-style: italic; color: #fce7f3; white-space: pre-line; line-height: 1.4; margin-bottom: 6px; }
+
+        /* ĐIỀU HƯỚNG BƯỚC ĐI & CHỌN BỒ ĐOÀN (DPAD & SEAT SELECTOR) */
+        .movement-section {
+            margin-top: 18px; background: rgba(0,0,0,0.4); border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 14px; padding: 14px; text-align: center;
+        }
+        .movement-title {
+            font-size: 13px; font-weight: bold; color: #ffd700; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .dpad-container {
+            display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 44px 44px 44px;
+            gap: 6px; justify-content: center; margin: 10px auto; width: 165px;
+        }
+        .dpad-btn {
+            background: #2a1f18; border: 1px solid #d4af37; border-radius: 10px; color: #fef08a;
+            font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; user-select: none; transition: 0.15s;
+        }
+        .dpad-btn:active { background: #d4af37; color: #000; transform: scale(0.92); }
+        .dpad-btn.center-bow { font-size: 12px; font-weight: bold; background: #3e1b12; color: #ffd700; }
+
+        .seat-picker {
+            margin-top: 12px; text-align: left;
+        }
+        .seat-picker label { font-size: 11px; color: #cbd5e1; margin-bottom: 6px; }
+        .seat-grid {
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; max-height: 110px;
+            overflow-y: auto; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 8px;
+        }
+        .seat-chip {
+            background: #221c17; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+            padding: 5px 2px; font-size: 11px; text-align: center; color: #e2e8f0; cursor: pointer;
+            transition: 0.15s;
+        }
+        .seat-chip:active, .seat-chip.active {
+            background: #d4af37; color: #120905; font-weight: bold; border-color: #ffd700;
+        }
+
+        .link-overlay {
+            margin-top: 20px; font-size: 12px; color: #94a3b8;
+        }
+        .link-overlay a { color: #ffd700; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- BƯỚC 1: FORM THAM GIA / TỰ ĐỘNG ĐĂNG NHẬP -->
+    <div class="card" id="join-card">
+        <span class="header-icon">🪷</span>
+        <h1>CHÁNH ĐIỆN ONLINE 2.5D</h1>
+        <p class="subtitle">Điện Tam Thế Phật • Đăng nhập & tọa thiền cầu an</p>
+
+        <label>Họ tên / Pháp danh của bạn:</label>
+        <input type="text" id="user-name" placeholder="Ví dụ: Diệu Thảo, Minh Tâm, An Lạc...">
+
+        <label>Chọn Pháp phục / Tướng mạo:</label>
+        <select id="user-avatar">
+            <option value="novice">🧘 Chú tiểu (Áo lam, búi chỏm dễ thương)</option>
+            <option value="monk">📿 Sư thầy (Áo nâu/cam, cạo trọc)</option>
+            <option value="nun">🌸 Ni cô (Áo lam sẫm thanh nhã)</option>
+            <option value="female">🧕 Tín nữ (Áo tràng hồng phấn)</option>
+            <option value="male" selected>👤 Phật tử nam (Áo lam truyền thống)</option>
+            <option value="elder">👴 Lão cư sĩ (Áo lam cổ kính)</option>
+            <option value="high_monk">👑 Cao tăng đại đức (Y cà sa hoàng kim)</option>
+        </select>
+
+        <label>Lời nguyện cầu (tùy chọn):</label>
+        <input type="text" id="user-wish" placeholder="Cầu gia đạo bình an, hanh thông tài lộc...">
+
+        <button class="btn-enter" onclick="submitJoin()">🙏 BƯỚC VÀO CHÁNH ĐIỆN</button>
+
+        <div class="link-overlay">
+            Mở xem màn hình lớn: <a href="/overlay" target="_blank">Xem Chánh Điện 3D ↗</a><br><a href="/world3d" style="color: #34d399; text-decoration: none; font-weight: bold; margin-top: 8px; display: inline-block;">🕹️ Dạo Bước Khám Phá Quần Thể Chùa 3D ↗</a>
+        </div>
+    </div>
+
+    <!-- BƯỚC 2: BÀN TỌA THIỀN & TƯƠNG TÁC CÁ NHÂN -->
+    <div class="card" id="active-panel">
+        <div class="user-tag">
+            <span id="p-avatar-ico">🧘</span>
+            <span id="p-name">Thí chủ</span>
+        </div>
+
+        <p style="font-size:12px; color:#cbd5e1; margin-bottom:12px;">
+            ✅ Bạn đã an tọa trên bồ đoàn trong Chánh Điện.<br>Chạm biểu tượng để hành lễ hoặc di chuyển:
+        </p>
+
+        <!-- KHỐI ĐIỀU HƯỚNG BƯỚC CHÂN TRONG CHÁNH ĐIỆN -->
+        <div class="movement-section">
+            <div class="movement-title">
+                <span>🚶</span>
+                <span>ĐIỀU HƯỚNG BƯỚC CHÂN TRONG ĐIỆN</span>
+            </div>
+
+            <div class="dpad-container">
+                <div></div>
+                <div class="dpad-btn" onclick="sendMove('UP')" title="Tiến lên gần Tam Thế Phật">⬆️</div>
+                <div></div>
+
+                <div class="dpad-btn" onclick="sendMove('LEFT')" title="Bước sang dãy bên trái">⬅️</div>
+                <div class="dpad-btn center-bow" onclick="sendMove('BOW')" title="Chắp tay bái lạy">🙏 Bái</div>
+                <div class="dpad-btn" onclick="sendMove('RIGHT')" title="Bước sang dãy bên phải">➡️</div>
+
+                <div></div>
+                <div class="dpad-btn" onclick="sendMove('DOWN')" title="Lùi về sau">⬇️</div>
+                <div></div>
+            </div>
+
+            <!-- ZOOM PHÓNG TO THU NHỎ GÓC NHÌN PHÒNG -->
+            <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin: 10px 0 14px; font-size: 11px;">
+                <span style="color: #cbd5e1;">🔍 Góc nhìn phòng:</span>
+                <button onclick="tapAction('zoom_out')" style="padding: 5px 10px; background: #221c17; border: 1px solid #d4af37; color: #fff; border-radius: 6px; cursor: pointer; font-weight: bold;">− Thu Nhỏ</button>
+                <button onclick="tapAction('zoom_reset')" style="padding: 5px 10px; background: #221c17; border: 1px solid #d4af37; color: #ffd700; border-radius: 6px; cursor: pointer; font-weight: bold;">100%</button>
+                <button onclick="tapAction('zoom_in')" style="padding: 5px 10px; background: #221c17; border: 1px solid #d4af37; color: #fff; border-radius: 6px; cursor: pointer; font-weight: bold;">+ Phóng To</button>
+            </div>
+
+            <!-- CHỌN TRỰC TIẾP TỌA VỊ BỒ ĐOÀN -->
+            <div class="seat-picker">
+                <label>Hoặc bấm chọn Tọa Vị Bồ Đoàn để tự động bước tới:</label>
+                <div class="seat-grid" id="seat-chips-grid"></div>
+            </div>
+        </div>
+
+        <!-- 4 NGHI THỨC CHÍNH -->
+        <div class="action-grid">
+            <div class="action-card" onclick="tapAction('moc')">
+                <span class="icon">🪷</span>
+                <span class="label">Gõ Mõ Tụng Niệm</span>
+                <span class="sub">+1 Công đức • Thả sen</span>
+            </div>
+
+            <div class="action-card" onclick="tapAction('bell')">
+                <span class="icon">🔔</span>
+                <span class="label">Thỉnh Chuông Ngân</span>
+                <span class="sub">+2 Công đức • Chuông 528Hz</span>
+            </div>
+
+            <div class="action-card" onclick="tapAction('fortune')">
+                <span class="icon">🎋</span>
+                <span class="label">Xin Xăm AI</span>
+                <span class="sub">Lắc ống quẻ riêng</span>
+            </div>
+
+            <div class="action-card" onclick="tapAction('wish')">
+                <span class="icon">🌸</span>
+                <span class="label">Dâng Lễ Cầu An</span>
+                <span class="sub">Khấn nguyện thành tâm</span>
+            </div>
+        </div>
+
+        <div class="pray-box">
+            <input type="text" id="live-wish" placeholder="Gõ lời cầu nguyện để hiện lên Chánh Điện...">
+            <button onclick="sendLiveWish()">Gửi</button>
+        </div>
+
+        <div class="fortune-result-box" id="f-box">
+            <div class="f-title-h" id="f-t"></div>
+            <div class="f-poem-t" id="f-p"></div>
+            <div style="color:#fde047; font-size:11px;" id="f-m"></div>
+        </div>
+
+        <div class="link-overlay" style="margin-top:18px;">
+            📺 Mở màn hình Chánh Điện: <a href="/overlay" target="_blank">Xem Toàn Cảnh Live ↗</a>
+        </div>
+    </div>
+
+    <script>
+        // Tự động điền hoặc tự động đăng nhập nếu có Query Parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const qName = urlParams.get("name");
+        const qAvatar = urlParams.get("avatar");
+        const qWish = urlParams.get("wish");
+        const isAuto = urlParams.get("auto") === "1" || urlParams.get("join") === "1";
+
+        if (qName) document.getElementById("user-name").value = qName;
+        if (qAvatar) document.getElementById("user-avatar").value = qAvatar;
+        if (qWish) document.getElementById("user-wish").value = qWish;
+
+        let currentUser = "";
+        let currentAvatar = "novice";
+
+        if (isAuto && qName) {
+            submitJoin();
+        }
+
+        async function submitJoin() {
+            const name = document.getElementById("user-name").value.trim() || "Thí Chủ Diệu Tâm";
+            const avatar = document.getElementById("user-avatar").value;
+            const wish = document.getElementById("user-wish").value.trim() || "Thành tâm đảnh lễ Chánh Điện";
+
+            currentUser = name;
+            currentAvatar = avatar;
+
+            try {
+                await fetch("/api/join", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: name,
+                        avatar_type: avatar,
+                        wish: wish,
+                        is_vip: avatar === "high_monk"
+                    })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+
+            // Chuyển sang màn hình điều khiển cá nhân
+            document.getElementById("join-card").style.display = "none";
+            document.getElementById("active-panel").style.display = "block";
+            document.getElementById("p-name").innerText = name;
+            document.getElementById("p-avatar-ico").innerText = getAvatarIcon(avatar);
+            initSeatGrid();
+        }
+
+        // Tạo danh sách 40 tọa vị bồ đoàn để người dùng bấm chọn
+        function initSeatGrid() {
+            const grid = document.getElementById("seat-chips-grid");
+            grid.innerHTML = "";
+            for (let i = 1; i <= 36; i++) {
+                const chip = document.createElement("div");
+                chip.className = "seat-chip" + (i === 1 ? " active" : "");
+                chip.innerText = `#${i}`;
+                chip.onclick = () => selectSeat(i - 1, chip);
+                grid.appendChild(chip);
+            }
+        }
+
+        async function selectSeat(seatIdx, elem) {
+            document.querySelectorAll(".seat-chip").forEach(c => c.classList.remove("active"));
+            if (elem) elem.classList.add("active");
+            try {
+                await fetch("/api/devotee_move", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user: currentUser,
+                        seat_index: seatIdx
+                    })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function sendMove(direction) {
+            try {
+                await fetch("/api/devotee_move", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user: currentUser,
+                        direction: direction
+                    })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function getAvatarIcon(av) {
+            const icons = {
+                novice: "🧘",
+                monk: "📿",
+                nun: "🌸",
+                female: "🧕",
+                male: "👤",
+                elder: "👴",
+                high_monk: "👑"
+            };
+            return icons[av] || "🧘";
+        }
+
+        async function tapAction(action) {
+            if (action === "fortune") {
+                const wish = document.getElementById("live-wish").value.trim() || "Cầu an gia đạo, sự nghiệp hanh thông";
+                const res = await fetch("/api/devotee_action", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user: currentUser, action: "fortune", text: wish })
+                });
+                const data = await res.json();
+                if (data.fortune) {
+                    const box = document.getElementById("f-box");
+                    box.style.display = "block";
+                    document.getElementById("f-t").innerText = `${data.fortune.id} (${data.fortune.rank}): ${data.fortune.title}`;
+                    document.getElementById("f-p").innerText = data.fortune.poem;
+                    document.getElementById("f-m").innerText = `Lời bàn: ${data.fortune.meaning}`;
+                }
+            } else {
+                await fetch("/api/devotee_action", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user: currentUser, action: action })
+                });
+            }
+        }
+
+        async function sendLiveWish() {
+            const txt = document.getElementById("live-wish").value.trim();
+            if (!txt) return;
+            await fetch("/api/devotee_action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: currentUser, action: "wish", text: txt })
+            });
+            document.getElementById("live-wish").value = "";
+        }
+    </script>
+</body>
+</html>
