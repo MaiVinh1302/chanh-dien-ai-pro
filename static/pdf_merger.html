@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TT GROUP - Ultra Engine V4.0 Pro Suite | Xử Lý PDF Chuyên Nghiệp</title>
+  
+  <!-- CSS & UI Frameworks -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- PDF Core Engines -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  
+  <!-- Drag & Drop Sortable Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
+  <!-- PDF.js Worker Configuration with file:/// Fallback -->
+  <script>
+    try {
+      if (window.location.protocol === 'file:') {
+        // Fallback to inline main-thread parser on file:/// to prevent CORS worker security errors
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      } else {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+    } catch (e) {
+      console.warn('PDF.js worker fallback triggered:', e);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    }
+  </script>
+
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+    
+    .redaction-rect { position: absolute; border: 1px dashed #ef4444; cursor: pointer; transition: transform 0.1s; }
+    .redaction-rect:hover { transform: scale(1.02); filter: brightness(1.2); }
+    .stamp-overlay { position: absolute; cursor: move; border: 2px dashed #3b82f6; }
+    
+    /* Dragging animation */
+    .sortable-ghost { opacity: 0.3; background-color: rgba(30, 41, 59, 0.8); border: 2px dashed #3b82f6 !important; }
+    .sortable-chosen { background-color: rgba(15, 23, 42, 0.95); }
+    .drag-handle { cursor: grab; }
+    .drag-handle:active { cursor: grabbing; }
+  </style>
+</head>
+<body class="h-full text-slate-100 bg-slate-950 flex flex-col overflow-x-hidden select-none">
+
+  <!-- HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+    <div class="flex items-center space-x-4">
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black p-2.5 rounded-xl shadow-lg shadow-blue-500/20 flex items-center space-x-2">
+        <i class="fa-solid fa-file-pdf text-xl"></i>
+        <span class="tracking-wider">TT GROUP</span>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="text-xs font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded">ULTRA ENGINE V4.0 PRO</span>
+          <span class="text-xs text-slate-400 font-medium">Bộ Công Cụ Xử Lý PDF Chuyên Nghiệp (Build 2026)</span>
+        </div>
+        <div class="text-[11px] text-slate-500 mt-0.5">Tác giả: <strong class="text-slate-300">Mai Văn Vinh (TT GROUP)</strong> • Bảo Mật 100% Client-Side</div>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <!-- SHARE BUTTON -->
+      <button onclick="openShareHubModal()" class="px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-lg transition flex items-center space-x-2 shadow-sm">
+        <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+        <span>Chia sẻ App</span>
+      </button>
+
+      <!-- SETTINGS BUTTON -->
+      <button onclick="openCloudConfigModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium rounded-lg transition flex items-center space-x-2">
+        <i class="fa-solid fa-sliders text-slate-400"></i>
+        <span>Cài đặt Engine</span>
+      </button>
+
+      <!-- STATUS BADGE -->
+      <div class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs font-mono font-medium text-emerald-400">RAM 3GB+ Ready</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORKMODE NAVIGATION -->
+  <nav class="bg-slate-900/80 border-b border-slate-800 px-6 py-2 flex items-center space-x-2 shrink-0 overflow-x-auto custom-scrollbar">
+    <button onclick="switchWorkmode('split')" id="nav-btn-split" class="nav-tab active px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition bg-blue-600 text-white shadow-md shadow-blue-600/20">
+      <i class="fa-solid fa-scissors"></i>
+      <span>Tách PDF Thư Mục (&gt;200MB - 3GB)</span>
+    </button>
+    <button onclick="switchWorkmode('merge')" id="nav-btn-merge" class="nav-tab px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+      <i class="fa-solid fa-object-group"></i>
+      <span>Ghép nối, Sắp Xếp &amp; Đóng Dấu</span>
+    </button>
+    <button onclick="switchWorkmode('convert')" id="nav-btn-convert" class="nav-tab px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+      <i class="fa-solid fa-file-word"></i>
+      <span>Chuyển PDF sang Word / Excel</span>
+    </button>
+    <button onclick="switchWorkmode('edit')" id="nav-btn-edit" class="nav-tab px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+      <i class="fa-solid fa-pen-to-square"></i>
+      <span>Sửa WYSIWYG, Che Phủ &amp; Con Dấu</span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 p-6 max-w-[1880px] w-full mx-auto overflow-y-auto custom-scrollbar">
+
+    <!-- MODE 1: FOLDER SPLIT PDF -->
+    <section id="workmode-split" class="space-y-6">
+      <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 space-y-3">
+        <div class="flex items-center space-x-2 text-amber-400 font-bold text-sm">
+          <i class="fa-solid fa-folder-tree text-lg"></i>
+          <span>Công Cụ Quét Thư Mục Máy Tính &amp; Tự Động Tách PDF Dung Lượng Siêu Lớn</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Hệ thống tự động duyệt toàn bộ các thư mục, quét tìm các tệp PDF gốc tuân thủ chính xác theo khoảng dung lượng cấu hình (từ tối thiểu đến tối đa) và phân tách an toàn bộ nhớ (Adaptive Safe Buffer) chống tràn RAM trình duyệt.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- LEFT COLUMN: FILTER CONFIG + SCANNED FILES LIST -->
+        <div class="lg:col-span-5 space-y-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+            <i class="fa-solid fa-sliders text-amber-500"></i>
+            <span>1. Cấu hình bộ lọc &amp; Phương thức tách</span>
+          </h3>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Dung lượng tối thiểu (MB):</label>
+              <input type="number" id="folder-min-mb" value="0" min="0" oninput="applyFolderFilter()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Dung lượng tối đa (MB):</label>
+              <input type="number" id="folder-max-mb" value="3000" min="1" oninput="applyFolderFilter()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+
+          <!-- SPLIT METHOD SELECTOR -->
+          <div class="space-y-2 pt-1">
+            <label class="text-[11px] text-slate-400 block font-medium">Phương thức tách:</label>
+            <select id="split-method-select" onchange="toggleSplitMethodPanels()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer">
+              <option value="size">Tách theo Giới Hạn Dung Lượng (Mỗi tệp ≤ N MB)</option>
+              <option value="ranges">Tách theo dải trang phân cách (Mỗi dải 1 tệp riêng biệt)</option>
+              <option value="chunk">Tách đều theo số lượng trang cố định (VD: Mỗi 100 trang / file)</option>
+              <option value="single">Tách toàn bộ thành từng trang đơn lẻ (1 trang / 1 file)</option>
+            </select>
+          </div>
+
+          <!-- METHOD CONFIG: SIZE LIMIT WITH PRESETS -->
+          <div id="method-panel-size" class="space-y-2.5 pt-1">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] text-slate-400">Giới hạn dung lượng mỗi file sau tách (MB):</label>
+              <span class="text-[10px] text-emerald-400 font-mono">Hệ số an toàn: 88%</span>
+            </div>
+            <input type="number" id="folder-target-mb" value="189" min="1" max="500" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+            
+            <!-- QUICK PRESET BUTTONS -->
+            <div class="grid grid-cols-4 gap-2 pt-1">
+              <button type="button" onclick="setTargetMBPreset(25)" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-semibold transition border border-slate-700 hover:border-amber-500/50">25MB (Email)</button>
+              <button type="button" onclick="setTargetMBPreset(50)" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-semibold transition border border-slate-700 hover:border-amber-500/50">50MB</button>
+              <button type="button" onclick="setTargetMBPreset(100)" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-semibold transition border border-slate-700 hover:border-amber-500/50">100MB</button>
+              <button type="button" onclick="setTargetMBPreset(195)" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-semibold transition border border-slate-700 hover:border-amber-500/50">195MB (≤200MB)</button>
+            </div>
+          </div>
+
+          <!-- METHOD CONFIG: PAGE RANGES -->
+          <div id="method-panel-ranges" class="space-y-2 pt-1 hidden">
+            <label class="text-[11px] text-slate-400 block">Nhập dải trang phân cách (ví dụ: 1-50, 51-120, 121-200):</label>
+            <input type="text" id="split-ranges-input" placeholder="1-50, 51-120, 121-200" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-amber-500">
+            <p class="text-[10px] text-slate-500">Mỗi dải trang sẽ được xuất thành 1 tệp PDF con riêng biệt.</p>
+          </div>
+
+          <!-- METHOD CONFIG: PAGE CHUNK -->
+          <div id="method-panel-chunk" class="space-y-2 pt-1 hidden">
+            <label class="text-[11px] text-slate-400 block">Số lượng trang cố định cho mỗi tệp con:</label>
+            <input type="number" id="split-chunk-pages" value="100" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-amber-500">
+            <p class="text-[10px] text-slate-500">Ví dụ: Tệp 350 trang chọn 100 trang/file sẽ chia thành 4 tệp (100, 100, 100, 50 trang).</p>
+          </div>
+
+          <!-- METHOD CONFIG: SINGLE PAGE NOTE -->
+          <div id="method-panel-single" class="p-3 bg-slate-950 border border-slate-800 rounded-lg text-[11px] text-slate-400 hidden space-y-1">
+            <span class="text-amber-400 font-semibold block"><i class="fa-solid fa-circle-info mr-1"></i>Tách trang đơn lẻ:</span>
+            <p>Mỗi trang trong file PDF gốc sẽ được trích xuất thành 1 file PDF 1 trang độc lập.</p>
+          </div>
+
+          <input type="file" id="fallback-folder-input" webkitdirectory directory multiple class="hidden" onchange="handleFallbackFolderSelect(event)">
+          <input type="file" id="split-file-input" accept=".pdf" multiple class="hidden" onchange="handleSplitFilesSelect(event)">
+
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <button type="button" onclick="triggerFolderSelect()" class="py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center space-x-1.5">
+              <i class="fa-solid fa-folder-open"></i>
+              <span>Quét Thư Mục</span>
+            </button>
+            <button type="button" onclick="document.getElementById('split-file-input').click()" class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center justify-center space-x-1.5">
+              <i class="fa-solid fa-file-circle-plus"></i>
+              <span>Chọn File Lẻ</span>
+            </button>
+          </div>
+
+          <button type="button" onclick="executeBatchFolderAutoSplit()" id="btn-start-folder-split" disabled class="w-full py-3 bg-blue-600 opacity-50 hover:opacity-100 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Bắt Đầu Tách Các File Được Chọn</span>
+          </button>
+
+          <div class="pt-4 border-t border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-list-check text-amber-500"></i>
+                <span>2. Danh sách PDF gốc đã quét (<span id="folder-file-count">0</span> Tệp)</span>
+              </h4>
+              <button type="button" onclick="toggleSelectAllScannedFiles()" class="text-[11px] text-amber-400 hover:text-amber-300 font-medium">
+                Chọn tất cả / Bỏ chọn
+              </button>
+            </div>
+
+            <div id="folder-scanned-list" class="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar pr-1">
+              <div class="text-center py-10 text-slate-500 text-xs">Chưa chọn thư mục hoặc file nào để quét.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: SPLIT OUTPUT RESULT CARDS -->
+        <div class="lg:col-span-7">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-box-archive text-amber-500"></i>
+                <span>KẾT QUẢ TÁCH TỆP THƯ MỤC (<span id="folder-result-count">0</span> TỆP)</span>
+              </h3>
+              <div class="flex items-center space-x-2">
+                <button onclick="clearFolderSplitResults()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs rounded-lg transition">Xóa kết quả</button>
+                <button onclick="downloadAllFolderSplitBlobsPaced()" id="btn-download-all-folder" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+                  <i class="fa-solid fa-download"></i>
+                  <span>Tải về tất cả các file</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="folder-progress-container" class="hidden space-y-1.5">
+              <div class="flex justify-between text-[11px] text-slate-400">
+                <span id="folder-progress-label">Đang tiến hành tách các tệp được chọn...</span>
+                <span id="folder-progress-percent">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden">
+                <div id="folder-progress-bar" class="h-full bg-amber-500 transition-all duration-200" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div id="folder-results-list" class="space-y-3 min-h-[500px] max-h-[720px] overflow-y-auto custom-scrollbar pr-1">
+              <div class="text-center py-20 text-slate-500 text-xs">
+                <i class="fa-solid fa-folder-tree text-4xl mb-3 block opacity-30"></i>
+                <span>Chưa có kết quả tách nào. Chọn tệp bên trái và bấm "Bắt Đầu Tách Các File Được Chọn".</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODE 2: MERGE ENGINE (ENHANCED DRAG & DROP + ROTATION + WATERMARK) -->
+    <section id="workmode-merge" class="hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        
+        <!-- DROPZONE -->
+        <div id="dropzone-merge" class="border-2 border-dashed border-slate-700 hover:border-blue-500 bg-slate-950/50 rounded-xl p-8 text-center cursor-pointer transition group">
+          <input type="file" id="file-input-merge" accept=".pdf" multiple class="hidden">
+          <input type="file" id="folder-input-merge" webkitdirectory directory multiple class="hidden" onchange="handleMergeFolderSelect(event)">
+          <i class="fa-solid fa-object-group text-4xl text-blue-500 mb-3 group-hover:scale-110 transition block"></i>
+          <p class="text-sm font-semibold text-slate-200">Kéo &amp; Thả nhiều tệp PDF hoặc Nhấp chọn tệp để ghép nối</p>
+          <div class="flex items-center justify-center space-x-3 mt-3">
+            <button type="button" onclick="event.stopPropagation(); document.getElementById('file-input-merge').click()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition">
+              <i class="fa-solid fa-file-pdf mr-1"></i> Chọn Tệp PDF
+            </button>
+            <button type="button" onclick="event.stopPropagation(); document.getElementById('folder-input-merge').click()" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-lg transition">
+              <i class="fa-solid fa-folder-open mr-1"></i> Chọn Thư Mục Máy Tính Để Quét
+            </button>
+          </div>
+        </div>
+
+        <!-- WATERMARK & OPTIONS TOOLBAR -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="merge-watermark-enable" class="w-4 h-4 text-blue-600 bg-slate-900 border-slate-700 rounded focus:ring-0">
+                <span class="text-xs font-bold text-slate-300"><i class="fa-solid fa-certificate text-amber-400 mr-1.5"></i>Đóng Dấu Bản Quyền / Hồ Sơ Thầu (Watermark)</span>
+              </label>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              <i class="fa-solid fa-hand-pointer text-blue-400 mr-1"></i>Mẹo: Bạn có thể <strong class="text-slate-200">nắm kéo biểu tượng 6 chấm (⋮⋮)</strong> để đảo thứ tự tệp!
+            </div>
+          </div>
+
+          <!-- WATERMARK CONTROLS COLLAPSIBLE -->
+          <div id="merge-watermark-panel" class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 border-t border-slate-800/80">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Nội dung con dấu:</label>
+              <input type="text" id="merge-watermark-text" value="DỰ THẢO - DRAFT" placeholder="Ví dụ: HỒ SƠ MẬT, BẢN VẼ HOÀN CÔNG" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Mẫu nhanh:</label>
+              <select onchange="document.getElementById('merge-watermark-text').value = this.value" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 cursor-pointer">
+                <option value="DỰ THẢO - DRAFT">DỰ THẢO - DRAFT</option>
+                <option value="HỒ SƠ MẬT - CONFIDENTIAL">HỒ SƠ MẬT</option>
+                <option value="BẢN VẼ PHÁT HÀNH THI CÔNG">BẢN VẼ THI CÔNG</option>
+                <option value="BẢN VẼ HOÀN CÔNG CHUẨN">BẢN VẼ HOÀN CÔNG</option>
+                <option value="CHỈ DÙNG ĐẤU THẦU">CHỈ DÙNG ĐẤU THẦU</option>
+                <option value="ĐÃ NGHIỆM THU - TT GROUP">ĐÃ NGHIỆM THU</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Màu sắc &amp; Độ mờ (Opacity):</label>
+              <select id="merge-watermark-color" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 cursor-pointer">
+                <option value="gray-0.2">Xám nhạt (20% Opacity) - Khuyên dùng</option>
+                <option value="gray-0.35">Xám đậm (35% Opacity)</option>
+                <option value="red-0.25">Đỏ cảnh báo (25% Opacity)</option>
+                <option value="blue-0.25">Xanh dương (25% Opacity)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Góc nghiêng chữ:</label>
+              <select id="merge-watermark-angle" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 cursor-pointer">
+                <option value="-45">Chéo góc -45° (Chuẩn công văn)</option>
+                <option value="0">Nằm ngang 0°</option>
+                <option value="45">Chéo ngược +45°</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTION BAR -->
+        <div class="flex items-center justify-between pt-2">
+          <div class="flex items-center space-x-3">
+            <button onclick="clearMergeQueue()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg font-medium transition">
+              <i class="fa-solid fa-trash mr-1 text-slate-400"></i> Xóa toàn bộ
+            </button>
+            <span class="text-xs text-slate-400">Tổng tệp: <strong class="text-blue-400 font-mono" id="merge-total-files">0</strong> | Tổng dung lượng: <strong class="text-emerald-400 font-mono" id="merge-total-size">0 MB</strong></span>
+          </div>
+          <button onclick="processAndMergePDFs()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/25 transition flex items-center space-x-2">
+            <i class="fa-solid fa-layer-group text-sm"></i>
+            <span>Tiến hành Ghép Nối PDF</span>
+          </button>
+        </div>
+
+        <!-- QUEUE LIST (SORTABLE) -->
+        <div id="merge-files-queue" class="space-y-3 pt-4 border-t border-slate-800 min-h-[300px]">
+          <p class="text-center text-xs text-slate-500 py-12">Hàng chờ ghép nối trống. Vui lòng kéo thả file hoặc quét thư mục.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODE 3: CONVERT TO WORD / EXCEL -->
+    <section id="workmode-convert" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+            <i class="fa-solid fa-gear text-emerald-500"></i>
+            <span>Cấu hình xuất bản &amp; Định dạng chuẩn</span>
+          </h3>
+          <div id="dropzone-convert" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/50 rounded-xl p-8 text-center cursor-pointer transition">
+            <input type="file" id="file-input-convert" accept=".pdf" multiple class="hidden">
+            <i class="fa-solid fa-file-word text-3xl text-emerald-500 mb-2 block"></i>
+            <span class="text-xs font-semibold text-slate-300">Nạp tệp PDF để chuyển đổi sang Word/Excel</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <button onclick="selectTargetFormat('doc')" id="fmt-btn-doc" class="py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg border border-emerald-500 flex items-center justify-center space-x-2 transition">
+              <i class="fa-solid fa-file-word"></i><span>MS Word (.doc)</span>
+            </button>
+            <button onclick="selectTargetFormat('xls')" id="fmt-btn-xls" class="py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-lg border border-slate-700 flex items-center justify-center space-x-2 transition">
+              <i class="fa-solid fa-file-excel"></i><span>MS Excel (.xls)</span>
+            </button>
+          </div>
+
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5 text-[11px] text-slate-400">
+            <span class="text-emerald-400 font-bold block"><i class="fa-solid fa-circle-info mr-1"></i>Lưu ý cấu trúc tài liệu:</span>
+            <p>Hệ thống tự động phân tích vector text và cấu trúc bảng theo trục Y/X. Đối với tệp bản vẽ hoặc scan không có text, ứng dụng sẽ cảnh báo trực tiếp.</p>
+          </div>
+
+          <button onclick="startBatchPDFConversion()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-arrows-rotate mr-1.5"></i><span>Bắt đầu Chuyển Đổi Nâng Cao</span>
+          </button>
+        </div>
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Hàng chờ tệp chuyển đổi</h3>
+            <button onclick="clearConvertQueue()" class="text-xs text-slate-400 hover:text-slate-200">Xóa hàng chờ</button>
+          </div>
+          <div id="convert-files-queue" class="space-y-3 min-h-[300px]">
+            <p class="text-center text-xs text-slate-500 py-12">Chưa có tệp nào trong hàng chờ.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODE 4: EDIT WYSIWYG, REDACTION, STAMP & ROTATION -->
+    <section id="workmode-edit" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div id="dropzone-edit" class="border-2 border-dashed border-slate-700 hover:border-blue-500 bg-slate-950/50 rounded-xl p-6 text-center cursor-pointer transition">
+            <input type="file" id="file-input-edit" accept=".pdf" class="hidden">
+            <i class="fa-solid fa-pen-to-square text-2xl text-blue-400 mb-1 block"></i>
+            <span class="text-xs font-semibold text-slate-300">Nạp tệp PDF để chỉnh sửa trực quan</span>
+          </div>
+
+          <!-- PAGE NAVIGATION & ZOOM & ROTATE -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+            <div class="flex items-center space-x-1">
+              <button onclick="changeEditorPage(-1)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition" title="Trang trước">&lt;</button>
+              <span id="editor-page-num" class="text-xs text-slate-300 font-mono font-bold px-1.5">1 / 1</span>
+              <button onclick="changeEditorPage(1)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition" title="Trang sau">&gt;</button>
+            </div>
+            
+            <div class="flex items-center space-x-1.5">
+              <!-- ROTATE CURRENT PAGE -->
+              <button onclick="rotateEditorPage(90)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs rounded transition" title="Xoay trang hiện tại 90°">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              
+              <div class="flex items-center space-x-1 pl-1 border-l border-slate-800">
+                <button onclick="zoomEditor(-0.1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition">-</button>
+                <span id="editor-zoom-label" class="text-xs text-slate-400 font-mono">100%</span>
+                <button onclick="zoomEditor(0.1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- REDACTION COLOR & OPTIONS -->
+          <div class="space-y-2 pt-2">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] text-slate-400 font-medium">Màu sắc che phủ:</label>
+              <div class="flex items-center space-x-1.5">
+                <button onclick="setRedactionColor('black')" id="redact-color-black" class="w-5 h-5 rounded-full bg-black border-2 border-blue-500 transition" title="Màu đen (Bảo mật thông tin)"></button>
+                <button onclick="setRedactionColor('white')" id="redact-color-white" class="w-5 h-5 rounded-full bg-white border border-slate-600 transition" title="Màu trắng (Xóa nền / chữ in sai)"></button>
+                <button onclick="setRedactionColor('red')" id="redact-color-red" class="w-5 h-5 rounded-full bg-rose-600 border border-slate-600 transition" title="Màu đỏ (Khung cảnh báo)"></button>
+              </div>
+            </div>
+
+            <button onclick="toggleRedactionMode()" id="btn-redact-tool" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center justify-center space-x-2 transition">
+              <i class="fa-solid fa-vector-square text-rose-400"></i><span id="redact-btn-text">Vẽ Khung Che Phủ (Kéo chuột)</span>
+            </button>
+            
+            <button onclick="triggerStampUpload()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center justify-center space-x-2 transition">
+              <i class="fa-solid fa-stamp text-amber-400"></i><span>Chèn Con Dấu / Chữ Ký (PNG)</span>
+            </button>
+            <input type="file" id="stamp-file-input" accept="image/png,image/jpeg" class="hidden" onchange="handleStampSelect(event)">
+          </div>
+
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1 text-[11px] text-slate-400">
+            <span class="text-blue-400 font-semibold block"><i class="fa-solid fa-lightbulb mr-1"></i>Thao tác:</span>
+            <p>• Nhấp vào khung che đã vẽ để xóa bỏ.</p>
+            <p>• Kéo con dấu để di chuyển đến vị trí mong muốn.</p>
+          </div>
+
+          <button onclick="exportEditedPDF()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-floppy-disk"></i><span>Xuất PDF Mới (Lưu Mọi Thay Đổi)</span>
+          </button>
+        </div>
+
+        <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-4 overflow-auto custom-scrollbar flex items-center justify-center min-h-[650px]">
+          <div id="editor-canvas-container" class="relative bg-white shadow-2xl rounded">
+            <canvas id="editor-canvas"></canvas>
+            <div id="editor-overlay" class="absolute inset-0 pointer-events-auto"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SHARE HUB MODAL -->
+  <div id="share-hub-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-200">Chia Sẻ &amp; Triển Khai PDF Suite</h3>
+            <p class="text-[11px] text-slate-400">Sử dụng trên mọi máy tính, tablet, điện thoại trong mạng nội bộ</p>
+          </div>
+        </div>
+        <button onclick="closeShareHubModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- LINK LOCAL -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-slate-300 block">Địa chỉ truy cập Web trực tiếp (Localhost / Server):</label>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="share-web-url" readonly value="http://127.0.0.1:8000/pdf-merger" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-indigo-300 focus:outline-none">
+            <button onclick="copyShareUrl()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition flex items-center space-x-1">
+              <i class="fa-solid fa-copy"></i>
+              <span>Sao chép</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- OPTIONS BUTTONS -->
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button onclick="triggerNativeShare()" class="p-3 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-xl text-left transition space-y-1">
+            <div class="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
+              <i class="fa-solid fa-paper-plane text-indigo-400"></i>
+              <span>Web Share API</span>
+            </div>
+            <p class="text-[10px] text-slate-400">Gửi link qua Zalo, Messenger, Email ngay trên thiết bị</p>
+          </button>
+          <button onclick="downloadSelfHtml()" class="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-left transition space-y-1">
+            <div class="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
+              <i class="fa-solid fa-download text-emerald-400"></i>
+              <span>Tải file Offline .HTML</span>
+            </div>
+            <p class="text-[10px] text-slate-400">Mang theo USB, chạy offline không cần cài đặt</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-2 text-center">
+        <button onclick="closeShareHubModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG SETTINGS MODAL -->
+  <div id="cloud-config-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-slate-200 flex items-center space-x-2">
+          <i class="fa-solid fa-sliders text-blue-400"></i>
+          <span>Cài Đặt Cấu Hình Engine V4.0</span>
+        </h3>
+        <button onclick="closeCloudConfigModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-300">
+        <div>
+          <label class="block mb-1 text-[11px] text-slate-400">Giới hạn dung lượng an toàn cảnh báo (MB):</label>
+          <input type="number" id="setting-safe-limit" value="500" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+        </div>
+        <div>
+          <label class="block mb-1 text-[11px] text-slate-400">Độ giãn cách tải file Batch Paced (ms):</label>
+          <input type="number" id="setting-paced-ms" value="1500" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+        </div>
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1 text-[11px] text-slate-400">
+          <span class="text-blue-400 font-semibold block">Thông tin bộ nhớ:</span>
+          <p>Trình duyệt đã kích hoạt chế độ Adaptive Memory Release để xử lý an toàn các tệp PDF xây dựng lớn.</p>
+        </div>
+      </div>
+      <div class="pt-2 flex justify-end space-x-2">
+        <button onclick="closeCloudConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">Hủy</button>
+        <button onclick="saveEngineConfig()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition">Lưu cấu hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // GLOBAL STATE
+    let currentWorkmode = 'split';
+    let rawScannedPdfFiles = []; 
+    let scannedFolderFiles = [];    
+    let folderSplitResultBlobs = [];
+
+    let mergeQueue = [];
+    let convertQueue = [];
+    let targetConvertFormat = 'doc';
+
+    let editorPdfDoc = null;
+    let editorCurrentPage = 1;
+    let editorScale = 1.0;
+    let editorPdfBytes = null;
+    let isRedactActive = false;
+    let redactionRects = [];
+    let stampOverlays = [];
+    let currentRedactColor = 'black';
+    let editorPageRotation = 0;
+
+    let sortableMergeInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setupDropzones();
+      setupCanvasRedactionEvents();
+      initSortableMergeQueue();
+      updateShareWebUrl();
+    });
+
+    function switchWorkmode(mode) {
+      currentWorkmode = mode;
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById(`nav-btn-${mode}`).classList.add('bg-blue-600', 'text-white', 'shadow-md');
+
+      ['split', 'merge', 'convert', 'edit'].forEach(m => {
+        document.getElementById(`workmode-${m}`).classList.add('hidden');
+      });
+      document.getElementById(`workmode-${mode}`).classList.remove('hidden');
+
+      if (mode === 'merge') {
+        renderMergeQueue();
+      }
+    }
+
+    function setupDropzones() {
+      const dropzoneConfigs = [
+        { id: 'dropzone-merge', inputId: 'file-input-merge', handler: handleMergeFileSelect },
+        { id: 'dropzone-convert', inputId: 'file-input-convert', handler: handleConvertFileSelect },
+        { id: 'dropzone-edit', inputId: 'file-input-edit', handler: handleEditFileSelect }
+      ];
+
+      dropzoneConfigs.forEach(cfg => {
+        const zone = document.getElementById(cfg.id);
+        const input = document.getElementById(cfg.inputId);
+        if (!zone || !input) return;
+
+        zone.addEventListener('click', (e) => {
+          if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+            input.click();
+          }
+        });
+
+        input.addEventListener('change', (e) => cfg.handler(e.target.files));
+
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('border-blue-500');
+        });
+
+        zone.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          zone.classList.remove('border-blue-500');
+        });
+
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.classList.remove('border-blue-500');
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            cfg.handler(e.dataTransfer.files);
+          }
+        });
+      });
+    }
+
+    // SAFE PDF BUFFER WITH MAGIC BYTES SEARCH
+    function prepareSafePdfBuffer(rawArrayBuffer) {
+      let uint8 = new Uint8Array(rawArrayBuffer);
+      let headerPos = 0;
+      for (let i = 0; i < Math.min(uint8.length, 1024); i++) {
+        if (uint8[i] === 0x25 && uint8[i+1] === 0x50 && uint8[i+2] === 0x44 && uint8[i+3] === 0x56) { // %PDF
+          headerPos = i;
+          break;
+        }
+      }
+      if (headerPos > 0) {
+        return uint8.subarray(headerPos).buffer;
+      }
+      return rawArrayBuffer;
+    }
+
+    function getParsedMBValue(inputId, fallbackVal) {
+      const el = document.getElementById(inputId);
+      if (!el) return fallbackVal;
+      const parsed = parseFloat(el.value);
+      return (!isNaN(parsed) && parsed > 0) ? parsed : fallbackVal;
+    }
+
+    // ==========================================
+    // 1. SPLIT ENGINE
+    // ==========================================
+    function toggleSplitMethodPanels() {
+      const method = document.getElementById('split-method-select').value;
+      ['size', 'ranges', 'chunk', 'single'].forEach(m => {
+        const panel = document.getElementById(`method-panel-${m}`);
+        if (panel) panel.classList.add('hidden');
+      });
+      const activePanel = document.getElementById(`method-panel-${method}`);
+      if (activePanel) activePanel.classList.remove('hidden');
+    }
+
+    function setTargetMBPreset(mbValue) {
+      document.getElementById('folder-target-mb').value = mbValue;
+      showToast(`Đã chọn giới hạn dung lượng: ${mbValue} MB`, 'info');
+    }
+
+    function triggerFolderSelect() {
+      document.getElementById('fallback-folder-input').click();
+    }
+
+    function handleSplitFilesSelect(event) {
+      const files = Array.from(event.target.files);
+      const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      if (pdfs.length === 0) return;
+      rawScannedPdfFiles = rawScannedPdfFiles.concat(pdfs);
+      applyFolderFilter();
+      showToast(`Đã thêm ${pdfs.length} tệp PDF vào danh sách lọc!`, 'success');
+    }
+
+    function handleFallbackFolderSelect(event) {
+      const files = Array.from(event.target.files);
+      rawScannedPdfFiles = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      applyFolderFilter();
+
+      if (scannedFolderFiles.length > 0) {
+        showToast(`Đã quét thấy ${scannedFolderFiles.length} tệp PDF phù hợp bộ lọc!`, 'success');
+      } else {
+        showToast('Không tìm thấy tệp PDF nào phù hợp khoảng dung lượng đã nhập.', 'warning');
+      }
+    }
+
+    function applyFolderFilter() {
+      const minMB = getParsedMBValue('folder-min-mb', 0);
+      const maxMB = getParsedMBValue('folder-max-mb', 3000);
+
+      scannedFolderFiles = rawScannedPdfFiles.filter(f => {
+        const sizeMB = f.size / (1024 * 1024);
+        return sizeMB >= minMB && sizeMB <= maxMB;
+      }).map(f => ({
+        file: f,
+        name: f.name,
+        sizeMB: (f.size / (1024 * 1024)).toFixed(1),
+        selected: true
+      }));
+
+      document.getElementById('folder-file-count').innerText = scannedFolderFiles.length;
+      document.getElementById('btn-start-folder-split').disabled = scannedFolderFiles.length === 0;
+
+      renderScannedFolderList();
+    }
+
+    function renderScannedFolderList() {
+      const container = document.getElementById('folder-scanned-list');
+      container.innerHTML = '';
+
+      if (scannedFolderFiles.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-slate-500 text-xs">Không có tệp PDF nào khớp bộ lọc.</div>';
+        return;
+      }
+
+      scannedFolderFiles.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs hover:border-slate-700 transition";
+        div.innerHTML = `
+          <div class="flex items-center space-x-2.5 truncate">
+            <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleScannedFileSelection(${idx})" class="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-0 cursor-pointer">
+            <i class="fa-solid fa-file-pdf text-amber-500 text-sm"></i>
+            <span class="truncate text-slate-200 font-medium">${item.name}</span>
+          </div>
+          <span class="text-[11px] font-mono text-amber-400/90 shrink-0 ml-2">${item.sizeMB} MB</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleScannedFileSelection(idx) {
+      if (scannedFolderFiles[idx]) {
+        scannedFolderFiles[idx].selected = !scannedFolderFiles[idx].selected;
+      }
+    }
+
+    function toggleSelectAllScannedFiles() {
+      const hasUnchecked = scannedFolderFiles.some(f => !f.selected);
+      scannedFolderFiles.forEach(f => f.selected = hasUnchecked);
+      renderScannedFolderList();
+    }
+
+    async function executeBatchFolderAutoSplit() {
+      const selectedFiles = scannedFolderFiles.filter(f => f.selected);
+      if (selectedFiles.length === 0) {
+        showToast('Vui lòng tích chọn ít nhất 1 tệp PDF để tách!', 'warning');
+        return;
+      }
+
+      const method = document.getElementById('split-method-select').value;
+      showToast(`Bắt đầu tách ${selectedFiles.length} tệp đã chọn...`, 'info');
+
+      const progressContainer = document.getElementById('folder-progress-container');
+      const progressBar = document.getElementById('folder-progress-bar');
+      const progressPercent = document.getElementById('folder-progress-percent');
+      const progressLabel = document.getElementById('folder-progress-label');
+
+      progressContainer.classList.remove('hidden');
+      folderSplitResultBlobs = [];
+
+      let processedCount = 0;
+
+      for (let item of selectedFiles) {
+        try {
+          progressLabel.innerText = `Đang phân tách: ${item.name}`;
+          const rawBuffer = await item.file.arrayBuffer();
+          const safeBuffer = prepareSafePdfBuffer(rawBuffer);
+          const srcDoc = await PDFLib.PDFDocument.load(safeBuffer, { ignoreEncryption: true });
+          const totalPages = srcDoc.getPageCount();
+
+          if (totalPages === 0) continue;
+          const baseName = item.name.replace(/\.pdf$/i, '');
+
+          if (method === 'size') {
+            const inputTargetMB = getParsedMBValue('folder-target-mb', 189);
+            const targetMB = Math.max(5, inputTargetMB * 0.88); // 88% safety factor against chunk oversize
+            const fileMB = item.file.size / (1024 * 1024);
+            const estimatedPageMB = fileMB / totalPages;
+            let pagesPerChunk = Math.max(1, Math.floor(targetMB / estimatedPageMB));
+
+            let currentStartPage = 0;
+            let partIndex = 1;
+
+            while (currentStartPage < totalPages) {
+              let currentEndPage = Math.min(currentStartPage + pagesPerChunk, totalPages);
+              let pageIndices = [];
+              for (let p = currentStartPage; p < currentEndPage; p++) {
+                pageIndices.push(p);
+              }
+
+              if (pageIndices.length === 0) break;
+
+              const chunkDoc = await PDFLib.PDFDocument.create();
+              const copiedPages = await chunkDoc.copyPages(srcDoc, pageIndices);
+              copiedPages.forEach(page => chunkDoc.addPage(page));
+
+              const pdfBytes = await chunkDoc.save();
+              const chunkBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+              const chunkMB = (chunkBlob.size / (1024 * 1024)).toFixed(1);
+
+              const chunkFileName = `${baseName}_Doan_${partIndex}_(Trang_${currentStartPage + 1}-${currentEndPage}).pdf`;
+
+              folderSplitResultBlobs.push({
+                name: chunkFileName,
+                blob: chunkBlob,
+                pages: pageIndices.length,
+                sizeMB: chunkMB
+              });
+
+              renderFolderSplitResults();
+              currentStartPage = currentEndPage;
+              partIndex++;
+            }
+
+          } else if (method === 'ranges') {
+            const rangeInputStr = document.getElementById('split-ranges-input').value.trim();
+            if (!rangeInputStr) {
+              showToast('Vui lòng nhập dải trang phân cách!', 'warning');
+              progressContainer.classList.add('hidden');
+              return;
+            }
+
+            const rangeParts = rangeInputStr.split(',');
+            let partIndex = 1;
+
+            for (let part of rangeParts) {
+              part = part.trim();
+              let pageIndices = parsePageRangeString(part, totalPages);
+
+              if (pageIndices.length > 0) {
+                const chunkDoc = await PDFLib.PDFDocument.create();
+                const copiedPages = await chunkDoc.copyPages(srcDoc, pageIndices);
+                copiedPages.forEach(page => chunkDoc.addPage(page));
+
+                const pdfBytes = await chunkDoc.save();
+                const chunkBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const chunkMB = (chunkBlob.size / (1024 * 1024)).toFixed(1);
+
+                const chunkFileName = `${baseName}_Dai_${partIndex}_(${part.replace(/\s+/g, '')}).pdf`;
+
+                folderSplitResultBlobs.push({
+                  name: chunkFileName,
+                  blob: chunkBlob,
+                  pages: pageIndices.length,
+                  sizeMB: chunkMB
+                });
+
+                renderFolderSplitResults();
+                partIndex++;
+              }
+            }
+
+          } else if (method === 'chunk') {
+            const chunkSize = Math.max(1, parseInt(document.getElementById('split-chunk-pages').value) || 100);
+            let currentStartPage = 0;
+            let partIndex = 1;
+
+            while (currentStartPage < totalPages) {
+              let currentEndPage = Math.min(currentStartPage + chunkSize, totalPages);
+              let pageIndices = [];
+              for (let p = currentStartPage; p < currentEndPage; p++) {
+                pageIndices.push(p);
+              }
+
+              const chunkDoc = await PDFLib.PDFDocument.create();
+              const copiedPages = await chunkDoc.copyPages(srcDoc, pageIndices);
+              copiedPages.forEach(page => chunkDoc.addPage(page));
+
+              const pdfBytes = await chunkDoc.save();
+              const chunkBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+              const chunkMB = (chunkBlob.size / (1024 * 1024)).toFixed(1);
+
+              const chunkFileName = `${baseName}_Tap_${partIndex}_(Trang_${currentStartPage + 1}-${currentEndPage}).pdf`;
+
+              folderSplitResultBlobs.push({
+                name: chunkFileName,
+                blob: chunkBlob,
+                pages: pageIndices.length,
+                sizeMB: chunkMB
+              });
+
+              renderFolderSplitResults();
+              currentStartPage = currentEndPage;
+              partIndex++;
+            }
+
+          } else if (method === 'single') {
+            for (let p = 0; p < totalPages; p++) {
+              const chunkDoc = await PDFLib.PDFDocument.create();
+              const copiedPages = await chunkDoc.copyPages(srcDoc, [p]);
+              copiedPages.forEach(page => chunkDoc.addPage(page));
+
+              const pdfBytes = await chunkDoc.save();
+              const chunkBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+              const chunkMB = (chunkBlob.size / (1024 * 1024)).toFixed(2);
+
+              const chunkFileName = `${baseName}_Trang_${p + 1}.pdf`;
+
+              folderSplitResultBlobs.push({
+                name: chunkFileName,
+                blob: chunkBlob,
+                pages: 1,
+                sizeMB: chunkMB
+              });
+
+              if (p % 5 === 0 || p === totalPages - 1) {
+                renderFolderSplitResults();
+              }
+            }
+          }
+
+        } catch (err) {
+          console.error("Lỗi khi xử lý file:", item.name, err);
+          showToast(`Lỗi tách tệp ${item.name}: ${err.message}`, 'error');
+        }
+
+        processedCount++;
+        const pct = Math.round((processedCount / selectedFiles.length) * 100);
+        progressBar.style.width = `${pct}%`;
+        progressPercent.innerText = `${pct}% (${processedCount}/${selectedFiles.length})`;
+      }
+
+      progressLabel.innerText = "Hoàn thành toàn bộ tiến trình tách tệp!";
+      showToast(`Đã hoàn tất tách thành công ${folderSplitResultBlobs.length} tệp con!`, 'success');
+    }
+
+    function renderFolderSplitResults() {
+      const container = document.getElementById('folder-results-list');
+      const countEl = document.getElementById('folder-result-count');
+      countEl.innerText = folderSplitResultBlobs.length;
+
+      if (folderSplitResultBlobs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-20 text-slate-500 text-xs">
+            <i class="fa-solid fa-folder-tree text-4xl mb-3 block opacity-30"></i>
+            <span>Chưa có kết quả tách nào. Chọn tệp bên trái và bấm "Bắt Đầu Tách Các File Được Chọn".</span>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      folderSplitResultBlobs.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between hover:border-slate-700 transition";
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 truncate">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono text-xs font-bold border border-emerald-500/20">
+              ${idx + 1}
+            </div>
+            <div class="truncate">
+              <p class="text-xs font-bold text-slate-200 truncate">${item.name}</p>
+              <p class="text-[11px] text-slate-400">${item.sizeMB} MB • <span class="text-slate-300 font-mono">${item.pages}</span> trang</p>
+            </div>
+          </div>
+          <button onclick="downloadSingleFolderSplitBlob(${idx})" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition shrink-0 ml-3">
+            <i class="fa-solid fa-download"></i><span>Tải về</span>
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function clearFolderSplitResults() {
+      folderSplitResultBlobs = [];
+      renderFolderSplitResults();
+      document.getElementById('folder-progress-container').classList.add('hidden');
+    }
+
+    function downloadSingleFolderSplitBlob(idx) {
+      const item = folderSplitResultBlobs[idx];
+      if (!item) return;
+      saveBlobFile(item.blob, item.name);
+    }
+
+    async function downloadAllFolderSplitBlobsPaced() {
+      if (folderSplitResultBlobs.length === 0) {
+        showToast('Chưa có file nào để tải về!', 'warning');
+        return;
+      }
+      const paceMs = parseInt(document.getElementById('setting-paced-ms')?.value) || 1200;
+      showToast(`Đang khởi chạy luồng tải về an toàn (${paceMs}ms/file)...`, 'info');
+      for (let i = 0; i < folderSplitResultBlobs.length; i++) {
+        downloadSingleFolderSplitBlob(i);
+        await new Promise(r => setTimeout(r, paceMs));
+      }
+    }
+
+    // ==========================================
+    // 2. MERGE ENGINE (DRAG & DROP, ROTATION, WATERMARK)
+    // ==========================================
+    function initSortableMergeQueue() {
+      const el = document.getElementById('merge-files-queue');
+      if (!el || typeof Sortable === 'undefined') return;
+      
+      sortableMergeInstance = new Sortable(el, {
+        handle: '.drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: function(evt) {
+          const oldIndex = evt.oldIndex;
+          const newIndex = evt.newIndex;
+          if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
+            const movedItem = mergeQueue.splice(oldIndex, 1)[0];
+            mergeQueue.splice(newIndex, 0, movedItem);
+            renderMergeQueue();
+          }
+        }
+      });
+    }
+
+    async function handleMergeFileSelect(files) {
+      if (!files || files.length === 0) return;
+      showToast('Đang đọc thông tin tệp...', 'info');
+      for (let f of Array.from(files)) {
+        if (f.name.toLowerCase().endsWith('.pdf')) {
+          await addFileToMergeQueue(f);
+        }
+      }
+      renderMergeQueue();
+    }
+
+    async function handleMergeFolderSelect(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0) return;
+      showToast(`Đang quét ${files.length} tệp từ thư mục...`, 'info');
+      for (let f of files) {
+        if (f.name.toLowerCase().endsWith('.pdf')) {
+          await addFileToMergeQueue(f);
+        }
+      }
+      renderMergeQueue();
+      showToast('Đã nạp toàn bộ tệp PDF từ thư mục vào danh sách ghép!', 'success');
+    }
+
+    async function addFileToMergeQueue(file) {
+      try {
+        const rawBytes = await file.arrayBuffer();
+        const safeBytes = prepareSafePdfBuffer(rawBytes);
+        const doc = await PDFLib.PDFDocument.load(safeBytes, { ignoreEncryption: true });
+        const pages = doc.getPageCount();
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+
+        mergeQueue.push({
+          file: file,
+          name: file.name,
+          sizeMB: sizeMB,
+          pageCount: pages,
+          pageRange: '',
+          rotation: 0 // 0, 90, 180, 270
+        });
+      } catch (err) {
+        console.error("Lỗi đọc tệp ghép:", err);
+        showToast(`Không thể đọc file ${file.name}: ${err.message}`, 'error');
+      }
+    }
+
+    function renderMergeQueue() {
+      const q = document.getElementById('merge-files-queue');
+      const totalFilesSpan = document.getElementById('merge-total-files');
+      const totalSizeSpan = document.getElementById('merge-total-size');
+
+      q.innerHTML = '';
+      totalFilesSpan.innerText = mergeQueue.length;
+
+      let sumSize = 0;
+      mergeQueue.forEach(item => sumSize += parseFloat(item.sizeMB || 0));
+      totalSizeSpan.innerText = `${sumSize.toFixed(1)} MB`;
+
+      if (mergeQueue.length === 0) {
+        q.innerHTML = `<p class="text-center text-xs text-slate-500 py-12">Hàng chờ ghép nối trống. Vui lòng kéo thả file hoặc quét thư mục.</p>`;
+        return;
+      }
+
+      mergeQueue.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 border border-slate-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-700 transition";
+        card.setAttribute('data-index', idx);
+        
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 truncate">
+            <i class="fa-solid fa-grip-vertical text-slate-600 hover:text-slate-300 drag-handle p-1 text-sm" title="Nắm kéo để đảo vị trí"></i>
+            <span class="w-7 h-7 rounded-full bg-blue-500/10 text-blue-400 font-mono text-xs font-bold flex items-center justify-center border border-blue-500/20 shrink-0">${idx + 1}</span>
+            <i class="fa-solid fa-file-pdf text-blue-500 text-xl shrink-0"></i>
+            <div class="truncate">
+              <p class="text-xs font-bold text-slate-200 truncate">${item.name}</p>
+              <p class="text-[11px] text-slate-500">${item.sizeMB} MB • Tổng <strong class="text-slate-300 font-mono">${item.pageCount}</strong> trang</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center space-x-3 shrink-0">
+            <!-- PAGE EXTRACTION -->
+            <div class="flex items-center space-x-1.5">
+              <label class="text-[11px] text-slate-400 font-medium">Trích trang:</label>
+              <input type="text" value="${item.pageRange}" placeholder="Tất cả (VD: 1-5, 8)" onchange="updateMergePageRange(${idx}, this.value)" class="w-32 bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500">
+            </div>
+
+            <!-- ROTATION SELECTOR -->
+            <div class="flex items-center space-x-1">
+              <label class="text-[11px] text-slate-400" title="Xoay hướng trang"><i class="fa-solid fa-rotate text-amber-400"></i></label>
+              <select onchange="updateMergeRotation(${idx}, this.value)" class="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 cursor-pointer">
+                <option value="0" ${item.rotation === 0 ? 'selected' : ''}>0° (Gốc)</option>
+                <option value="90" ${item.rotation === 90 ? 'selected' : ''}>90° (Ngang)</option>
+                <option value="180" ${item.rotation === 180 ? 'selected' : ''}>180° (Ngược)</option>
+                <option value="270" ${item.rotation === 270 ? 'selected' : ''}>270° (Đứng)</option>
+              </select>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="flex items-center space-x-1 border-l border-slate-800 pl-3">
+              <button onclick="moveMergeItem(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30 text-slate-600 px-2 py-1"' : 'class="text-slate-400 hover:text-slate-200 px-2 py-1 bg-slate-900 rounded"'} title="Di chuyển lên"><i class="fa-solid fa-arrow-up text-xs"></i></button>
+              <button onclick="moveMergeItem(${idx}, 1)" ${idx === mergeQueue.length - 1 ? 'disabled class="opacity-30 text-slate-600 px-2 py-1"' : 'class="text-slate-400 hover:text-slate-200 px-2 py-1 bg-slate-900 rounded"'} title="Di chuyển xuống"><i class="fa-solid fa-arrow-down text-xs"></i></button>
+              <button onclick="removeMergeItem(${idx})" class="text-rose-400 hover:text-rose-300 px-2 py-1 bg-rose-500/10 border border-rose-500/20 rounded ml-1" title="Xóa tệp"><i class="fa-solid fa-trash text-xs"></i></button>
+            </div>
+          </div>
+        `;
+        q.appendChild(card);
+      });
+    }
+
+    function updateMergePageRange(idx, val) {
+      if (mergeQueue[idx]) {
+        mergeQueue[idx].pageRange = val.trim();
+      }
+    }
+
+    function updateMergeRotation(idx, rotVal) {
+      if (mergeQueue[idx]) {
+        mergeQueue[idx].rotation = parseInt(rotVal) || 0;
+      }
+    }
+
+    function moveMergeItem(idx, direction) {
+      const targetIdx = idx + direction;
+      if (targetIdx >= 0 && targetIdx < mergeQueue.length) {
+        const temp = mergeQueue[idx];
+        mergeQueue[idx] = mergeQueue[targetIdx];
+        mergeQueue[targetIdx] = temp;
+        renderMergeQueue();
+      }
+    }
+
+    function removeMergeItem(idx) {
+      mergeQueue.splice(idx, 1);
+      renderMergeQueue();
+    }
+
+    function clearMergeQueue() {
+      mergeQueue = [];
+      renderMergeQueue();
+    }
+
+    function parsePageRangeString(rangeStr, totalPages) {
+      if (!rangeStr || rangeStr.trim() === '') {
+        return Array.from({ length: totalPages }, (_, i) => i);
+      }
+
+      const indices = new Set();
+      const parts = rangeStr.split(',');
+
+      parts.forEach(part => {
+        part = part.trim();
+        if (part.includes('-')) {
+          const [startStr, endStr] = part.split('-');
+          let start = parseInt(startStr);
+          let end = parseInt(endStr);
+          if (!isNaN(start) && !isNaN(end)) {
+            start = Math.max(1, Math.min(start, totalPages));
+            end = Math.max(1, Math.min(end, totalPages));
+            for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+              indices.add(i - 1);
+            }
+          }
+        } else {
+          let p = parseInt(part);
+          if (!isNaN(p) && p >= 1 && p <= totalPages) {
+            indices.add(p - 1);
+          }
+        }
+      });
+
+      return Array.from(indices).sort((a, b) => a - b);
+    }
+
+    async function processAndMergePDFs() {
+      if (mergeQueue.length === 0) {
+        showToast('Vui lòng nạp ít nhất 1 tệp PDF để xuất/ghép!', 'warning');
+        return;
+      }
+
+      showToast('Đang tiến hành trích xuất trang & ghép nối tài liệu...', 'info');
+
+      try {
+        const mergedDoc = await PDFLib.PDFDocument.create();
+        const watermarkEnabled = document.getElementById('merge-watermark-enable')?.checked;
+        const watermarkText = document.getElementById('merge-watermark-text')?.value.trim() || 'DỰ THẢO';
+        const watermarkColorChoice = document.getElementById('merge-watermark-color')?.value || 'gray-0.2';
+        const watermarkAngle = parseInt(document.getElementById('merge-watermark-angle')?.value) || -45;
+
+        // Parse watermark colors
+        let wmColor = PDFLib.rgb(0.5, 0.5, 0.5);
+        let wmOpacity = 0.2;
+        if (watermarkColorChoice === 'gray-0.35') { wmColor = PDFLib.rgb(0.4, 0.4, 0.4); wmOpacity = 0.35; }
+        else if (watermarkColorChoice === 'red-0.25') { wmColor = PDFLib.rgb(0.85, 0.15, 0.15); wmOpacity = 0.25; }
+        else if (watermarkColorChoice === 'blue-0.25') { wmColor = PDFLib.rgb(0.15, 0.4, 0.85); wmOpacity = 0.25; }
+
+        let helveticaFont = null;
+        if (watermarkEnabled) {
+          helveticaFont = await mergedDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        }
+
+        for (let item of mergeQueue) {
+          const bytes = await item.file.arrayBuffer();
+          const safeBytes = prepareSafePdfBuffer(bytes);
+          const doc = await PDFLib.PDFDocument.load(safeBytes, { ignoreEncryption: true });
+          const totalPages = doc.getPageCount();
+
+          const pageIndices = parsePageRangeString(item.pageRange, totalPages);
+
+          if (pageIndices.length > 0) {
+            const copiedPages = await mergedDoc.copyPages(doc, pageIndices);
+            for (let p of copiedPages) {
+              // Apply rotation if requested
+              if (item.rotation && item.rotation !== 0) {
+                const curRot = p.getRotation().angle;
+                p.setRotation(PDFLib.degrees((curRot + item.rotation) % 360));
+              }
+
+              // Apply watermark if enabled
+              if (watermarkEnabled && helveticaFont) {
+                const { width, height } = p.getSize();
+                const fontSize = Math.max(24, Math.min(width, height) / 14);
+                const textWidth = helveticaFont.widthOfTextAtSize(watermarkText, fontSize);
+                const textHeight = helveticaFont.heightAtSize(fontSize);
+
+                p.drawText(watermarkText, {
+                  x: (width - textWidth) / 2,
+                  y: (height - textHeight) / 2,
+                  size: fontSize,
+                  font: helveticaFont,
+                  color: wmColor,
+                  opacity: wmOpacity,
+                  rotate: PDFLib.degrees(watermarkAngle)
+                });
+              }
+
+              mergedDoc.addPage(p);
+            }
+          }
+        }
+
+        const pdfBytes = await mergedDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        saveBlobFile(blob, `TT_Group_Ghep_Noi_${Date.now()}.pdf`);
+        showToast('Ghép nối PDF và trích xuất trang thành công!', 'success');
+      } catch (err) {
+        console.error("Lỗi ghép nối:", err);
+        showToast(`Lỗi ghép nối: ${err.message}`, 'error');
+      }
+    }
+
+    // ==========================================
+    // 3. CONVERT ENGINE (WORD / EXCEL WITH SCAN DETECT)
+    // ==========================================
+    function handleConvertFileSelect(files) {
+      if (!files || files.length === 0) return;
+      for (let f of Array.from(files)) {
+        if (f.name.toLowerCase().endsWith('.pdf')) {
+          convertQueue.push(f);
+        }
+      }
+      renderConvertQueue();
+      showToast(`Đã thêm ${files.length} tệp vào hàng chờ chuyển đổi!`, 'info');
+    }
+
+    function renderConvertQueue() {
+      const q = document.getElementById('convert-files-queue');
+      q.innerHTML = '';
+      if (convertQueue.length === 0) {
+        q.innerHTML = '<p class="text-center text-xs text-slate-500 py-12">Chưa có tệp nào trong hàng chờ.</p>';
+        return;
+      }
+      convertQueue.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = "p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs";
+        item.innerHTML = `
+          <div class="flex items-center space-x-2 truncate">
+            <i class="fa-solid fa-file-pdf text-emerald-500 text-lg"></i>
+            <span class="text-slate-200 font-medium truncate">${f.name}</span>
+          </div>
+          <button onclick="removeConvertItem(${idx})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+        `;
+        q.appendChild(item);
+      });
+    }
+
+    function removeConvertItem(idx) {
+      convertQueue.splice(idx, 1);
+      renderConvertQueue();
+    }
+
+    function clearConvertQueue() {
+      convertQueue = [];
+      renderConvertQueue();
+    }
+
+    function selectTargetFormat(fmt) {
+      targetConvertFormat = fmt;
+      const btnDoc = document.getElementById('fmt-btn-doc');
+      const btnXls = document.getElementById('fmt-btn-xls');
+
+      if (fmt === 'doc') {
+        btnDoc.className = "py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg border border-emerald-500 flex items-center justify-center space-x-2 transition";
+        btnXls.className = "py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-lg border border-slate-700 flex items-center justify-center space-x-2 transition";
+      } else {
+        btnDoc.className = "py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-lg border border-slate-700 flex items-center justify-center space-x-2 transition";
+        btnXls.className = "py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg border border-emerald-500 flex items-center justify-center space-x-2 transition";
+      }
+    }
+
+    async function startBatchPDFConversion() {
+      if (convertQueue.length === 0) {
+        showToast('Chưa nạp tệp PDF nào để chuyển đổi!', 'warning');
+        return;
+      }
+      showToast(`Đang phân tích cấu trúc vector text ${convertQueue.length} tệp...`, 'info');
+
+      for (let f of convertQueue) {
+        const rawBytes = await f.arrayBuffer();
+        const safeBytes = prepareSafePdfBuffer(rawBytes);
+
+        let pdf;
+        try {
+          pdf = await pdfjsLib.getDocument({ data: safeBytes.slice(0) }).promise;
+        } catch (workerErr) {
+          console.warn('Worker load error, retrying inline:', workerErr);
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+          pdf = await pdfjsLib.getDocument({ data: safeBytes.slice(0) }).promise;
+        }
+
+        let totalTextChars = 0;
+
+        if (targetConvertFormat === 'doc') {
+          let docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>TT Group Doc Export</title><style>body{font-family:'Segoe UI',sans-serif;font-size:11pt;line-height:1.6;} .page{page-break-before:always;margin-bottom:20px;}</style></head><body>`;
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            docHTML += `<div class="page"><p><strong>--- TRANG ${i} ---</strong></p><p>`;
+            let lastY = null;
+            textContent.items.forEach(item => {
+              totalTextChars += (item.str || '').length;
+              if (lastY !== null && Math.abs(item.transform[5] - lastY) > 8) {
+                docHTML += `</p><p>`;
+              }
+              docHTML += escapeHtml(item.str) + " ";
+              lastY = item.transform[5];
+            });
+            docHTML += `</p></div>`;
+          }
+          docHTML += `</body></html>`;
+
+          if (totalTextChars < 20) {
+            showToast(`Cảnh báo: File "${f.name}" là ảnh scan, không có text vector. Nội dung Word xuất ra có thể trống chữ.`, 'warning');
+          }
+
+          const blob = new Blob(['\ufeff' + docHTML], { type: 'application/msword' });
+          saveBlobFile(blob, `${f.name.replace(/\.pdf$/i, '')}.doc`);
+        } else {
+          let tableHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body><table border='1'>`;
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+
+            let rows = {};
+            textContent.items.forEach(item => {
+              totalTextChars += (item.str || '').length;
+              let yKey = Math.round(item.transform[5] / 4) * 4;
+              if (!rows[yKey]) rows[yKey] = [];
+              rows[yKey].push({ x: item.transform[4], str: item.str });
+            });
+
+            let sortedY = Object.keys(rows).sort((a, b) => b - a);
+            sortedY.forEach(y => {
+              let rowItems = rows[y].sort((a, b) => a.x - b.x);
+              tableHTML += `<tr>`;
+              rowItems.forEach(cell => {
+                tableHTML += `<td>${escapeHtml(cell.str)}</td>`;
+              });
+              tableHTML += `</tr>`;
+            });
+          }
+          tableHTML += `</table></body></html>`;
+
+          if (totalTextChars < 20) {
+            showToast(`Cảnh báo: File "${f.name}" là ảnh scan, không có text vector. Bảng Excel xuất ra có thể trống ô.`, 'warning');
+          }
+
+          const blob = new Blob(['\ufeff' + tableHTML], { type: 'application/vnd.ms-excel' });
+          saveBlobFile(blob, `${f.name.replace(/\.pdf$/i, '')}.xls`);
+        }
+      }
+      showToast('Đã hoàn thành chuyển đổi tệp!', 'success');
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // ==========================================
+    // 4. EDIT ENGINE (WYSIWYG, REDACTION, STAMP, ROTATION)
+    // ==========================================
+    async function handleEditFileSelect(files) {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      const rawBytes = await file.arrayBuffer();
+      editorPdfBytes = prepareSafePdfBuffer(rawBytes);
+
+      try {
+        editorPdfDoc = await pdfjsLib.getDocument({ data: editorPdfBytes.slice(0) }).promise;
+      } catch (err) {
+        console.warn('Fallback worker on edit:', err);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        editorPdfDoc = await pdfjsLib.getDocument({ data: editorPdfBytes.slice(0) }).promise;
+      }
+
+      editorCurrentPage = 1;
+      editorPageRotation = 0;
+      redactionRects = [];
+      stampOverlays = [];
+      renderEditorCanvas();
+      showToast(`Đã nạp file chỉnh sửa: ${file.name}`, 'info');
+    }
+
+    async function renderEditorCanvas() {
+      if (!editorPdfDoc) return;
+      const page = await editorPdfDoc.getPage(editorCurrentPage);
+      const viewport = page.getViewport({ scale: editorScale, rotation: editorPageRotation });
+      const canvas = document.getElementById('editor-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      const overlay = document.getElementById('editor-overlay');
+      overlay.style.width = `${viewport.width}px`;
+      overlay.style.height = `${viewport.height}px`;
+
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      document.getElementById('editor-page-num').innerText = `${editorCurrentPage} / ${editorPdfDoc.numPages}`;
+      document.getElementById('editor-zoom-label').innerText = `${Math.round(editorScale * 100)}%`;
+
+      renderOverlayElements();
+    }
+
+    function rotateEditorPage(delta) {
+      if (!editorPdfDoc) return;
+      editorPageRotation = (editorPageRotation + delta) % 360;
+      renderEditorCanvas();
+      showToast(`Đã xoay trang hiện tại: ${editorPageRotation}°`, 'info');
+    }
+
+    function setRedactionColor(color) {
+      currentRedactColor = color;
+      ['black', 'white', 'red'].forEach(c => {
+        const btn = document.getElementById(`redact-color-${c}`);
+        if (btn) {
+          if (c === color) btn.classList.add('border-2', 'border-blue-500');
+          else btn.classList.remove('border-2', 'border-blue-500');
+        }
+      });
+      showToast(`Đã chọn màu che phủ: ${color === 'black' ? 'Đen (Bảo mật)' : (color === 'white' ? 'Trắng (Xóa nền)' : 'Đỏ (Cảnh báo)')}`, 'info');
+    }
+
+    function renderOverlayElements() {
+      const overlay = document.getElementById('editor-overlay');
+      overlay.innerHTML = '';
+
+      redactionRects.filter(r => r.page === editorCurrentPage).forEach((r) => {
+        const div = document.createElement('div');
+        div.className = 'redaction-rect';
+        div.style.left = `${r.x * editorScale}px`;
+        div.style.top = `${r.y * editorScale}px`;
+        div.style.width = `${r.w * editorScale}px`;
+        div.style.height = `${r.h * editorScale}px`;
+
+        if (r.color === 'white') {
+          div.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+          div.style.border = '1px dashed #94a3b8';
+        } else if (r.color === 'red') {
+          div.style.backgroundColor = 'rgba(239, 68, 68, 0.35)';
+          div.style.border = '2px solid #ef4444';
+        } else {
+          div.style.backgroundColor = 'rgba(0, 0, 0, 0.95)';
+          div.style.border = '1px dashed #ef4444';
+        }
+
+        div.title = "Nhấp để xóa khung che phủ này";
+        div.onclick = (e) => {
+          e.stopPropagation();
+          redactionRects.splice(redactionRects.indexOf(r), 1);
+          renderOverlayElements();
+          showToast('Đã xóa khung che phủ', 'info');
+        };
+        overlay.appendChild(div);
+      });
+
+      stampOverlays.filter(s => s.page === editorCurrentPage).forEach((s, sIdx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'stamp-overlay group';
+        wrapper.style.left = `${s.x * editorScale}px`;
+        wrapper.style.top = `${s.y * editorScale}px`;
+        wrapper.style.width = `${s.w * editorScale}px`;
+        wrapper.style.height = `${s.h * editorScale}px`;
+
+        const img = document.createElement('img');
+        img.src = s.imgDataUrl;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        img.style.pointerEvents = 'none';
+
+        const delBtn = document.createElement('button');
+        delBtn.className = "absolute -top-3 -right-3 w-6 h-6 bg-rose-600 text-white rounded-full text-xs font-bold hidden group-hover:flex items-center justify-center shadow-lg transition";
+        delBtn.innerHTML = "×";
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          stampOverlays.splice(stampOverlays.indexOf(s), 1);
+          renderOverlayElements();
+          showToast('Đã gỡ con dấu', 'info');
+        };
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(delBtn);
+        overlay.appendChild(wrapper);
+      });
+    }
+
+    function toggleRedactionMode() {
+      isRedactActive = !isRedactActive;
+      const btn = document.getElementById('btn-redact-tool');
+      if (isRedactActive) {
+        btn.classList.replace('bg-slate-800', 'bg-rose-600');
+        showToast('Kéo chuột trên văn bản để vẽ khung che phủ', 'info');
+      } else {
+        btn.classList.replace('bg-rose-600', 'bg-slate-800');
+      }
+    }
+
+    function setupCanvasRedactionEvents() {
+      const overlay = document.getElementById('editor-overlay');
+      let isDrawing = false;
+      let startX = 0, startY = 0;
+      let tempDiv = null;
+
+      overlay.addEventListener('mousedown', (e) => {
+        if (!isRedactActive) return;
+        isDrawing = true;
+        const rect = overlay.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+
+        tempDiv = document.createElement('div');
+        tempDiv.className = 'redaction-rect';
+        tempDiv.style.left = `${startX}px`;
+        tempDiv.style.top = `${startY}px`;
+        tempDiv.style.backgroundColor = currentRedactColor === 'white' ? 'rgba(255,255,255,0.8)' : (currentRedactColor === 'red' ? 'rgba(239,68,68,0.4)' : 'rgba(0,0,0,0.8)');
+        overlay.appendChild(tempDiv);
+      });
+
+      overlay.addEventListener('mousemove', (e) => {
+        if (!isDrawing || !tempDiv) return;
+        const rect = overlay.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+
+        const w = Math.abs(curX - startX);
+        const h = Math.abs(curY - startY);
+        tempDiv.style.width = `${w}px`;
+        tempDiv.style.height = `${h}px`;
+        tempDiv.style.left = `${Math.min(startX, curX)}px`;
+        tempDiv.style.top = `${Math.min(startY, curY)}px`;
+      });
+
+      overlay.addEventListener('mouseup', (e) => {
+        if (!isDrawing || !tempDiv) return;
+        isDrawing = false;
+        const rect = overlay.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+
+        const w = Math.abs(curX - startX);
+        const h = Math.abs(curY - startY);
+
+        if (w > 8 && h > 8) {
+          redactionRects.push({
+            page: editorCurrentPage,
+            x: Math.min(startX, curX) / editorScale,
+            y: Math.min(startY, curY) / editorScale,
+            w: w / editorScale,
+            h: h / editorScale,
+            color: currentRedactColor
+          });
+        }
+        tempDiv.remove();
+        tempDiv = null;
+        renderOverlayElements();
+      });
+    }
+
+    function triggerStampUpload() { 
+      document.getElementById('stamp-file-input').click(); 
+    }
+
+    function handleStampSelect(e) {
+      if (e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        stampOverlays.push({
+          page: editorCurrentPage,
+          imgDataUrl: evt.target.result,
+          x: 50, y: 50, w: 150, h: 150
+        });
+        renderOverlayElements();
+        showToast('Đã chèn con dấu vào trang hiện tại!', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function exportEditedPDF() {
+      if (!editorPdfBytes) {
+        showToast('Chưa nạp file PDF để xuất!', 'warning');
+        return;
+      }
+      showToast('Đang kết xuất PDF và lưu các lớp che phủ/con dấu/xoay trang...', 'info');
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(editorPdfBytes, { ignoreEncryption: true });
+        const pages = pdfDoc.getPages();
+
+        // Apply page rotation to current page if rotated
+        if (editorPageRotation !== 0 && editorCurrentPage <= pages.length) {
+          const p = pages[editorCurrentPage - 1];
+          p.setRotation(PDFLib.degrees((p.getRotation().angle + editorPageRotation) % 360));
+        }
+
+        // Apply Redactions
+        for (let r of redactionRects) {
+          if (r.page <= pages.length) {
+            const page = pages[r.page - 1];
+            const { height } = page.getSize();
+            
+            let rectColor = PDFLib.rgb(0, 0, 0);
+            if (r.color === 'white') rectColor = PDFLib.rgb(1, 1, 1);
+            else if (r.color === 'red') rectColor = PDFLib.rgb(0.9, 0.2, 0.2);
+
+            page.drawRectangle({
+              x: r.x,
+              y: height - r.y - r.h,
+              width: r.w,
+              height: r.h,
+              color: rectColor
+            });
+          }
+        }
+
+        // Apply Stamps
+        for (let s of stampOverlays) {
+          if (s.page <= pages.length) {
+            const page = pages[s.page - 1];
+            const { height } = page.getSize();
+            let embeddedImg;
+            if (s.imgDataUrl.startsWith('data:image/png')) {
+              embeddedImg = await pdfDoc.embedPng(s.imgDataUrl);
+            } else {
+              embeddedImg = await pdfDoc.embedJpg(s.imgDataUrl);
+            }
+            page.drawImage(embeddedImg, {
+              x: s.x,
+              y: height - s.y - s.h,
+              width: s.w,
+              height: s.h
+            });
+          }
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        saveBlobFile(blob, `TT_Group_Edited_${Date.now()}.pdf`);
+        showToast('Đã xuất bản file PDF mới thành công!', 'success');
+      } catch (err) {
+        console.error("Lỗi xuất PDF:", err);
+        showToast(`Lỗi khi xuất PDF: ${err.message}`, 'error');
+      }
+    }
+
+    function changeEditorPage(delta) {
+      if (!editorPdfDoc) return;
+      const newPage = editorCurrentPage + delta;
+      if (newPage >= 1 && newPage <= editorPdfDoc.numPages) {
+        editorCurrentPage = newPage;
+        editorPageRotation = 0; // reset rotation for newly selected page
+        renderEditorCanvas();
+      }
+    }
+
+    function zoomEditor(delta) {
+      editorScale = Math.max(0.5, Math.min(3.0, editorScale + delta));
+      renderEditorCanvas();
+    }
+
+    // ==========================================
+    // 5. SHARE HUB & MODALS
+    // ==========================================
+    function openShareHubModal() {
+      updateShareWebUrl();
+      document.getElementById('share-hub-modal').classList.remove('hidden');
+    }
+
+    function closeShareHubModal() {
+      document.getElementById('share-hub-modal').classList.add('hidden');
+    }
+
+    function openCloudConfigModal() {
+      document.getElementById('cloud-config-modal').classList.remove('hidden');
+    }
+
+    function closeCloudConfigModal() {
+      document.getElementById('cloud-config-modal').classList.add('hidden');
+    }
+
+    function saveEngineConfig() {
+      showToast('Đã cập nhật cấu hình engine an toàn!', 'success');
+      closeCloudConfigModal();
+    }
+
+    function updateShareWebUrl() {
+      const urlInput = document.getElementById('share-web-url');
+      if (urlInput) {
+        if (window.location.protocol.startsWith('http')) {
+          urlInput.value = window.location.href;
+        } else {
+          urlInput.value = 'http://127.0.0.1:8000/pdf-merger';
+        }
+      }
+    }
+
+    function copyShareUrl() {
+      const urlInput = document.getElementById('share-web-url');
+      if (urlInput) {
+        navigator.clipboard.writeText(urlInput.value).then(() => {
+          showToast('Đã sao chép liên kết vào bộ nhớ tạm!', 'success');
+        }).catch(() => {
+          urlInput.select();
+          document.execCommand('copy');
+          showToast('Đã sao chép liên kết!', 'success');
+        });
+      }
+    }
+
+    function triggerNativeShare() {
+      const shareUrl = document.getElementById('share-web-url')?.value || window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: 'TT GROUP - Ultra Engine V4.0 Pro Suite',
+          text: 'Bộ công cụ xử lý, tách ghép PDF dung lượng lớn chuyên nghiệp TT GROUP',
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        copyShareUrl();
+      }
+    }
+
+    function downloadSelfHtml() {
+      const htmlText = document.documentElement.outerHTML;
+      const blob = new Blob([htmlText], { type: 'text/html;charset=utf-8' });
+      saveBlobFile(blob, 'TT_GROUP_PDF_Suite_V4.html');
+      showToast('Đang tải file HTML offline về máy!', 'success');
+    }
+
+    // DOWNLOAD UTILS WITH MEMORY REVOCATION
+    function saveBlobFile(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-slate-800 text-slate-100 border border-slate-700',
+        warning: 'bg-amber-500 text-slate-950 font-bold'
+      };
+      toast.className = `px-4 py-2.5 rounded-xl text-xs shadow-2xl transition-all duration-300 pointer-events-auto flex items-center space-x-2 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>

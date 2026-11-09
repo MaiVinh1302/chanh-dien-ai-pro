@@ -208,6 +208,18 @@ async def serve_join():
     with open(os.path.join(STATIC_DIR, "join.html"), "r", encoding="utf-8") as f:
         return f.read()
 
+@app.get("/pdf-editor", response_class=HTMLResponse)
+@app.get("/pdf", response_class=HTMLResponse)
+async def serve_pdf_editor():
+    with open(os.path.join(STATIC_DIR, "pdf_editor.html"), "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/pdf-merger", response_class=HTMLResponse)
+@app.get("/merger", response_class=HTMLResponse)
+async def serve_pdf_merger():
+    with open(os.path.join(STATIC_DIR, "pdf_merger.html"), "r", encoding="utf-8") as f:
+        return f.read()
+
 @app.websocket("/ws/overlay")
 async def ws_overlay_endpoint(websocket: WebSocket):
     await websocket.accept()
