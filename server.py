@@ -220,6 +220,11 @@ async def serve_pdf_merger():
     with open(os.path.join(STATIC_DIR, "pdf_merger.html"), "r", encoding="utf-8") as f:
         return f.read()
 
+@app.get("/qlvb", response_class=HTMLResponse)
+async def serve_qlvb():
+    with open(os.path.join(STATIC_DIR, "qlvb.html"), "r", encoding="utf-8") as f:
+        return f.read()
+
 @app.websocket("/ws/overlay")
 async def ws_overlay_endpoint(websocket: WebSocket):
     await websocket.accept()
