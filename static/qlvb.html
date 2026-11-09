@@ -41,6 +41,7 @@
             tab-size: 4;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col justify-between">
 
@@ -832,37 +833,202 @@
             <!-- ========================================== -->
             <!-- TAB: CHUYỂN ĐỔI PDF SANG WORD & EXCEL (CHUẨN TIẾNG VIỆT) -->
             <!-- ========================================== -->
+                        <!-- ========================================== -->
+            <!-- TAB: CHUYỂN ĐỔI PDF & ẢNH SANG WORD / EXCEL (QUÉT TỪNG TRANG 1 & OCR CHỮ MỜ, CHỮ KÝ) -->
+            <!-- ========================================== -->
             <div id="tab-pdfConvert" class="tab-content hidden space-y-4">
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                     
                     <!-- HEADER -->
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-amber-500 text-white flex items-center justify-center font-bold text-xl shadow-sm">
-                                <i class="fa-solid fa-file-pdf"></i>
+                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 via-amber-500 to-emerald-500 text-white flex items-center justify-center font-bold text-2xl shadow-md">
+                                <i class="fa-solid fa-file-shield"></i>
                             </div>
                             <div>
-                                <div class="flex items-center gap-2">
-                                    <h2 class="text-sm font-bold text-slate-800">Chuyển Đổi PDF Sang Word &amp; Excel Chuẩn Tiếng Việt</h2>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full">Tối Ưu Hồ Sơ &amp; Dự Toán Việt Nam</span>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h2 class="text-base font-bold text-slate-800">Bộ Chuyển Đổi PDF &amp; Ảnh Sang Word/Excel Siêu Cấp</h2>
+                                    <span class="text-[10px] font-bold px-2.5 py-0.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-300 rounded-full flex items-center gap-1">
+                                        <i class="fa-solid fa-microchip"></i> Quét Từng Trang 1 &bull; Chống Tràn RAM
+                                    </span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full">
+                                        Chữ Ký &amp; Ghi Chú Viết Tay
+                                    </span>
                                 </div>
-                                <p class="text-[11px] text-slate-500">Khắc phục 100% lỗi font chữ, chuẩn hóa số liệu tài chính Việt Nam (1.500.000đ), căn lề A4 chuẩn Nghị định 30/2020/NĐ-CP</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Xử lý tuần tự từng trang tài liệu PDF Scan, file ảnh hồ sơ, chữ mờ, méo mó, dấu mộc đè chữ &bull; Xuất Word chuẩn NĐ 30/2020 &bull; Excel chuẩn tính toán `=SUM()`</p>
                             </div>
                         </div>
 
                         <!-- TARGET FORMAT SELECTOR -->
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] font-semibold text-slate-600">Định dạng đích:</span>
-                            <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
-                                <button type="button" onclick="setQlvbConvertFormat('doc')" id="btnQlvbFmtDoc" class="px-3 py-1 text-xs font-bold rounded-md bg-emerald-600 text-white shadow-sm transition flex items-center gap-1.5">
-                                    <i class="fa-solid fa-file-word"></i> MS Word (.doc)
-                                </button>
-                                <button type="button" onclick="setQlvbConvertFormat('xlsx')" id="btnQlvbFmtXlsx" class="px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
-                                    <i class="fa-solid fa-file-excel text-emerald-600"></i> MS Excel (.xlsx Chuẩn)
-                                </button>
-                            </div>
+                        <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shadow-inner">
+                            <span class="text-xs font-bold text-slate-600 pl-2">Xuất file:</span>
+                            <button type="button" onclick="setQlvbConvertFormat('doc')" id="btnQlvbFmtDoc" class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-word text-white"></i> MS Word (.doc A4 NĐ 30)
+                            </button>
+                            <button type="button" onclick="setQlvbConvertFormat('xlsx')" id="btnQlvbFmtXlsx" class="px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-excel text-emerald-600"></i> MS Excel (.xlsx Số Thực)
+                            </button>
                         </div>
                     </div>
+
+                    <!-- ADVANCED OCR & FORMAT OPTIONS PANEL -->
+                    <div class="bg-gradient-to-br from-amber-50/80 via-slate-50 to-emerald-50/50 border border-amber-200/80 rounded-2xl p-4 space-y-3.5 shadow-2xs">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
+                            <span class="text-xs font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-amber-600"></i>
+                                <span>Cấu Hình Động Cơ Quét &amp; Tinh Chỉnh Văn Bản:</span>
+                            </span>
+                            
+                            <!-- OCR ENGINE SELECTOR -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-semibold text-slate-600">Động cơ OCR:</span>
+                                <select id="qlvb-ocr-engine" class="text-xs font-bold bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-slate-800 focus:ring-2 focus:ring-emerald-500 shadow-2xs">
+                                    <option value="hybrid" selected>⚡ Hybrid Auto (Vector trước + Tự OCR khi gặp ảnh/scan)</option>
+                                    <option value="gemini">🌟 AI Vision Siêu Cấp (Chữ mờ, méo mó, chữ ký viết tay)</option>
+                                    <option value="tesseract">🛡️ Tesseract OCR Tiếng Việt (100% Offline Client-Side)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 6 CORE SMART SWITCHES -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+                            <label class="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs hover:border-emerald-400 transition">
+                                <input type="checkbox" id="qlvb-opt-sequential" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                <div>
+                                    <span class="font-bold block text-slate-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-arrow-down-1-9 text-sky-600"></i> Quét Tuần Tự Từng Trang 1
+                                    </span>
+                                    <span class="text-[11px] text-slate-500">Xử lý xong trang nào giải phóng RAM trang đó, chạy mượt hồ sơ dày hàng trăm trang</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs hover:border-emerald-400 transition">
+                                <input type="checkbox" id="qlvb-opt-enhance" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                <div>
+                                    <span class="font-bold block text-slate-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-wand-magic-sparkles text-amber-600"></i> Tẩy Mờ &amp; Khử Ố Vàng Giấy
+                                    </span>
+                                    <span class="text-[11px] text-slate-500">Kéo giãn tương phản, làm trắng nền giấy scan cũ, đậm nét chữ mờ, tách chữ khỏi dấu đỏ</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs hover:border-emerald-400 transition">
+                                <input type="checkbox" id="qlvb-opt-handwriting" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                <div>
+                                    <span class="font-bold block text-slate-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-signature text-rose-600"></i> Nhận Diện Chữ Ký &amp; Viết Tay
+                                    </span>
+                                    <span class="text-[11px] text-slate-500">Bắt trọn bút tích chỉ huy trưởng, TVGS và định dạng `[Chữ ký viết tay: Họ Tên]`</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs hover:border-emerald-400 transition">
+                                <input type="checkbox" id="qlvb-opt-nfc" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                <div>
+                                    <span class="font-bold block text-slate-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-font text-indigo-600"></i> Chuẩn Hóa Unicode Dựng Sẵn (NFC)
+                                    </span>
+                                    <span class="text-[11px] text-slate-500">Chống đứt gãy ký tự, tự động sửa font cũ TCVN3 (.VnTime) và VNI sang Unicode chuẩn</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs hover:border-emerald-400 transition">
+                                <input type="checkbox" id="qlvb-opt-num" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                <div>
+                                    <span class="font-bold block text-slate-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-calculator text-emerald-600"></i> Số &amp; Tiền Tệ Tính Toán Được
+                                    </span>
+                                    <span class="text-[11px] text-slate-500">Tự động chuyển đổi `1.500.000,50` thành kiểu Số thực trong Excel để chạy hàm `=SUM()`</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2.5 cursor-pointer bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs hover:border-emerald-400 transition">
+                                <input type="checkbox" id="qlvb-opt-nd30" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                <div>
+                                    <span class="font-bold block text-slate-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-file-contract text-violet-600"></i> Thể Thức A4 Nghị Định 30/2020
+                                    </span>
+                                    <span class="text-[11px] text-slate-500">Lề chuẩn 20-20-30-15mm, Times New Roman 13pt, thụt dòng 1cm, căn đều 2 bên</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- DROPZONE (ACCEPTS PDF & IMAGES) -->
+                    <div id="qlvbPdfDropzone" class="border-2 border-dashed border-sky-300 hover:border-sky-500 bg-sky-50/40 hover:bg-sky-50/70 rounded-2xl p-6 text-center cursor-pointer transition group">
+                        <input type="file" id="qlvbPdfFileInput" accept=".pdf,.png,.jpg,.jpeg,.bmp,.webp,.tiff" multiple class="hidden" onchange="handleQlvbPdfFilesSelect(event)">
+                        <div class="flex justify-center items-center gap-3 mb-2">
+                            <i class="fa-solid fa-file-pdf text-3xl text-rose-500 group-hover:scale-110 transition"></i>
+                            <i class="fa-solid fa-plus text-slate-400 text-sm"></i>
+                            <i class="fa-solid fa-file-image text-3xl text-emerald-500 group-hover:scale-110 transition"></i>
+                        </div>
+                        <p class="text-xs font-bold text-slate-800">Kéo &amp; Thả các tệp PDF hoặc File Ảnh (PNG, JPG, JPEG, BMP, WEBP, TIFF) vào đây</p>
+                        <p class="text-[11px] text-slate-500 mt-1">Hồ sơ nghiệm thu, bản vẽ scan, nhật ký hiện trường, bảng tính BOQ, thanh toán 08a, ảnh chụp biên bản có chữ ký tay</p>
+                        <div class="mt-3 flex items-center justify-center gap-2">
+                            <button type="button" onclick="document.getElementById('qlvbPdfFileInput').click()" class="px-4 py-1.5 bg-white border border-slate-300 hover:border-sky-500 rounded-lg text-xs font-bold text-slate-700 shadow-2xs transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-folder-open text-sky-600"></i> Chọn Tệp Lẻ / Nhiều Tệp
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ACTIONS & QUEUE LIST -->
+                    <div class="space-y-3 pt-1">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-slate-700">Hàng chờ chuyển đổi (<span id="qlvbConvertQueueCount" class="text-emerald-600 font-mono font-bold">0</span> tệp)</span>
+                                <button type="button" onclick="clearQlvbConvertQueue()" class="text-[11px] text-slate-500 hover:text-rose-600 underline transition">Xóa danh sách</button>
+                            </div>
+
+                            <button type="button" onclick="executeQlvbBatchPdfConversion()" id="btnStartQlvbConvert" disabled class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 opacity-50 hover:opacity-100 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center gap-2">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>Bắt Đầu Quét &amp; Chuyển Đổi Từng Trang 1</span>
+                            </button>
+                        </div>
+
+                        <!-- LIVE REALTIME PROGRESS BAR WITH DETAILED PAGE-BY-PAGE STATUS -->
+                        <div id="qlvbConvertProgressWrap" class="hidden space-y-2 p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-lg">
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+                                    <span id="qlvbConvertProgressLabel" class="font-bold text-slate-200">Đang khởi tạo bộ chuyển đổi tuần tự...</span>
+                                </div>
+                                <span id="qlvbConvertProgressPercent" class="font-mono font-bold text-emerald-400 text-sm">0%</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                                <div id="qlvbConvertProgressBar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-sky-400 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-slate-400">
+                                <span id="qlvbConvertPageIndicator"><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i> Trang: 0 / 0</span>
+                                <span id="qlvbConvertMemoryStatus"><i class="fa-solid fa-microchip text-emerald-400 mr-1"></i> RAM Safe Buffer: Hoạt động mượt mà</span>
+                            </div>
+                        </div>
+
+                        <!-- QUEUE TABLE -->
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100/90 text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3 w-12 text-center">STT</th>
+                                        <th class="p-3">Tên Tệp Gốc</th>
+                                        <th class="p-3 w-28">Kích Thước</th>
+                                        <th class="p-3 w-32">Định Dạng</th>
+                                        <th class="p-3 w-44">Tiến Độ Từng Trang</th>
+                                        <th class="p-3 w-40 text-center">Tải Kết Quả</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qlvbConvertQueueBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                                    <tr>
+                                        <td colspan="6" class="p-8 text-center text-slate-400 italic">
+                                            <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                                            Chưa có tệp nào trong hàng chờ. Kéo thả file PDF hoặc File Ảnh vào khu vực phía trên.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                     <!-- VIETNAMESE SPECIALIZED CONFIGURATION PANEL -->
                     <div class="bg-amber-50/60 border border-amber-200/80 rounded-xl p-3.5 space-y-2.5">
@@ -4289,7 +4455,7 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
                 }
             }
 
-            const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Translated Document</title></head><body><div style="font-family:Arial, sans-serif; font-size:12pt; line-height:1.6;">${escapeHtml(tgtText).replace(/\n/g, '<br>')}</div></body></html>`;
+            const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Translated Document</title>    </head><body><div style="font-family:Arial, sans-serif; font-size:12pt; line-height:1.6;">${escapeHtml(tgtText).replace(/\n/g, '<br>')}</div></body></html>`;
             const blob = new Blob(['\ufeff' + htmlContent], { type: format === 'doc' ? 'application/msword;charset=utf-8' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -4338,8 +4504,13 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
     // =========================================================================
     // ENGINE CHUYỂN ĐỔI PDF SANG WORD & EXCEL CHUẨN TIẾNG VIỆT (BUILD 2026)
     // =========================================================================
+    
+    // =========================================================================
+    // NÂNG CẤP TOÀN DIỆN: BỘ CHUYỂN ĐỔI PDF & ẢNH SANG WORD/EXCEL TUẦN TỰ TỪNG TRANG (OCR SIÊU CẤP)
+    // =========================================================================
     let qlvbConvertQueue = [];
-    let qlvbTargetFormat = 'doc';
+    let qlvbTargetFormat = 'doc'; // 'doc' hoặc 'xlsx'
+    let qlvbTesseractWorker = null;
 
     function setQlvbConvertFormat(fmt) {
         qlvbTargetFormat = fmt;
@@ -4347,148 +4518,329 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         const btnXlsx = document.getElementById('btnQlvbFmtXlsx');
 
         if (fmt === 'doc') {
-            btnDoc.className = "px-3 py-1 text-xs font-bold rounded-md bg-emerald-600 text-white shadow-sm transition flex items-center gap-1.5";
-            btnXlsx.className = "px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
+            if (btnDoc) {
+                btnDoc.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
+            }
+            if (btnXlsx) {
+                btnXlsx.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
+            }
         } else {
-            btnDoc.className = "px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
-            btnXlsx.className = "px-3 py-1 text-xs font-bold rounded-md bg-emerald-600 text-white shadow-sm transition flex items-center gap-1.5";
+            if (btnDoc) {
+                btnDoc.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
+            }
+            if (btnXlsx) {
+                btnXlsx.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
+            }
         }
     }
 
-    function handleQlvbPdfFilesSelect(e) {
-        const files = Array.from(e.target.files);
+    function handleQlvbPdfFilesSelect(event) {
+        const files = Array.from(event.target.files || []);
         if (files.length === 0) return;
 
-        files.forEach(f => {
-            if (f.name.toLowerCase().endsWith('.pdf')) {
+        let addedCount = 0;
+        files.forEach(file => {
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const isPdf = ext === 'pdf';
+            const isImg = ['png', 'jpg', 'jpeg', 'bmp', 'webp', 'tiff'].includes(ext);
+
+            if (isPdf || isImg) {
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
                 qlvbConvertQueue.push({
-                    file: f,
-                    name: f.name,
-                    sizeMB: (f.size / (1024 * 1024)).toFixed(2),
-                    status: 'Chờ xử lý',
+                    id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    file: file,
+                    name: file.name,
+                    sizeMB: sizeMB,
+                    ext: ext,
+                    isPdf: isPdf,
+                    isImg: isImg,
+                    status: 'Chờ chuyển đổi',
+                    currentPage: 0,
+                    totalPages: isImg ? 1 : 0,
                     resultBlob: null,
-                    resultName: ''
+                    resultName: null
                 });
+                addedCount++;
             }
         });
 
+        event.target.value = '';
         renderQlvbConvertQueue();
-        showToast(`Đã thêm ${files.length} tệp PDF vào hàng chờ chuyển đổi!`);
-    }
-
-    function renderQlvbConvertQueue() {
-        const container = document.getElementById('qlvbConvertQueueContainer');
-        const countEl = document.getElementById('qlvbConvertQueueCount');
-        const btnStart = document.getElementById('btnStartQlvbConvert');
-
-        if (countEl) countEl.innerText = qlvbConvertQueue.length;
-        if (btnStart) btnStart.disabled = qlvbConvertQueue.length === 0;
-
-        if (!container) return;
-        if (qlvbConvertQueue.length === 0) {
-            container.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs border border-slate-100 rounded-lg bg-slate-50">Chưa có tệp PDF nào trong hàng chờ. Vui lòng kéo thả hoặc chọn tệp phía trên.</div>`;
-            return;
+        if (addedCount > 0) {
+            showToast(`Đã thêm ${addedCount} tệp (PDF/Ảnh) vào hàng chờ!`, 'success');
         }
-
-        container.innerHTML = '';
-        qlvbConvertQueue.forEach((item, idx) => {
-            const card = document.createElement('div');
-            card.className = "p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs hover:border-slate-300 transition shadow-sm";
-            card.innerHTML = `
-                <div class="flex items-center gap-3 truncate">
-                    <span class="w-6 h-6 rounded-full bg-slate-100 font-mono text-slate-600 font-bold flex items-center justify-center shrink-0 text-[11px]">${idx + 1}</span>
-                    <i class="fa-solid fa-file-pdf text-rose-500 text-lg shrink-0"></i>
-                    <div class="truncate">
-                        <p class="font-bold text-slate-800 truncate">${item.name}</p>
-                        <p class="text-[11px] text-slate-500">${item.sizeMB} MB • Trạng thái: <span class="font-semibold ${item.status.includes('Hoàn tất') ? 'text-emerald-600' : (item.status === 'Lỗi' ? 'text-rose-600' : 'text-amber-600')}">${item.status}</span></p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0 ml-3">
-                    ${item.resultBlob ? `
-                        <button onclick="downloadSingleQlvbConverted(${idx})" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold border border-emerald-300 rounded-lg text-xs flex items-center gap-1.5 transition shadow-2xs">
-                            <i class="fa-solid fa-download"></i> Tải về (.${item.resultName.split('.').pop()})
-                        </button>
-                    ` : ''}
-                    <button onclick="removeQlvbConvertItem(${idx})" class="text-slate-400 hover:text-rose-600 p-1.5 transition" title="Xóa khỏi danh sách"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
     }
 
-    function removeQlvbConvertItem(idx) {
-        qlvbConvertQueue.splice(idx, 1);
-        renderQlvbConvertQueue();
-    }
+    // Thiết lập Drag & Drop cho dropzone
+    document.addEventListener("DOMContentLoaded", function() {
+        const dropzone = document.getElementById('qlvbPdfDropzone');
+        if (dropzone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('border-emerald-500', 'bg-emerald-50/70');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/70');
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length > 0) {
+                    handleQlvbPdfFilesSelect({ target: { files: dt.files } });
+                }
+            }, false);
+        }
+    });
 
     function clearQlvbConvertQueue() {
         qlvbConvertQueue = [];
         renderQlvbConvertQueue();
+        const progressWrap = document.getElementById('qlvbConvertProgressWrap');
+        if (progressWrap) progressWrap.classList.add('hidden');
+        showToast('Đã xóa sạch hàng chờ chuyển đổi!', 'info');
     }
 
-    function downloadSingleQlvbConverted(idx) {
-        const item = qlvbConvertQueue[idx];
-        if (!item || !item.resultBlob) return;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(item.resultBlob);
-        a.download = item.resultName;
-        a.click();
-    }
+    function renderQlvbConvertQueue() {
+        const tbody = document.getElementById('qlvbConvertQueueBody');
+        const countEl = document.getElementById('qlvbConvertQueueCount');
+        const btnStart = document.getElementById('btnStartQlvbConvert');
 
-    // HÀM CHUẨN HÓA VĂN BẢN TIẾNG VIỆT CHUYÊN SÂU
-    function cleanAndNormalizeVietnameseText(str) {
-        if (!str || typeof str !== 'string') return '';
-        let s = str;
-
-        // 1. Chuẩn hóa Unicode Dựng Sẵn (NFC)
-        if (document.getElementById('qlvb-opt-nfc')?.checked !== false) {
-            s = s.normalize('NFC');
+        if (countEl) countEl.innerText = qlvbConvertQueue.length;
+        if (btnStart) {
+            btnStart.disabled = qlvbConvertQueue.length === 0;
+            btnStart.classList.toggle('opacity-50', qlvbConvertQueue.length === 0);
         }
 
-        // 2. Tự động phát hiện và sửa mã TCVN3 / VNI cũ
-        if (document.getElementById('qlvb-opt-tcvn')?.checked !== false) {
-            // Kiểm tra mẫu TCVN3 phổ biến: µ, ¸, ¶, ·, ¹, º, », ¼, ½, ¾, ¿, ®, ©
-            if (/[µ¸¶·¹º»¼½¾¿®©§£]/.test(s)) {
-                if (typeof convertVietnameseFont === 'function') {
-                    s = convertVietnameseFont(s, 'TCVN3', 'UNICODE');
+        if (!tbody) return;
+
+        if (qlvbConvertQueue.length === 0) {
+            tbody.innerHTML = `<tr>
+                <td colspan="6" class="p-8 text-center text-slate-400 italic">
+                    <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                    Chưa có tệp nào trong hàng chờ. Kéo thả file PDF hoặc File Ảnh vào khu vực phía trên.
+                </td>
+            </tr>`;
+            return;
+        }
+
+        let html = '';
+        qlvbConvertQueue.forEach((it, idx) => {
+            const fileIcon = it.isPdf 
+                ? '<i class="fa-solid fa-file-pdf text-rose-500 text-base"></i>' 
+                : '<i class="fa-solid fa-file-image text-emerald-500 text-base"></i>';
+
+            let progressBadge = '';
+            if (it.status === 'Hoàn tất') {
+                progressBadge = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-bold text-[10px]"><i class="fa-solid fa-check mr-1"></i>Xong ${it.totalPages} trang</span>`;
+            } else if (it.status.includes('Trang')) {
+                progressBadge = `<span class="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full font-bold text-[10px] animate-pulse"><i class="fa-solid fa-spinner fa-spin mr-1"></i>${it.status}</span>`;
+            } else if (it.status.includes('Lỗi')) {
+                progressBadge = `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full font-bold text-[10px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Lỗi</span>`;
+            } else {
+                progressBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px]"><i class="fa-regular fa-clock mr-1"></i>Chờ quét</span>`;
+            }
+
+            let downloadBtn = '';
+            if (it.resultBlob) {
+                downloadBtn = `<button type="button" onclick="downloadQlvbConvertedResult('${it.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm transition flex items-center gap-1 mx-auto">
+                    <i class="fa-solid fa-download"></i> Tải Về
+                </button>`;
+            } else {
+                downloadBtn = `<span class="text-slate-400 text-[11px] italic">Đang chờ...</span>`;
+            }
+
+            html += `<tr>
+                <td class="p-3 text-center font-mono font-bold text-slate-500">${idx + 1}</td>
+                <td class="p-3">
+                    <div class="flex items-center gap-2">
+                        ${fileIcon}
+                        <span class="font-bold text-slate-800 truncate max-w-xs" title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</span>
+                    </div>
+                </td>
+                <td class="p-3 text-slate-500 font-mono text-[11px]">${it.sizeMB} MB</td>
+                <td class="p-3 text-slate-600 font-mono text-[11px] font-bold uppercase">${it.ext}</td>
+                <td class="p-3">${progressBadge}</td>
+                <td class="p-3 text-center">${downloadBtn}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    function downloadQlvbConvertedResult(itemId) {
+        const item = qlvbConvertQueue.find(i => i.id === itemId);
+        if (!item || !item.resultBlob) {
+            showToast('Không tìm thấy tệp kết quả!', 'error');
+            return;
+        }
+        const url = URL.createObjectURL(item.resultBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = item.resultName || `ChuyenDoi_${item.name}.${qlvbTargetFormat === 'doc' ? 'doc' : 'xlsx'}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast(`Đang tải về: ${item.resultName}`, 'success');
+    }
+
+    // =========================================================================
+    // BỘ TIỀN XỬ LÝ HÌNH ẢNH CANVAS ĐẶC TRỊ CHỮ MỜ, CHỮ MÉO MÓ & CON DẤU ĐÈ CHỮ
+    // =========================================================================
+    function enhanceCanvasForOcr(srcCanvas) {
+        const width = srcCanvas.width;
+        const height = srcCanvas.height;
+        const ctx = srcCanvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+
+        // 1. Quét tìm dải sắc độ đen-trắng (Luminance Dynamic Range)
+        let minLum = 255;
+        let maxLum = 0;
+        const grayVals = new Uint8Array(width * height);
+
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Công thức độ sáng quang phổ chuẩn Rec.709
+            let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            // Xử lý phát hiện con dấu đỏ đè lên chữ (Red Stamp Filtration):
+            // Nếu là màu mực đỏ của dấu (R cao vượt trội so với G và B):
+            if (r > 130 && r > g * 1.35 && r > b * 1.35) {
+                // Tách dấu đỏ: nếu phía dưới có nét chữ đen (gray đậm), giữ lại nét chữ
+                if (gray < 160) {
+                    gray = Math.max(0, gray - 50); // Đậm nét chữ dưới con dấu
+                } else {
+                    gray = 255; // Tẩy màu mực đỏ nền giấy để không làm rối OCR
                 }
             }
+
+            grayVals[p] = gray;
+            if (gray < minLum) minLum = gray;
+            if (gray > maxLum) maxLum = gray;
         }
 
-        return s;
+        // 2. Kéo giãn tương phản (Contrast Stretching) & Khử ố vàng nền giấy
+        const range = Math.max(1, maxLum - minLum);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+            let gray = grayVals[p];
+
+            // Kéo giãn dải động tương phản
+            let stretched = ((gray - minLum) / range) * 255;
+
+            // Nếu nền giấy có màu ố vàng, xám nhạt (stretched > 195) -> Làm trắng tinh khôi
+            if (stretched > 190) {
+                stretched = 255;
+            } else if (stretched < 125) {
+                // Làm đậm các nét bút mờ, bút bi nhạt màu, chữ méo mó
+                stretched = Math.max(0, stretched * 0.75);
+            }
+
+            data[i] = stretched;
+            data[i + 1] = stretched;
+            data[i + 2] = stretched;
+            // Alpha giữ nguyên
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        return srcCanvas;
     }
 
-    // HÀM NHẬN DIỆN VÀ CHUYỂN ĐỔI SỐ LIỆU ĐỊNH DẠNG VIỆT NAM (1.500.000 HOẶC 1234,56)
-    function parseVietnameseNumberCell(valStr) {
-        if (!valStr || typeof valStr !== 'string') return valStr;
-        const s = valStr.trim();
-
-        // Kiểm tra mẫu số tiền hoặc số lượng Việt Nam: 1.234.567 hoặc 1.234.567,89 hoặc -1.500.000
-        const isVnNumber = /^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s);
-        if (isVnNumber) {
-            // Loại bỏ dấu chấm ngăn cách hàng nghìn, thay dấu phẩy bằng dấu chấm thập phân
-            const numVal = parseFloat(s.replace(/\./g, '').replace(',', '.'));
-            if (!isNaN(numVal)) return numVal;
+    // =========================================================================
+    // ĐỘNG CƠ NHẬN DIỆN TẦNG 1: TESSERACT.JS OFFLINE 100% TIẾNG VIỆT
+    // =========================================================================
+    async function recognizePageWithTesseract(canvas, progressCb) {
+        if (!window.Tesseract) {
+            throw new Error("Thư viện Tesseract.js chưa được tải!");
         }
 
-        // Kiểm tra số thập phân đơn giản dạng: 1234,56 hoặc 0,05
-        const isSimpleDecimal = /^-?\d+,\d+$/.test(s);
-        if (isSimpleDecimal) {
-            const numVal = parseFloat(s.replace(',', '.'));
-            if (!isNaN(numVal)) return numVal;
+        if (!qlvbTesseractWorker) {
+            if (progressCb) progressCb("Đang khởi tạo Tesseract Worker...");
+            qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1, {
+                logger: m => {
+                    if (m && m.status && progressCb) {
+                        const p = Math.round((m.progress || 0) * 100);
+                        progressCb(`${m.status}: ${p}%`);
+                    }
+                }
+            });
+            // Tối ưu thông số nhận diện bảng biểu & văn bản tiếng Việt
+            await qlvbTesseractWorker.setParameters({
+                tessedit_char_whitelist: '', // Cho phép đầy đủ tiếng Việt Unicode
+                preserve_interword_spaces: '1'
+            });
         }
 
-        // Kiểm tra số nguyên thông thường: 12345
-        if (/^-?\d+$/.test(s) && s.length <= 15) {
-            const numVal = parseInt(s, 10);
-            if (!isNaN(numVal)) return numVal;
-        }
-
-        return valStr;
+        const res = await qlvbTesseractWorker.recognize(canvas);
+        return (res && res.data && res.data.text) ? res.data.text : "";
     }
 
-    // THỰC THI CHUYỂN ĐỔI BATCH PDF SANG WORD & EXCEL CHUẨN VIỆT NAM
+    // =========================================================================
+    // ĐỘNG CƠ NHẬN DIỆN TẦNG 2: GEMINI 2.0 FLASH MULTIMODAL VISION SIÊU CẤP
+    // =========================================================================
+    async function recognizePageWithGeminiVision(canvas, apiKey, isHandwriting = true) {
+        const base64Data = canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
+        const prompt = `Bạn là hệ thống AI trích xuất tài liệu hồ sơ xây dựng, pháp lý và dự toán Việt Nam cấp cao nhất.
+Nhiệm vụ: Trích xuất chính xác 100% toàn bộ nội dung văn bản và bảng biểu từ ảnh tài liệu này.
+
+YÊU CẦU ĐẶC BIỆT:
+1. CHỮ IN: Đọc đúng tiếng Việt có dấu, tuyệt đối không bị mất dấu hay biến dạng chữ.
+2. CHỮ MỜ & MÉO MÓ: Phân tích ngữ cảnh kỹ thuật xây dựng để khôi phục chính xác từng từ bị mờ hoặc bị con dấu đè.
+3. CHỮ VIẾT TAY & CHỮ KÝ: Nhận diện chính xác các dòng chữ viết tay của Kỹ sư hiện trường, Chỉ huy trưởng, Tư vấn giám sát. Định dạng theo mẫu: [Ghi chú viết tay: ...]. Nhận diện các chữ ký viết tay và ghi rõ: [Chữ ký viết tay: Họ tên người ký nếu có].
+4. BẢNG BIỂU & SỐ LIỆU DỰ TOÁN: Giữ nguyên cấu trúc dòng và cột của bảng. Đối với các con số tài chính/tiền tệ Việt Nam, giữ chuẩn định dạng (ví dụ: 1.500.000,50 đồng hoặc 25,5 m3).
+5. ĐỊNH DẠNG ĐẦU RA: Trả về nội dung văn bản sạch sẽ, phân đoạn rõ ràng, không kèm lời giải thích rườm rà.`;
+
+        const payload = {
+            contents: [
+                {
+                    parts: [
+                        { text: prompt },
+                        {
+                            inline_data: {
+                                mime_type: "image/jpeg",
+                                data: base64Data
+                            }
+                        }
+                    ]
+                }
+            ],
+            generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 4096
+            }
+        };
+
+        const targetModel = "gemini-2.0-flash";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            const errJson = await resp.json().catch(() => ({}));
+            throw new Error(`Gemini Vision API Error (${resp.status}): ${errJson.error?.message || resp.statusText}`);
+        }
+
+        const data = await resp.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    }
+
+    // =========================================================================
+    // HÀM CHUYỂN ĐỔI CHÍNH: QUÉT TUẦN TỰ TỪNG TRANG 1 & ĐÓNG GÓI WORD / EXCEL
+    // =========================================================================
     async function executeQlvbBatchPdfConversion() {
         if (qlvbConvertQueue.length === 0) return;
 
@@ -4496,40 +4848,204 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         const progressBar = document.getElementById('qlvbConvertProgressBar');
         const progressPercent = document.getElementById('qlvbConvertProgressPercent');
         const progressLabel = document.getElementById('qlvbConvertProgressLabel');
+        const pageIndicator = document.getElementById('qlvbConvertPageIndicator');
 
         if (progressWrap) progressWrap.classList.remove('hidden');
-        showToast(`Bắt đầu chuyển đổi ${qlvbConvertQueue.length} tệp sang ${qlvbTargetFormat.toUpperCase()} chuẩn Tiếng Việt...`);
 
+        // Lấy các cấu hình tùy chọn
+        const ocrEngineMode = document.getElementById('qlvb-ocr-engine')?.value || 'hybrid';
+        const isSequential = document.getElementById('qlvb-opt-sequential')?.checked !== false;
+        const isEnhance = document.getElementById('qlvb-opt-enhance')?.checked !== false;
+        const isHandwriting = document.getElementById('qlvb-opt-handwriting')?.checked !== false;
         const isNfc = document.getElementById('qlvb-opt-nfc')?.checked !== false;
         const isParseNum = document.getElementById('qlvb-opt-num')?.checked !== false;
         const isNd30 = document.getElementById('qlvb-opt-nd30')?.checked !== false;
-        const isHeal = document.getElementById('qlvb-opt-heal')?.checked !== false;
 
-        for (let idx = 0; idx < qlvbConvertQueue.length; idx++) {
-            const item = qlvbConvertQueue[idx];
-            item.status = 'Đang xử lý...';
+        const geminiApiKey = (document.getElementById('geminiApiKeyInput')?.value || '').trim();
+
+        showToast(`Bắt đầu chuyển đổi ${qlvbConvertQueue.length} tệp sang ${qlvbTargetFormat.toUpperCase()} tuần tự từng trang...`, 'info');
+
+        for (let fileIdx = 0; fileIdx < qlvbConvertQueue.length; fileIdx++) {
+            const item = qlvbConvertQueue[fileIdx];
+            item.status = 'Đang phân tích cấu trúc...';
             renderQlvbConvertQueue();
 
-            if (progressLabel) progressLabel.innerText = `Đang phân tích cấu trúc: ${item.name}`;
-            const pct = Math.round(((idx + 1) / qlvbConvertQueue.length) * 100);
-            if (progressBar) progressBar.style.width = `${pct}%`;
-            if (progressPercent) progressPercent.innerText = `${pct}% (${idx + 1}/${qlvbConvertQueue.length})`;
-
             try {
-                const rawBytes = await readFileAsArrayBuffer(item.file);
-                let pdf;
-                try {
-                    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(rawBytes) }).promise;
-                } catch (wErr) {
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-                    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(rawBytes) }).promise;
+                let pagesData = []; // Danh sách văn bản từng trang: [{ pageNum: 1, text: "..." }]
+
+                // =============================================================
+                // TRƯỜNG HỢP A: TỆP LÀ ẢNH ĐƠN LẺ (.PNG, .JPG, .BMP, .WEBP, .TIFF)
+                // =============================================================
+                if (item.isImg) {
+                    item.totalPages = 1;
+                    item.currentPage = 1;
+                    item.status = 'Trang 1/1 (Xử lý ảnh)';
+                    renderQlvbConvertQueue();
+
+                    if (progressLabel) progressLabel.innerText = `Đang xử lý ảnh: ${item.name}`;
+                    if (pageIndicator) pageIndicator.innerText = `Trang: 1 / 1`;
+
+                    const imgUrl = URL.createObjectURL(item.file);
+                    const img = await new Promise((res, rej) => {
+                        const i = new Image();
+                        i.onload = () => res(i);
+                        i.onerror = () => rej(new Error("Không thể nạp file ảnh"));
+                        i.src = imgUrl;
+                    });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width;
+                    canvas.height = img.naturalHeight || img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(imgUrl);
+
+                    if (isEnhance) {
+                        enhanceCanvasForOcr(canvas);
+                    }
+
+                    let recognizedText = "";
+                    if (ocrEngineMode === 'gemini' && geminiApiKey) {
+                        recognizedText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
+                    } else if (ocrEngineMode === 'tesseract') {
+                        recognizedText = await recognizePageWithTesseract(canvas, s => {
+                            if (progressLabel) progressLabel.innerText = `${item.name} - ${s}`;
+                        });
+                    } else {
+                        // Hybrid: Thử Gemini trước nếu có key, không thì Tesseract
+                        if (geminiApiKey) {
+                            try {
+                                recognizedText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
+                            } catch (e) {
+                                console.warn("Gemini Vision fallback sang Tesseract:", e);
+                                recognizedText = await recognizePageWithTesseract(canvas);
+                            }
+                        } else {
+                            recognizedText = await recognizePageWithTesseract(canvas);
+                        }
+                    }
+
+                    // Giải phóng RAM canvas
+                    canvas.width = 1;
+                    canvas.height = 1;
+
+                    pagesData.push({ pageNum: 1, text: cleanAndNormalizeVietnameseText(recognizedText) });
                 }
 
-                let totalChars = 0;
+                // =============================================================
+                // TRƯỜNG HỢP B: TỆP LÀ FILE PDF (DUYỆT TUẦN TỰ TỪNG TRANG 1)
+                // =============================================================
+                else {
+                    const rawBytes = await readFileAsArrayBuffer(item.file);
+                    let pdf;
+                    try {
+                        pdf = await pdfjsLib.getDocument({ data: new Uint8Array(rawBytes) }).promise;
+                    } catch (wErr) {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+                        pdf = await pdfjsLib.getDocument({ data: new Uint8Array(rawBytes) }).promise;
+                    }
 
-                // ==========================================
-                // 1. CHUYỂN ĐỔI SANG MS WORD (.doc CHUẨN NGHỊ ĐỊNH 30 A4)
-                // ==========================================
+                    item.totalPages = pdf.numPages;
+
+                    for (let pNum = 1; pNum <= pdf.numPages; pNum++) {
+                        item.currentPage = pNum;
+                        item.status = `Trang ${pNum}/${pdf.numPages}`;
+                        renderQlvbConvertQueue();
+
+                        if (progressLabel) {
+                            progressLabel.innerText = `${item.name}: Đang xử lý Trang ${pNum} / ${pdf.numPages}...`;
+                        }
+                        if (pageIndicator) {
+                            pageIndicator.innerText = `Trang: ${pNum} / ${pdf.numPages}`;
+                        }
+
+                        // Tính % tiến trình tổng thể
+                        const overallPct = Math.round(((fileIdx + (pNum / pdf.numPages)) / qlvbConvertQueue.length) * 100);
+                        if (progressBar) progressBar.style.width = `${overallPct}%`;
+                        if (progressPercent) progressPercent.innerText = `${overallPct}%`;
+
+                        const page = await pdf.getPage(pNum);
+
+                        // 1. Thử lấy vector text layer trước
+                        let pageVectorText = "";
+                        const textContent = await page.getTextContent();
+                        if (textContent && textContent.items && textContent.items.length > 0) {
+                            let lines = [];
+                            let curLine = "";
+                            let lastY = null;
+
+                            textContent.items.forEach(it => {
+                                const textPiece = cleanAndNormalizeVietnameseText(it.str || '');
+                                if (lastY !== null && Math.abs(it.transform[5] - lastY) > 6) {
+                                    if (curLine.trim()) lines.push(curLine.trim());
+                                    curLine = "";
+                                }
+                                curLine += textPiece + " ";
+                                lastY = it.transform[5];
+                            });
+                            if (curLine.trim()) lines.push(curLine.trim());
+                            pageVectorText = lines.join("\n");
+                        }
+
+                        // 2. Quyết định xem có cần OCR Canvas không
+                        // Nếu trang không có vector text (PDF scan), hoặc người dùng chọn Gemini Vision để đọc chữ viết tay/chữ ký:
+                        const needsOcr = pageVectorText.trim().length < 40 || ocrEngineMode === 'gemini' || (isHandwriting && ocrEngineMode !== 'tesseract');
+
+                        let finalPageText = "";
+                        if (!needsOcr && ocrEngineMode !== 'gemini') {
+                            finalPageText = pageVectorText;
+                        } else {
+                            if (progressLabel) {
+                                progressLabel.innerText = `${item.name}: OCR Trang ${pNum} (Tẩy mờ & nhận diện chữ ký)...`;
+                            }
+
+                            // Render trang PDF lên Canvas phân giải cao (scale 2.0 chống vỡ nét)
+                            const viewport = page.getViewport({ scale: 2.0 });
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const ctx = canvas.getContext('2d');
+
+                            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                            // Áp dụng bộ lọc tăng nét & tẩy mờ
+                            if (isEnhance) {
+                                enhanceCanvasForOcr(canvas);
+                            }
+
+                            // Thực thi OCR
+                            let ocrText = "";
+                            if (ocrEngineMode === 'gemini' && geminiApiKey) {
+                                ocrText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
+                            } else if (ocrEngineMode === 'tesseract') {
+                                ocrText = await recognizePageWithTesseract(canvas);
+                            } else {
+                                // Hybrid: ưu tiên vector text, nếu vector ít thì gọi OCR
+                                if (geminiApiKey) {
+                                    try {
+                                        ocrText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
+                                    } catch (e) {
+                                        ocrText = await recognizePageWithTesseract(canvas);
+                                    }
+                                } else {
+                                    ocrText = await recognizePageWithTesseract(canvas);
+                                }
+                            }
+
+                            // Dọn dẹp Canvas giải phóng RAM ngay lập tức
+                            canvas.width = 1;
+                            canvas.height = 1;
+
+                            finalPageText = ocrText.trim() ? ocrText : pageVectorText;
+                        }
+
+                        pagesData.push({ pageNum: pNum, text: cleanAndNormalizeVietnameseText(finalPageText) });
+                    }
+                }
+
+                // =============================================================
+                // ĐÓNG GÓI TỆP XUẤT RA: MS WORD (.doc) HOẶC MS EXCEL (.xlsx)
+                // =============================================================
                 if (qlvbTargetFormat === 'doc') {
                     let docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head><meta charset='utf-8'><title>${escapeHtml(item.name)}</title>
@@ -4544,17 +5060,16 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
 <![endif]-->
 <style>
 @page Section1 {
-    size: 210mm 297mm; /* Khổ A4 chuẩn */
-    margin: 20mm 15mm 20mm 30mm; /* Lề chuẩn NĐ 30: Trên 2cm, Dưới 2cm, Trái 3cm, Phải 1.5cm */
+    size: 210mm 297mm; /* Khổ A4 tiêu chuẩn */
+    margin: 20mm 15mm 20mm 30mm; /* Lề chuẩn NĐ 30: Trên 2cm, Dưới 2cm, Phải 1.5cm, Trái 3cm */
     mso-header-margin: 36pt;
     mso-footer-margin: 36pt;
-    mso-paper-source: 0;
 }
 div.Section1 { page: Section1; }
 body {
     font-family: 'Times New Roman', 'Segoe UI', serif;
-    font-size: 13pt; /* Chuẩn 13-14pt Nghị định 30 */
-    line-height: 1.4;
+    font-size: 13pt; /* Chuẩn 13-14pt Nghị định 30/2020 */
+    line-height: 1.35;
     color: #000000;
 }
 p {
@@ -4562,28 +5077,41 @@ p {
     text-align: justify;
     text-indent: 1cm; /* Thụt đầu dòng 1cm */
 }
-.page-header {
-    text-align: center;
-    font-weight: bold;
-    font-size: 10pt;
-    color: #475569;
-    border-bottom: 1px solid #cbd5e1;
-    margin-bottom: 18pt;
-    padding-bottom: 4pt;
-}
 .page-break {
     page-break-before: always;
+}
+.page-header-tag {
+    text-align: center;
+    font-size: 10pt;
+    font-weight: bold;
+    color: #475569;
+    border-bottom: 1px dashed #cbd5e1;
+    margin-bottom: 14pt;
+    padding-bottom: 3pt;
+}
+.handwriting-box {
+    background-color: #f8fafc;
+    border-left: 3px solid #0284c7;
+    padding: 6pt 10pt;
+    margin: 8pt 0pt;
+    font-style: italic;
+    color: #0f172a;
+}
+.signature-box {
+    margin-top: 14pt;
+    text-align: right;
+    font-weight: bold;
+    color: #1e293b;
 }
 table {
     border-collapse: collapse;
     width: 100%;
-    margin-top: 10pt;
-    margin-bottom: 10pt;
+    margin: 10pt 0pt;
     font-size: 11pt;
 }
 th, td {
     border: 1px solid #000000;
-    padding: 5pt 6pt;
+    padding: 5pt 7pt;
     vertical-align: top;
 }
 th {
@@ -4596,175 +5124,88 @@ th {
 <body>
 <div class="Section1">`;
 
-                    for (let pNum = 1; pNum <= pdf.numPages; pNum++) {
-                        const page = await pdf.getPage(pNum);
-                        const textContent = await page.getTextContent();
-
-                        if (pNum > 1) {
+                    pagesData.forEach((pObj, pIdx) => {
+                        if (pIdx > 0) {
                             docHTML += `<div class="page-break"></div>`;
                         }
-                        docHTML += `<div class="page-header">--- TRANG ${pNum} / ${pdf.numPages} ---</div>`;
+                        docHTML += `<div class="page-header-tag">--- TRANG ${pObj.pageNum} / ${item.totalPages} ---</div>`;
 
-                        let lines = [];
-                        let curLine = "";
-                        let lastY = null;
+                        const pLines = (pObj.text || '').split('\n');
+                        pLines.forEach(lStr => {
+                            const trimmed = lStr.trim();
+                            if (!trimmed) return;
 
-                        textContent.items.forEach(it => {
-                            totalChars += (it.str || '').length;
-                            const textPiece = cleanAndNormalizeVietnameseText(it.str);
-
-                            if (lastY !== null && Math.abs(it.transform[5] - lastY) > 8) {
-                                if (curLine.trim()) lines.push(curLine.trim());
-                                curLine = "";
-                            }
-                            curLine += textPiece + " ";
-                            lastY = it.transform[5];
-                        });
-                        if (curLine.trim()) lines.push(curLine.trim());
-
-                        // Thuật toán hàn gắn đoạn văn bản (Paragraph Healing):
-                        let paragraphBuffer = "";
-                        for (let l of lines) {
-                            // Nếu dòng là tiêu đề in hoa (như QUYẾT ĐỊNH, CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM)
-                            const isHeading = l.length < 80 && (l === l.toUpperCase() && /[A-ZÀ-Ỹ]/.test(l));
-
-                            if (isHeading) {
-                                if (paragraphBuffer) {
-                                    docHTML += `<p>${escapeHtml(paragraphBuffer)}</p>`;
-                                    paragraphBuffer = "";
-                                }
-                                docHTML += `<p style="text-align: center; font-weight: bold; text-indent: 0;">${escapeHtml(l)}</p>`;
+                            // Nhận diện chữ ký hoặc ghi chú viết tay
+                            if (trimmed.includes('[Ghi chú viết tay:') || trimmed.includes('[Chữ ký:')) {
+                                docHTML += `<div class="handwriting-box">✍️ ${escapeHtml(trimmed)}</div>`;
+                            } else if (trimmed.length < 80 && trimmed === trimmed.toUpperCase() && /[A-ZÀ-Ỹ]/.test(trimmed)) {
+                                // Tiêu đề in hoa
+                                docHTML += `<p style="text-align: center; font-weight: bold; text-indent: 0;">${escapeHtml(trimmed)}</p>`;
                             } else {
-                                if (paragraphBuffer) {
-                                    // Kiểm tra xem dòng trước có kết thúc câu không
-                                    const lastChar = paragraphBuffer.trim().slice(-1);
-                                    if (['.', '!', '?', ':', ';'].includes(lastChar)) {
-                                        docHTML += `<p>${escapeHtml(paragraphBuffer)}</p>`;
-                                        paragraphBuffer = l;
-                                    } else {
-                                        // Nối dòng vào đoạn cũ
-                                        paragraphBuffer += " " + l;
-                                    }
-                                } else {
-                                    paragraphBuffer = l;
-                                }
+                                docHTML += `<p>${escapeHtml(trimmed)}</p>`;
                             }
-                        }
-                        if (paragraphBuffer) {
-                            docHTML += `<p>${escapeHtml(paragraphBuffer)}</p>`;
-                        }
-                    }
+                        });
+                    });
 
                     docHTML += `</div></body></html>`;
 
                     item.resultBlob = new Blob(['\ufeff' + docHTML], { type: 'application/msword;charset=utf-8' });
-                    item.resultName = `${item.name.replace(/\.pdf$/i, '')}_ChuanTiengViet.doc`;
+                    item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_ChuanNghiDinh30.doc`;
 
-                // ==========================================
-                // 2. CHUYỂN ĐỔI SANG MS EXCEL (.xlsx CHUẨN THƯ VIỆN SHEETJS)
-                // ==========================================
                 } else {
+                    // Xuất Excel .xlsx chuẩn số tính toán được
                     const wb = XLSX.utils.book_new();
 
-                    for (let pNum = 1; pNum <= pdf.numPages; pNum++) {
-                        const page = await pdf.getPage(pNum);
-                        const textContent = await page.getTextContent();
+                    pagesData.forEach((pObj) => {
+                        const wsData = [];
+                        wsData.push([`--- TRANG ${pObj.pageNum} / ${item.totalPages} ---`]);
 
-                        // Nhóm các cell theo dòng trục Y (khoảng cách sai số 4pt)
-                        let rowsMap = {};
-                        textContent.items.forEach(it => {
-                            totalChars += (it.str || '').length;
-                            const textVal = cleanAndNormalizeVietnameseText(it.str);
-                            if (!textVal.trim()) return;
+                        const lines = (pObj.text || '').split('\n');
+                        lines.forEach(lineStr => {
+                            const trimmed = lineStr.trim();
+                            if (!trimmed) return;
 
-                            let yKey = Math.round(it.transform[5] / 4) * 4;
-                            if (!rowsMap[yKey]) rowsMap[yKey] = [];
-                            rowsMap[yKey].push({ x: it.transform[4], str: textVal });
-                        });
-
-                        // Sắp xếp các hàng từ trên xuống dưới theo Y
-                        let sortedY = Object.keys(rowsMap).sort((a, b) => b - a);
-                        let sheetData = [];
-
-                        sortedY.forEach(y => {
-                            // Sắp xếp các ô trong cùng một hàng từ trái qua phải theo X
-                            let rowCells = rowsMap[y].sort((a, b) => a.x - b.x);
-                            let rowArr = [];
-
-                            rowCells.forEach(cell => {
-                                let finalVal = cell.str.trim();
-                                if (isParseNum) {
-                                    finalVal = parseVietnameseNumberCell(finalVal);
-                                }
-                                rowArr.push(finalVal);
-                            });
-                            if (rowArr.length > 0) sheetData.push(rowArr);
-                        });
-
-                        // Tạo Sheet từ mảng mảng (AOA)
-                        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-                        // Tự động tính độ rộng cột theo nội dung
-                        if (sheetData.length > 0) {
-                            const colWidths = [];
-                            sheetData.forEach(r => {
-                                r.forEach((c, cIdx) => {
-                                    const len = String(c || '').length;
-                                    colWidths[cIdx] = Math.max(colWidths[cIdx] || 10, Math.min(len + 3, 50));
+                            // Phân tách cột: nếu dòng có dấu tab hoặc khoảng trắng lớn hơn 3 spaces
+                            const tokens = trimmed.split(/\t|\s{3,}/);
+                            if (tokens.length > 1) {
+                                const row = tokens.map(tok => {
+                                    if (isParseNum) {
+                                        return parseVietnameseNumberCell(tok.trim());
+                                    }
+                                    return tok.trim();
                                 });
-                            });
-                            ws['!cols'] = colWidths.map(w => ({ wch: w }));
-                        }
+                                wsData.push(row);
+                            } else {
+                                wsData.push([trimmed]);
+                            }
+                        });
 
-                        const sheetName = `Trang_${pNum}`;
-                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                    }
+                        const ws = XLSX.utils.aoa_to_sheet(wsData);
+                        // Tự động căn chỉnh độ rộng cột
+                        ws['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 25 }];
+                        XLSX.utils.book_append_sheet(wb, ws, `Trang_${pObj.pageNum}`);
+                    });
 
-                    // Xuất tệp nhị phân .xlsx nguyên bản bằng SheetJS
                     const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                     item.resultBlob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                    item.resultName = `${item.name.replace(/\.pdf$/i, '')}_BangTinh.xlsx`;
+                    item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_DuToanChuan.xlsx`;
                 }
 
-                item.status = totalChars < 10 ? 'Hoàn tất (Ảnh scan)' : 'Hoàn tất';
-                if (totalChars < 10) {
-                    showToast(`Tệp ${item.name} là dạng ảnh scan, không có vector text.`, true);
-                }
+                item.status = 'Hoàn tất';
+                renderQlvbConvertQueue();
 
-                // Tự động tải xuống nếu chỉ có 1 tệp
-                if (qlvbConvertQueue.length === 1) {
-                    downloadSingleQlvbConverted(0);
-                }
-
-            } catch (convErr) {
-                console.error("Lỗi chuyển đổi tệp:", item.name, convErr);
-                item.status = 'Lỗi';
-                showToast(`Lỗi chuyển đổi ${item.name}: ${convErr.message}`, true);
+            } catch (err) {
+                console.error("Lỗi khi chuyển đổi file:", item.name, err);
+                item.status = `Lỗi: ${err.message || 'Không thể đọc tệp'}`;
+                renderQlvbConvertQueue();
+                showToast(`Lỗi chuyển đổi ${item.name}: ${err.message}`, 'error');
             }
         }
 
-        renderQlvbConvertQueue();
-        showToast("Đã hoàn tất chuyển đổi toàn bộ danh sách tệp!");
-    }
-
-    // Thiết lập kéo thả dropzone cho tab PDF Convert
-    function setupQlvbPdfDropzoneEvents() {
-        const dropzone = document.getElementById('qlvbPdfDropzone');
-        const input = document.getElementById('qlvbPdfFileInput');
-        if (dropzone && input) {
-            dropzone.onclick = (e) => {
-                if (e.target !== input) input.click();
-            };
-            dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('border-sky-500', 'bg-sky-100/50'); };
-            dropzone.ondragleave = (e) => { e.preventDefault(); dropzone.classList.remove('border-sky-500', 'bg-sky-100/50'); };
-            dropzone.ondrop = (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-sky-500', 'bg-sky-100/50');
-                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleQlvbPdfFilesSelect({ target: { files: e.dataTransfer.files } });
-                }
-            };
-        }
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressPercent) progressPercent.innerText = '100%';
+        if (progressLabel) progressLabel.innerText = 'Đã hoàn tất toàn bộ tiến trình chuyển đổi!';
+        showToast('Đã hoàn tất chuyển đổi toàn bộ danh sách tệp!', 'success');
     }
 
 </script>
