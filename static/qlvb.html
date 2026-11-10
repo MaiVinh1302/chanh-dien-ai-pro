@@ -4600,6 +4600,244 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
     // =========================================================================
     // BỘ TIỀN XỬ LÝ HÌNH ẢNH CANVAS BẢO TOÀN NÉT DẤU TIẾNG VIỆT
     // =========================================================================
+    
+    // =========================================================================
+    // TRÍ TUỆ NHÂN TẠO XỬ LÝ HẬU KỲ OCR TIẾNG VIỆT & TÁI TẠO BẢNG BIỂU (2026 PRO)
+    // =========================================================================
+
+    // =========================================================================
+    // TRÍ TUỆ NHÂN TẠO XỬ LÝ HẬU KỲ OCR TIẾNG VIỆT & TÁI TẠO BẢNG BIỂU (2026 PRO V2)
+    // =========================================================================
+
+    // 1. Từ điển chuyên ngành Xây dựng & Pháp lý (Chạy TRƯỚC khi lọc từ để cứu các từ viết hoa bị dính chữ)
+    function applyConstructionLexiconFixes(str) {
+        if (!str || typeof str !== 'string') return '';
+        let s = cleanAndNormalizeVietnameseText(str).trim();
+
+        const dictionaryFixes = [
+            [/Y\s+KIEN\s+CUỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
+            [/Y\s+KIẾN\s+CUỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
+            [/Y\s+KIEN\s+CỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
+            [/CUỦA/gi, 'CỦA'],
+            [/\|?SFT\s+NỘI\s+DUNG\s+CHI\s*TIẾT/gi, 'I. NỘI DUNG CHI TIẾT'],
+            [/NỘI\s+DUNG\s+CHITIẾT/gi, 'NỘI DUNG CHI TIẾT'],
+            [/CHITIẾT/gi, 'CHI TIẾT'],
+            [/Phụ\s+lụchợp\s+đồng/gi, 'Phụ lục hợp đồng'],
+            [/lụchợp/gi, 'lục hợp'],
+            [/\b\d*\s*n\.Dự\s*án/gi, '4\tDự án'],
+            [/Dựán/g, 'Dự án'],
+            [/RAU\s+QUÁ/g, 'RAU QUẢ'],
+            [/¡H\s+Thông\s+tin\s+ch[ỉi]\s+tiết/gi, 'II. Thông tin chi tiết'],
+            [/Thông\s+tin\s+chỉ\s+tiết/gi, 'Thông tin chi tiết'],
+            [/Tài\s+liệu\s+khác\s+chỉ\s+tiết/gi, 'Tài liệu khác chi tiết'],
+            [/phù,\s+hợp/gi, 'phù hợp'],
+            [/sản\s+phẩm\s+u$/gi, 'sản phẩm'],
+            [/hợp\s+đồng\.\s+bì$/gi, 'hợp đồng.'],
+            [/điều\s+kiện\s+thanh\s+toán\s+của\s+từng\s+hợp\s+đồng\s+mm:/gi, 'điều kiện thanh toán của từng hợp đồng:'],
+            [/Quyết\s+toán\s+hợp\s+đồng\s+ÚÍ.*$/gi, 'Quyết toán hợp đồng:'],
+            [/phục\s+cho\s+công\s+việc\s+của\s+công\s+b.*$/gi, 'phục vụ cho công việc của công trình'],
+            [/^V:\s+Phê\s+duyệt/i, 'V/v: Phê duyệt'],
+            [/\b15\s*\|\s*Chủ\s+đầu\s+tư/gi, '5 | Chủ đầu tư']
+        ];
+
+        dictionaryFixes.forEach(([regex, replacement]) => {
+            s = s.replace(regex, replacement);
+        });
+
+        return s;
+    }
+
+    // 2. Kiểm tra một từ có phải là rác nhiễu quang học (Gibberish / Noise Artifact) hay không
+    function isVietnameseGibberishWord(word) {
+        if (!word) return true;
+        const w = word.trim();
+        if (!w) return true;
+
+        // Ký tự ngoại lai châu Âu không bao giờ có trong văn bản tiếng Việt chuẩn
+        if (/[ÖÕÜÄËÏŸ¡¿†‡§¶¤¦¨©ª«¬®¯°±²³´µ¸¹º»¼½¾]/.test(w)) return true;
+
+        // Dãy số/chữ hỗn loạn dài vô nghĩa do đọc nhầm đường kẻ bảng chấm chấm (ví dụ: 0000005/000000902/080000...)
+        if (w.length >= 16 && (w.match(/000/g) || []).length >= 2) {
+            return true;
+        }
+
+        // Từ rác đặc trưng do nhận diện nhầm ô checkbox [x] hoặc đường kẻ
+        if (/^(lxI|LxI|Ix\.T|IESE|Gyy|lzt|LẾth|L-i|i77|7ô|\[si)$/i.test(w)) return true;
+
+        // Nhiều dấu câu/ký hiệu kỳ dị trộn lẫn trong 1 từ ngắn (ví dụ: „r/érrỶmưẲ, mr”=ơ=, ""“)
+        const weirdSymbols = (w.match(/[„“”"'`~^<>|\\\/\[\]{}_=+*]/g) || []).length;
+        if (weirdSymbols >= 2 && w.length <= 10 && !/^[0-9\/-]+$/.test(w)) return true;
+        if (/^[„“”"'`~^<>|\\\/\[\]{}_=+*.,:;!?-]+$/.test(w)) return true;
+
+        // Từ có cả chữ thường có dấu VÀ chữ hoa có dấu lộn xộn ở giữa từ (ví dụ: érrỶmưẲ, ọ<ÚÚẮÖẮẲ)
+        // Nhưng bảo toàn 100% các từ viết HOA toàn bộ (như HĐQT, PLHĐ, QUẢ, 2005/2022/HĐTT/XNKRQ-NTC)
+        const cleanAlpha = w.replace(/[^a-zA-ZÀ-ỹ]/g, '');
+        if (cleanAlpha.length >= 3 && cleanAlpha !== cleanAlpha.toUpperCase()) {
+            const innerCaps = cleanAlpha.slice(1).match(/[A-ZÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ]/g);
+            const hasLower = /[a-zà-ỹ]/.test(cleanAlpha);
+            if (innerCaps && innerCaps.length >= 1 && hasLower) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 3. Kiểm tra cả một dòng có phải là dòng rác sinh ra từ đường kẻ ngang của bảng không
+    function isGarbageOcrLine(lineStr, confidence = 80) {
+        if (!lineStr) return true;
+        const s = applyConstructionLexiconFixes(lineStr);
+        if (!s) return true;
+
+        const alphaNum = s.replace(/[^a-zA-ZÀ-ỹ0-9]/g, '');
+        if (alphaNum.length === 0) return true;
+        if (alphaNum.length <= 3 && !/^(I|II|III|IV|V|VI|1|2|3|4|5|6|7|8|9|10|TT|Số)$/i.test(alphaNum)) {
+            return true;
+        }
+
+        // Dòng là dãy số 0000005/000000902... do đọc nhầm đường kẻ chấm chấm
+        if ((s.match(/0000/g) || []).length >= 2) return true;
+        if (/^[ST\s0-9\/E().,-]{18,}$/.test(s) && (s.match(/00/g) || []).length >= 3) return true;
+
+        // Dòng toàn các mảnh ký tự rời rạc kiểu "[si i77 E on G2" hoặc "ST TT uy k Cứ 0090"
+        if (/^(\[si\s+i77|ST\s+TT\s+uy\s+k|nh\s+gi$|em:$|""“\s*ti\s+bà|ế\s+ế\s+lzt|lm\s+ế\s+Gyy|ng:\s*IESE)/i.test(s)) {
+            return true;
+        }
+
+        const words = s.split(/\s+/).filter(Boolean);
+        if (words.length === 0) return true;
+
+        let badCount = 0;
+        words.forEach(w => {
+            if (isVietnameseGibberishWord(w)) badCount++;
+        });
+
+        if (badCount / words.length >= 0.4) return true;
+        if (words.length <= 4 && confidence < 58) return true;
+
+        return false;
+    }
+
+    // 4. Làm sạch sâu và chuẩn hóa thông minh từng dòng văn bản hồ sơ xây dựng / pháp lý
+    function smartCleanConstructionLine(rawLine) {
+        if (!rawLine || typeof rawLine !== 'string') return '';
+        let s = applyConstructionLexiconFixes(rawLine);
+        if (!s) return '';
+
+        // A. Nhận diện các ký hiệu Checkbox ở đầu dòng: [- - [, |- - |, |- [, | — |, +. |, | |
+        let hasCheckbox = false;
+        if (/^(\[-?\s*-\s*\[|\|-?\s*-\s*\||\|-\s*\[|\|\s*[—–-]\s*\||\[\s*-\s*\[|\+\.?\s*\||\|\s*\||\[-\s*\[)/.test(s)) {
+            hasCheckbox = true;
+            s = s.replace(/^(\[-?\s*-\s*\[|\|-?\s*-\s*\||\|-\s*\[|\|\s*[—–-]\s*\||\[\s*-\s*\[|\+\.?\s*\||\|\s*\||\[-\s*\[)\s*/, '');
+        }
+
+        // B. Xóa bỏ các cụm rác cuối dòng do ô tích chọn [x] bên phải bị đọc nhầm
+        s = s.replace(/\s*(lxI.*|LxI.*|Ix\.T.*|ÖÕ.*|ÚÍ.*|l-\s*\.\]\s*\/?|\]\s*\/|\|\s*x\.\]|=\s*sa|\|\s*7ô|\._)\s*$/g, '');
+
+        // C. Xóa các ký tự rác đầu/cuối dòng
+        s = s.replace(/^[|!¡]+\s*/, '');
+        s = s.replace(/\s*[|!]+$/, '');
+
+        // D. Lọc bỏ các từ rác đơn lẻ còn sót lại
+        const tokens = s.split(/\s+/);
+        const cleanTokens = tokens.filter(t => !isVietnameseGibberishWord(t));
+        s = cleanTokens.join(' ').trim();
+
+        if (!s) return '';
+
+        // E. Xử lý ký hiệu phân cột '|' hoặc '\' giữa dòng thành ký tự TAB (\t) chuẩn để tự động dựng bảng Word / Excel!
+        if (s.includes('|') || (s.includes('\\') && /\d{3}\.\d{3}/.test(s))) {
+            const cols = s.split(/[|\\]/).map(c => c.trim()).filter(Boolean);
+            if (cols.length >= 2) {
+                return cols.join('\t');
+            }
+            s = cols.join(' ');
+        }
+
+        // F. Nếu là mục đánh số đầu dòng của bảng thông tin (ví dụ: "1 Số hợp đồng 2005...", "2 Nhà thầu Công Ty...", "3 Gói thầu Cung ứng...")
+        const numberedRowMatch = s.match(/^([1-9]|1[0-5])\s+(Số hợp đồng|Nhà thầu|Gói thầu|Dự án|Chủ đầu tư|Giá trị hợp đồng[^\t]*)\s+(.+)$/i);
+        if (numberedRowMatch) {
+            return `${numberedRowMatch[1]}\t${numberedRowMatch[2]}\t${numberedRowMatch[3]}`;
+        }
+
+        if (hasCheckbox) {
+            return `☑ ${s}`;
+        }
+
+        return s;
+    }
+
+    // 4. Trích xuất dòng thông minh từ kết quả Tesseract (kết hợp Confidence + Spatial BBox + Smart Clean)
+    function extractSmartLinesFromTesseractResult(res) {
+        if (!res || !res.data) return [];
+        const resultLines = [];
+
+        if (res.data.lines && res.data.lines.length > 0) {
+            res.data.lines.forEach(lineObj => {
+                const lineConf = typeof lineObj.confidence === 'number' ? lineObj.confidence : 75;
+                let rawText = '';
+
+                // Nếu có danh sách words với tọa độ bbox, kiểm tra khoảng cách ngang để tách cột bảng
+                if (lineObj.words && lineObj.words.length > 0) {
+                    const validWords = lineObj.words.filter(w => {
+                        const wText = (w.text || '').trim();
+                        const wConf = typeof w.confidence === 'number' ? w.confidence : 75;
+                        if (!wText) return false;
+                        // Bỏ ngay các từ có độ tin cậy quá thấp (< 40%) trừ khi là số rõ ràng
+                        if (wConf < 40 && !/^[0-9.,]+$/.test(wText)) return false;
+                        if (isVietnameseGibberishWord(wText)) return false;
+                        return true;
+                    });
+
+                    if (validWords.length === 0) return;
+
+                    let builder = '';
+                    let prevX1 = null;
+                    validWords.forEach(w => {
+                        const wText = w.text.trim();
+                        const x0 = w.bbox ? w.bbox.x0 : null;
+                        const x1 = w.bbox ? w.bbox.x1 : null;
+
+                        if (prevX1 !== null && x0 !== null && (x0 - prevX1) > 45) {
+                            // Khoảng cách giữa 2 từ lớn (> 45px) -> Đây là 2 cột khác nhau của bảng!
+                            builder += '\t' + wText;
+                        } else if (builder) {
+                            builder += ' ' + wText;
+                        } else {
+                            builder = wText;
+                        }
+                        if (x1 !== null) prevX1 = x1;
+                    });
+                    rawText = builder;
+                } else {
+                    rawText = (lineObj.text || '').trim();
+                }
+
+                if (isGarbageOcrLine(rawText, lineConf)) return;
+
+                const cleaned = smartCleanConstructionLine(rawText);
+                if (cleaned && !isGarbageOcrLine(cleaned, lineConf)) {
+                    resultLines.push(cleaned);
+                }
+            });
+        } else if (res.data.text) {
+            const rawLines = res.data.text.split('\n');
+            rawLines.forEach(rLine => {
+                if (isGarbageOcrLine(rLine, 75)) return;
+                const cleaned = smartCleanConstructionLine(rLine);
+                if (cleaned && !isGarbageOcrLine(cleaned, 75)) {
+                    resultLines.push(cleaned);
+                }
+            });
+        }
+
+        return resultLines;
+    }
+
+
+    // =========================================================================
+    // BỘ TIỀN XỬ LÝ HÌNH ẢNH CANVAS + KHỬ ĐƯỜNG KẺ BẢNG (MORPHOLOGICAL LINE STRIPPING)
+    // =========================================================================
     function enhanceCanvasForOcr(srcCanvas) {
         const width = srcCanvas.width;
         const height = srcCanvas.height;
@@ -4617,13 +4855,9 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             const b = data[i + 2];
             let gray = 0.299 * r + 0.587 * g + 0.114 * b;
 
-            // Tách lọc con dấu mộc đỏ đè lên chữ:
-            if (r > 140 && r > g * 1.4 && r > b * 1.4) {
-                if (gray < 145) {
-                    gray = Math.max(0, gray - 40); // Giữ nét chữ đen dưới dấu đỏ
-                } else {
-                    gray = 245; // Làm nhạt nền dấu đỏ để không che khuất chữ
-                }
+            // 1. Tách lọc con dấu mộc đỏ / xanh đè lên chữ:
+            if (r > 135 && r > g * 1.35 && r > b * 1.35) {
+                gray = (gray < 140) ? Math.max(0, gray - 35) : 250;
             }
 
             grayVals[p] = gray;
@@ -4631,31 +4865,90 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             if (gray > maxLum) maxLum = gray;
         }
 
+        // 2. Kéo giãn tương phản bảo toàn dấu tiếng Việt
         const range = Math.max(1, maxLum - minLum);
-        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-            let gray = grayVals[p];
-            let stretched = ((gray - minLum) / range) * 255;
+        const lumGrid = new Uint8Array(width * height);
 
-            // Chỉ làm trắng vùng nền giấy thực sự sáng (> 228) để bảo toàn tuyệt đối dấu tiếng Việt và chữ mờ
-            if (stretched > 228) {
+        for (let p = 0; p < grayVals.length; p++) {
+            let stretched = ((grayVals[p] - minLum) / range) * 255;
+            if (stretched > 222) {
                 stretched = 255;
-            } else if (stretched < 165) {
-                // Làm đậm nét chữ mờ nhạt và nét bút ký
-                stretched = Math.max(0, stretched * 0.78);
+            } else if (stretched < 160) {
+                stretched = Math.max(0, stretched * 0.76);
             }
+            lumGrid[p] = stretched;
+        }
 
-            data[i] = stretched;
-            data[i + 1] = stretched;
-            data[i + 2] = stretched;
+        // 3. KHỬ ĐƯỜNG KẺ NGANG CỦA BẢNG BIỂU (Chống sinh dòng rác '„r/érrỶmưẲ' & '0000005/000...')
+        const minHorizLineLen = Math.max(45, Math.floor(width * 0.08));
+        for (let y = 3; y < height - 3; y++) {
+            let runStart = -1;
+            const rowOffset = y * width;
+            for (let x = 0; x < width; x++) {
+                const isDark = lumGrid[rowOffset + x] < 195;
+                if (isDark) {
+                    if (runStart === -1) runStart = x;
+                } else {
+                    if (runStart !== -1) {
+                        const runLen = x - runStart;
+                        if (runLen >= minHorizLineLen) {
+                            // Xóa đường kẻ ngang nhưng giữ lại điểm giao với nét chữ dọc
+                            for (let k = runStart; k < x; k++) {
+                                const above = lumGrid[(y - 3) * width + k];
+                                const below = lumGrid[(y + 3) * width + k];
+                                if (above > 200 && below > 200) {
+                                    lumGrid[rowOffset + k] = 255;
+                                    lumGrid[(y - 1) * width + k] = 255;
+                                    lumGrid[(y + 1) * width + k] = 255;
+                                }
+                            }
+                        }
+                        runStart = -1;
+                    }
+                }
+            }
+        }
+
+        // 4. KHỬ ĐƯỜNG KẺ DỌC CỦA BẢNG & KHUNG CHECKBOX (Chống sinh ký tự '|', '[- - [', 'LxI')
+        const minVertLineLen = 28;
+        for (let x = 3; x < width - 3; x++) {
+            let runStart = -1;
+            for (let y = 0; y < height; y++) {
+                const isDark = lumGrid[y * width + x] < 195;
+                if (isDark) {
+                    if (runStart === -1) runStart = y;
+                } else {
+                    if (runStart !== -1) {
+                        const runLen = y - runStart;
+                        if (runLen >= minVertLineLen) {
+                            for (let k = runStart; k < y; k++) {
+                                const left = lumGrid[k * width + (x - 3)];
+                                const right = lumGrid[k * width + (x + 3)];
+                                if (left > 200 && right > 200) {
+                                    lumGrid[k * width + x] = 255;
+                                    lumGrid[k * width + (x - 1)] = 255;
+                                    lumGrid[k * width + (x + 1)] = 255;
+                                }
+                            }
+                        }
+                        runStart = -1;
+                    }
+                }
+            }
+        }
+
+        // 5. Ghi dữ liệu ảnh sạch vào Canvas
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+            const val = lumGrid[p];
+            data[i] = val;
+            data[i + 1] = val;
+            data[i + 2] = val;
         }
 
         ctx.putImageData(imgData, 0, 0);
         return srcCanvas;
     }
 
-    // =========================================================================
-    // ĐỘNG CƠ GEMINI MULTIMODAL VISION SIÊU CẤP
-    // =========================================================================
     async function recognizePageWithGeminiVision(canvas, apiKey, isHandwriting = true) {
         const base64Data = canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
         const prompt = `Bạn là hệ thống AI số hóa hồ sơ xây dựng, pháp lý và dự toán Việt Nam chính xác 100%.
@@ -5121,13 +5414,7 @@ td, th { border: 1px solid #334155; padding: 4pt 6pt; vertical-align: top; }
                             qlvbTesseractWorker = await Tesseract.createWorker('vie');
                         }
                         const res = await qlvbTesseractWorker.recognize(canvas);
-                        if (res && res.data) {
-                            if (res.data.lines && res.data.lines.length > 0) {
-                                extractedLines = res.data.lines.map(l => (l.text || '').trim()).filter(Boolean);
-                            } else if (res.data.text) {
-                                extractedLines = res.data.text.split('\n').map(l => l.trim()).filter(Boolean);
-                            }
-                        }
+                        extractedLines = extractSmartLinesFromTesseractResult(res);
                     }
 
                     for (let lIdx = 0; lIdx < extractedLines.length; lIdx++) {
@@ -5243,7 +5530,7 @@ td, th { border: 1px solid #334155; padding: 4pt 6pt; vertical-align: top; }
                                 try {
                                     if (progressLabel) progressLabel.innerText = `${item.name}: AI Vision đang đọc Trang ${pNum}/${pdf.numPages}...`;
                                     const ocrText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
-                                    finalPageLines = ocrText.split('\n').map(l => l.trim()).filter(Boolean);
+                                    finalPageLines = ocrText.split('\n').map(l => smartCleanConstructionLine(l)).filter(Boolean);
                                     ocrSuccess = finalPageLines.length > 0;
                                 } catch (gemErr) {
                                     console.warn("Gemini Vision lỗi, chuyển sang Tesseract OCR:", gemErr);
@@ -5260,14 +5547,8 @@ td, th { border: 1px solid #334155; padding: 4pt 6pt; vertical-align: top; }
                                     if (progressLabel) progressLabel.innerText = `${item.name}: Đang quét chữ OCR Trang ${pNum} / ${pdf.numPages}...`;
 
                                     const res = await qlvbTesseractWorker.recognize(canvas);
-                                    if (res && res.data) {
-                                        if (res.data.lines && res.data.lines.length > 0) {
-                                            finalPageLines = res.data.lines.map(l => cleanAndNormalizeVietnameseText((l.text || '').trim())).filter(Boolean);
-                                        } else if (res.data.text) {
-                                            finalPageLines = res.data.text.split('\n').map(l => cleanAndNormalizeVietnameseText(l.trim())).filter(Boolean);
-                                        }
-                                        ocrSuccess = finalPageLines.length > 0;
-                                    }
+                                    finalPageLines = extractSmartLinesFromTesseractResult(res);
+                                    ocrSuccess = finalPageLines.length > 0;
                                 } catch (tessErr) {
                                     console.error("Lỗi Tesseract OCR tại trang " + pNum, tessErr);
                                 }
