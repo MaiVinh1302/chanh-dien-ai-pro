@@ -1584,7 +1584,6 @@
       }
     }
 
-    async 
     // =========================================================================
     // NÂNG CẤP ĐỘC QUYỀN: BỘ TIỀN XỬ LÝ CANVAS TẨY MỜ & NHẬN DIỆN CHỮ KÝ VIẾT TAY
     // =========================================================================
@@ -1699,7 +1698,525 @@
         return trimmed;
     }
 
-async function startBatchPDFConversion() {
+    // =========================================================================
+    // TRÍ TUỆ NHÂN TẠO XỬ LÝ HẬU KỲ OCR TIẾNG VIỆT & HÀN GẮN NGỮ CẢNH (2026 PRO V3)
+    // =========================================================================
+
+    // 1. Khôi phục từ vựng, cụm từ bị khuyết đầu dòng & sửa lỗi chính tả chuyên ngành Xây dựng - Pháp lý
+    function applyConstructionLexiconFixes(str) {
+        if (!str || typeof str !== 'string') return '';
+        let s = cleanAndNormalizeVietnameseText(str).trim();
+        if (!s) return '';
+
+        // A. Chuẩn hóa dòng Watermark bảo mật của Tập đoàn T&T bị đọc nhòe
+        if (/(Tài\s+liệu|Tải\s+1o).*Tập\s+đoàn.*(phát\s+tán|phát\s+tớn|phất\s+tấn|trái\s+phép|trải\s+phép)/i.test(s)) {
+            return 'Tài liệu nội bộ của Tập đoàn T&T, không phát tán và sử dụng trái phép dưới mọi hình thức.';
+        }
+
+        // B. Bỏ các dòng rác Header/Watermark vô nghĩa
+        if (/^\)?C\s*SOFT\s+NGÀY/i.test(s)) return '';
+
+        // C. Sửa các tiêu đề bảng bị đọc nhầm
+        if (/NỘI\s+DUNG\s+['‘’]?Ó\s+KHÔNG/i.test(s)) {
+            return 'TT | NỘI DUNG KIỂM TRA | CÓ | KHÔNG | GHI CHÚ';
+        }
+        if (/^NGƯỜI\s+THỰC\s+HIỆN\s+NGƯỜI\s+(KIỂM\s+)?SOÁT/i.test(s)) {
+            return 'NGƯỜI THỰC HIỆN | NGƯỜI KIỂM SOÁT';
+        }
+
+        // D. Nhận diện dấu tích chọn (x / X) ở cột CÓ/KHÔNG bị dính vào cuối hoặc giữa câu
+        let hasCheckX = false;
+        if (/\s+(x\s*Ị|Iưm\s*Ị|Ị\s*ñ|x\s*[—–-]\s*I|ñ\s*x|x\s+TY|X\s+ĩ|X\s*[—–-]|x|X)\s*$/.test(s)) {
+            hasCheckX = true;
+        }
+        if (/\s+(ñ\s*x|x)\s+(Đang\s+th[ìi]\s+công|Ghi\s+rõ)/i.test(s)) {
+            hasCheckX = true;
+        }
+
+        // Xóa các ký tự rác cột Checkbox ở cuối dòng (lưu ý: tuyệt đối dùng \s+ phía trước, không dùng \b vì \b cắt chữ cái tiếng Việt có dấu)
+        s = s.replace(/\s+(x\s*Ị|Iưm\s*Ị|Ị\s*ñ|\(DJ|m1\s*[—–-]|1\s*[—–-]|[—–-]{1,3}\s*\.?|š|x\s*[—–-]\s*I|ñ\s*x|ũ|sim\s*[l1]|x\s+TY|X\s+ĩ|X\s*[—–-]|mm:?|1\s+1|bì|bị|u|M|3|1)\s*$/g, '');
+        s = s.replace(/[—–-]{2,}\s*\.?\s*$/g, '');
+        s = s.replace(/\s+(x|X|Ị|ế|ũ|š)\s*$/, function(match, p1) {
+            if (p1.toLowerCase() === 'x') hasCheckX = true;
+            return '';
+        });
+
+        // E. Từ điển sửa lỗi nhận diện chữ tiếng Việt trong hồ sơ Xây dựng / Thanh quyết toán
+        const dictionaryFixes = [
+            [/Y\s+KIEN\s+CUỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
+            [/Y\s+KIẾN\s+CUỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
+            [/Y\s+KIEN\s+CỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
+            [/CUỦA/gi, 'CỦA'],
+            [/\|?SFT\s+NỘI\s+DUNG\s+CHI\s*TIẾT/gi, 'I. NỘI DUNG CHI TIẾT'],
+            [/NỘI\s+DUNG\s+CHITIẾT/gi, 'NỘI DUNG CHI TIẾT'],
+            [/CHITIẾT/gi, 'CHI TIẾT'],
+            [/Phụ\s+lụchợp\s+đồng/gi, 'Phụ lục hợp đồng'],
+            [/lụchợp/gi, 'lục hợp'],
+            [/(?:^|\s)\d*\s*n\.Dự\s*án/gi, '4 | Dự án'],
+            [/Dựán/g, 'Dự án'],
+            [/RAU\s+QUÁ/g, 'RAU QUẢ'],
+            [/¡H\s+Thông\s+tin\s+ch[ỉi]\s+tiết/gi, 'II. Thông tin chi tiết'],
+            [/Thông\s+tin\s+chỉ\s+tiết/gi, 'Thông tin chi tiết'],
+            [/Tài\s+liệu\s+khác\s+chỉ\s+tiết/gi, 'Tài liệu khác chi tiết'],
+            [/đã\s+chỉ\s+tiết\s+số\s+ti[ểề]n/gi, 'đã chi tiết số tiền'],
+            [/chỉ\s+tiết\s+khói\s+lượng/gi, 'chi tiết khối lượng'],
+            [/khói\s+lượng/gi, 'khối lượng'],
+            [/số\s+tiển/gi, 'số tiền'],
+            [/số\s+tiềm/gi, 'số tiền'],
+            [/nôi\s+dung/gi, 'nội dung'],
+            [/^1\s+Yêu\s+cầu\s+về\s+chất\s+nội\s+dung/gi, '1. Yêu cầu về mặt nội dung'],
+            [/Yêu\s+cầu\s+về\s+chất\s+nội\s+dung/gi, 'Yêu cầu về mặt nội dung'],
+            [/số\s+tiến\s+độ\s+thanh\s+toán/gi, 'tiến độ thanh toán'],
+            [/1\/2\s+SỐ\s+tiền/gi, '1.2. Số tiền'],
+            [/^13\.\s+Bảng\s+tính/gi, '1.3. Bảng tính'],
+            [/^23\.\s+Thanh\s+toán/gi, '2.3. Thanh toán'],
+            [/^4\s+Quyế[t]?\s+toán/gi, '4. Quyết toán'],
+            [/^7\s+Trình\s+bày/gi, '7. Trình bày'],
+            [/SỐ\s+tiền/g, 'Số tiền'],
+            [/Sổ\s+lượng/g, 'Số lượng'],
+            [/bảng\s+tình\s+giá\s+trị/gi, 'bảng tính giá trị'],
+            [/bằng\s+tỉnh\s+giá\s+trị/gi, 'bảng tính giá trị'],
+            [/đề\s+nghị\s+thanh\s*(toán)?$/gi, 'đề nghị thanh toán'],
+            [/theo\s+số,\s+lượng/gi, 'theo số lượng'],
+            [/tỷ\s+lệ\s*%,\s*thành$/gi, 'tỷ lệ %, thành tiền'],
+            [/phù,\s+hợp/gi, 'phù hợp'],
+            [/bản\s+giao\s+sản\s+phẩm/gi, 'bàn giao sản phẩm'],
+            [/tài\s+liệu\s+chứng;?\s*x?\s*m[ìi]nh/gi, 'tài liệu chứng minh'],
+            [/tài\s+liệu\s+chứng;?\s*$/gi, 'tài liệu chứng minh'],
+            [/^mình\s+kết\s+quả/gi, 'minh kết quả'],
+            [/Chỉ\s+phí\s+khác/gi, 'Chi phí khác'],
+            [/Phê\s+duyệt\s+chỉ\s+phí/gi, 'Phê duyệt chi phí'],
+            [/công\s+bỗ/gi, 'công bố'],
+            [/Cộng\s+ty/g, 'Công ty'],
+            [/Tự\s+vấn/g, 'Tư vấn'],
+            [/vận\s+hàn(?=\s|$)/gi, 'vận hành'],
+            [/thiết\s+kể/gi, 'thiết kế'],
+            [/giớm\s+sốt\s+tóc\s+giả/gi, 'giám sát tác giả'],
+            [/giám\s+sốt\s+tác\s+giả/gi, 'giám sát tác giả'],
+            [/vấn\s+giớn\s+sắt/gi, 'vấn giám sát'],
+            [/Hợp\s+động/gi, 'Hợp đồng'],
+            [/^động\s+có\s+quy\s+định/gi, 'Hợp đồng có quy định'],
+            [/hợp\s+đắng/gi, 'hợp đồng'],
+            [/báo\s+lãnh/gi, 'bảo lãnh'],
+            [/bập\s+lãnh/gi, 'bảo lãnh'],
+            [/bảo\s+lẵn\s+lài/gi, 'bảo lãnh lại'],
+            [/vệ\s+bảo\s+lãnh/gi, 'về bảo lãnh'],
+            [/Thông\s+trên\s+bảo\s+lãnh\s+đã\s+phù(?=\s|\(|$)/gi, 'Thông tin trên bảo lãnh đã phù hợp'],
+            [/Thông\s+thị\s+trên\s+bảo\s+lãnh/gi, 'Thông tin trên bảo lãnh'],
+            [/thời\s+hơn/gi, 'thời hạn'],
+            [/\(hình\s+thức,\s+thời\s+hạn,\s*$/gi, '(hình thức, thời hạn, giá trị)'],
+            [/giá\s+trì/gi, 'giá trị'],
+            [/đăng\s+còn\s+hiệu\s+lực/gi, 'đang còn hiệu lực'],
+            [/hiệu\s+lực\s+(Ghi\s+)?rõ\s+hi\s*ệu\s+lực\s+tới/gi, 'hiệu lực - Ghi rõ hiệu lực tới'],
+            [/yêu\s+câu/gi, 'yêu cầu'],
+            [/nhà\s+thâu/gi, 'nhà thầu'],
+            [/nhà\s+thầy/gi, 'nhà thầu'],
+            [/\(nêu\s+đến\s+thời\s+hạn\)/gi, '(nếu đến thời hạn)'],
+            [/ñ\s*x\s*Đang\s+th[ìi]\s+công\s+chưa\s+hoà[mn]/gi, '- Đang thi công chưa hoàn'],
+            [/Đang\s+th[ìi]\s+công\s+chưa\s+hoà[mn]/gi, '- Đang thi công chưa hoàn'],
+            [/bảo\s+lãnh\s+Ghi\s+rõ\s+thời\s+gia[in]\s+nhà\s+thầu:?/gi, 'bảo lãnh - Ghi rõ thời gian nhà thầu'],
+            [/thời\s+giai\s+nhà\s+thầu/gi, 'thời gian nhà thầu'],
+            [/\s+x\s+Ghi\s+rõ\s+kết\s+quả/gi, ' - Ghi rõ kết quả'],
+            [/như\s+thể\s+nào/gi, 'như thế nào'],
+            [/dỡ\s+dang/gi, 'dở dang'],
+            [/Tướng\s+mắc\s+từ\s+nhà(?=\s|$)/gi, 'Vướng mắc từ nhà thầu'],
+            [/Tướng\s+mắc/gi, 'Vướng mắc'],
+            [/Tướng\s+từ\s+các\s+cơ\s+quan/gi, 'Vướng mắc từ các cơ quan'],
+            [/mắc\s+tờ\s+các\s+đơn\s+vị/gi, 'Vướng mắc từ các đơn vị'],
+            [/đợn\s+vị\s+tư\s+vấn/gi, 'đơn vị tư vấn'],
+            [/Thạnh\s+toán/gi, 'Thanh toán'],
+            [/(?:nhà\s+)?thầu\s+về\s+thẹ\s+công/gi, 'nhà thầu về thi công'],
+            [/ĐỆ\s+nghị\s+hạnh\s+toán/gi, 'Đề nghị thanh toán'],
+            [/hạnh\s+toán/gi, 'thanh toán'],
+            [/nghiệm\s+thui/gi, 'nghiệm thu'],
+            [/nghiệm\s+thụ/gi, 'nghiệm thu'],
+            [/số\s+xác\s+nhân\s+các\s+bện/gi, 'có xác nhận các bên'],
+            [/Quyế\s+toán/gi, 'Quyết toán'],
+            [/^ở\s+Quyền\s+và\s+nghĩa\s+vụ/gi, '5. Quyền và nghĩa vụ'],
+            [/chữ\s+ký\s+của\s+tư"?\s*vớt\s+nhà\s+thầu\s+th[ịi]\s+công/gi, 'chữ ký của tư vấn giám sát với nhà thầu thi công'],
+            [/th[ịi]\s+công/gi, 'thi công'],
+            [/sản\s+phẩm\s+u$/gi, 'sản phẩm'],
+            [/hợp\s+đồng\.\s+bì$/gi, 'hợp đồng.'],
+            [/điều\s+kiện\s+thanh\s+toán\s+của\s+từng\s+hợp\s+đồng\s+mm:?/gi, 'điều kiện thanh toán của từng hợp đồng'],
+            [/Quyết\s+toán\s+hợp\s+đồng\s+ÚÍ.*$/gi, 'Quyết toán hợp đồng'],
+            [/phục\s+cho\s+công\s+việc\s+của\s+công\s+b.*$/gi, 'phục vụ cho công việc của công trình'],
+            [/phục\s+cho\s+công\s+việc/gi, 'phục vụ cho công việc'],
+            [/^V:\s+Phê\s+duyệt/i, 'V/v: Phê duyệt'],
+            [/15\s*\|\s*Chủ\s+đầu\s+tư/gi, '5 | Chủ đầu tư']
+        ];
+
+        dictionaryFixes.forEach(([regex, replacement]) => {
+            s = s.replace(regex, replacement);
+        });
+
+        // F. KHÔI PHỤC TỪ ĐẦU CÂU BỊ MẤT DO NẰM SÁT ĐƯỜNG KẺ DỌC BẢNG (Missing Prefix Recovery)
+        const prefixRecoveries = [
+            [/^nghị\s+thanh\s+toán/i, 'Đề nghị thanh toán'],
+            [/^tính\s+giá\s+trị\s+đề\s+nghị\s+thanh\s+toán/i, 'Bảng tính giá trị đề nghị thanh toán'],
+            [/^bản\s+nghiệm\s+thu/i, 'Biên bản nghiệm thu'],
+            [/^bản\s+bàn\s+giao/i, 'Biên bản bàn giao'],
+            [/^đơn\s+hợp\s+lệ/i, 'Hóa đơn hợp lệ'],
+            [/^lãnh\s+tạm\s+ứng/i, 'Bảo lãnh tạm ứng'],
+            [/^lãnh\s+thực\s+hiện\s+hợp\s+đồng/i, 'Bảo lãnh thực hiện hợp đồng'],
+            [/^lãnh\s+đang\s+còn\s+hiệu\s+lực/i, 'Bảo lãnh đang còn hiệu lực'],
+            [/^đồng\/phụ\s+lục\s+hợp\s+đồng/i, 'Hợp đồng/phụ lục hợp đồng'],
+            [/^đồng\s+có\s+quy\s+định\s+về\s+bảo\s+lãnh/i, 'Hợp đồng có quy định về bảo lãnh'],
+            [/^phẩm\/dịch\s+vụ\s+của\s+hợp\s+đồng/i, 'Sản phẩm/dịch vụ của hợp đồng'],
+            [/^quyền\s+phê\s+duyệt\s+phù\s+hợp/i, 'Thẩm quyền phê duyệt phù hợp'],
+            [/^vấn\s+giám\s+sát/i, 'Tư vấn giám sát'],
+            [/^mắc\s+từ\s+các\s+đơn\s+vị/i, 'Vướng mắc từ các đơn vị'],
+            [/^khuyến\s+nghị\s+từ\s+đơn\s+vị/i, 'Các khuyến nghị từ đơn vị'],
+            [/^I\s+mục\s+các\s+tài\s+liệu/i, 'I. Danh mục các tài liệu'],
+            [/^đã\s+yêu\s+cầu\s+nhà\s+thầu\s+gia\s+hạn/i, 'CĐT đã yêu cầu nhà thầu gia hạn'],
+            [/^có\s+phải\s+yêu\s+cầu\s+nhà\s+thầu\s+gia\s+hạn/i, 'CĐT có phải yêu cầu nhà thầu gia hạn']
+        ];
+
+        prefixRecoveries.forEach(([regex, replacement]) => {
+            s = s.replace(regex, replacement);
+        });
+
+        if (hasCheckX && !s.startsWith('☑') && !s.includes('\t')) {
+            s = `☑ ${s}`;
+        }
+
+        return s;
+    }
+
+    // 2. Hàn gắn các dòng văn bản bị ngắt đôi trong cùng 1 ô bảng (Multi-line Cell Healing)
+    function healBrokenMultiLines(linesArray) {
+        if (!Array.isArray(linesArray) || linesArray.length === 0) return [];
+        const healed = [];
+
+        for (let i = 0; i < linesArray.length; i++) {
+            let curr = (linesArray[i] || '').trim();
+            if (!curr) continue;
+
+            if (healed.length > 0) {
+                const prev = healed[healed.length - 1];
+                const cleanCurr = curr.replace(/^☑\s*/, '').trim();
+
+                // Nếu dòng hiện tại là phần nối tiếp rõ ràng của câu trên trong cùng 1 ô bảng:
+                const isContinuation = /^(minh\s+kết\s+quả|mình\s+kết\s+quả|chủ\s+đầu\s+tư$|thành$|gia\s+hạn\s+bảo\s+lãnh\s+lại|thế\s+nào$|thể\s+nào$|và\s+hóa\s+đơn|lượng,\s+đơn\s+giá|đề\s+nghị\s+thanh\s+toán\s+có\s+phù\s+hợp|thu,\s+bàn\s+giao|toán\s+theo\s+giai\s+đoạn|toán\s+của\s+từng\s+hợp\s+đồng|trong\s+giai\s+đoạn\s+thanh\s+toán|với\s+nhà\s+thầu\s+thi\s+công|hình\s+thức\.?$)/i.test(cleanCurr);
+
+                if (isContinuation && !prev.includes('\t')) {
+                    const hadCheck = prev.startsWith('☑') || curr.startsWith('☑');
+                    let cleanPrev = prev.replace(/^☑\s*/, '').replace(/[:;,]\s*$/, '').trim();
+                    // Trường hợp đặc biệt: "tài liệu chứng minh" + "minh kết quả" -> tránh lặp chữ "minh"
+                    if (/chứng\s+minh$/i.test(cleanPrev) && /^minh\s+/i.test(cleanCurr)) {
+                        cleanPrev = cleanPrev.replace(/\s+minh$/i, '');
+                    }
+                    if (/thanh\s+toán$/i.test(cleanPrev) && /^toán\s+/i.test(cleanCurr)) {
+                        cleanPrev = cleanPrev.replace(/\s+toán$/i, '');
+                    }
+                    let merged = applyConstructionLexiconFixes(`${cleanPrev} ${cleanCurr}`);
+                    if (hadCheck && !merged.startsWith('☑')) {
+                        merged = `☑ ${merged}`;
+                    }
+                    healed[healed.length - 1] = merged;
+                    continue;
+                }
+            }
+            healed.push(curr);
+        }
+
+        return healed;
+    }
+
+    // 3. Kiểm tra một từ có phải là rác nhiễu quang học (Gibberish / Noise Artifact) hay không
+    function isVietnameseGibberishWord(word) {
+        if (!word) return true;
+        const w = word.trim();
+        if (!w) return true;
+
+        // Ký tự ngoại lai châu Âu không bao giờ có trong văn bản tiếng Việt chuẩn
+        if (/[ÖÕÜÄËÏŸ¡¿†‡§¶¤¦¨©ª«¬®¯°±²³´µ¸¹º»¼½¾šñ]/.test(w)) return true;
+
+        // Dãy số/chữ hỗn loạn dài vô nghĩa do đọc nhầm đường kẻ bảng chấm chấm (ví dụ: 0000005/000000902/080000...)
+        if (w.length >= 16 && (w.match(/000/g) || []).length >= 2) {
+            return true;
+        }
+
+        // Từ rác đặc trưng do nhận diện nhầm ô checkbox [x] hoặc đường kẻ
+        if (/^(lxI|LxI|Ix\.T|IESE|Gyy|lzt|LẾth|L-i|i77|7ô|\[si|Iưm|\(DJ|m1|sim)$/i.test(w)) return true;
+
+        // Nhiều dấu câu/ký hiệu kỳ dị trộn lẫn trong 1 từ ngắn (ví dụ: „r/érrỶmưẲ, mr”=ơ=, ""“)
+        const weirdSymbols = (w.match(/[„“”"'`~^<>|\\\/\[\]{}_=+*]/g) || []).length;
+        if (weirdSymbols >= 2 && w.length <= 10 && !/^[0-9\/-]+$/.test(w)) return true;
+        if (/^[„“”"'`~^<>|\\\/\[\]{}_=+*.,:;!?-]+$/.test(w)) return true;
+
+        // Từ có cả chữ thường có dấu VÀ chữ hoa có dấu lộn xộn ở giữa từ (ví dụ: érrỶmưẲ, ọ<ÚÚẮÖẮẲ)
+        // Nhưng bảo toàn 100% các từ viết HOA toàn bộ (như HĐQT, PLHĐ, QUẢ, CĐT, 2005/2022/HĐTT/XNKRQ-NTC)
+        const cleanAlpha = w.replace(/[^a-zA-ZÀ-ỹ]/g, '');
+        if (cleanAlpha.length >= 3 && cleanAlpha !== cleanAlpha.toUpperCase()) {
+            const innerCaps = cleanAlpha.slice(1).match(/[A-ZÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ]/g);
+            const hasLower = /[a-zà-ỹ]/.test(cleanAlpha);
+            if (innerCaps && innerCaps.length >= 1 && hasLower) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 4. Kiểm tra cả một dòng có phải là dòng rác sinh ra từ đường kẻ ngang của bảng không
+    function isGarbageOcrLine(lineStr, confidence = 80) {
+        if (!lineStr) return true;
+        const s = applyConstructionLexiconFixes(lineStr);
+        if (!s) return true;
+
+        const alphaNum = s.replace(/[^a-zA-ZÀ-ỹ0-9]/g, '');
+        if (alphaNum.length === 0) return true;
+        if (alphaNum.length <= 3 && !/^(I|II|III|IV|V|VI|1|2|3|4|5|6|7|8|9|10|TT|Số)$/i.test(alphaNum)) {
+            return true;
+        }
+
+        // Dòng là dãy số 0000005/000000902... do đọc nhầm đường kẻ chấm chấm
+        if ((s.match(/0000/g) || []).length >= 2) return true;
+        if (/^[ST\s0-9\/E().,-]{18,}$/.test(s) && (s.match(/00/g) || []).length >= 3) return true;
+
+        // Dòng toàn các mảnh ký tự rời rạc kiểu "[si i77 E on G2" hoặc "ST TT uy k Cứ 0090"
+        if (/^(\[si\s+i77|ST\s+TT\s+uy\s+k|nh\s+gi$|em:$|""“\s*ti\s+bà|ế\s+ế\s+lzt|lm\s+ế\s+Gyy|ng:\s*IESE)/i.test(s)) {
+            return true;
+        }
+
+        const words = s.split(/\s+/).filter(Boolean);
+        if (words.length === 0) return true;
+
+        let badCount = 0;
+        words.forEach(w => {
+            if (isVietnameseGibberishWord(w)) badCount++;
+        });
+
+        if (badCount / words.length >= 0.4) return true;
+        if (words.length <= 3 && confidence < 50) return true;
+
+        return false;
+    }
+
+    // 5. Làm sạch sâu và chuẩn hóa thông minh từng dòng văn bản hồ sơ xây dựng / pháp lý
+    function smartCleanConstructionLine(rawLine) {
+        if (!rawLine || typeof rawLine !== 'string') return '';
+        let s = applyConstructionLexiconFixes(rawLine);
+        if (!s) return '';
+
+        // A. Nhận diện các ký hiệu Checkbox ở đầu dòng: [- - [, |- - |, |- [, | — |, +. |, | |
+        let hasCheckbox = s.startsWith('☑');
+        if (hasCheckbox) {
+            s = s.replace(/^☑\s*/, '');
+        }
+        if (/^(\[-?\s*-\s*\[|\|-?\s*-\s*\||\|-\s*\[|\|\s*[—–-]\s*\||\[\s*-\s*\[|\+\.?\s*\||\|\s*\||\[-\s*\[)/.test(s)) {
+            hasCheckbox = true;
+            s = s.replace(/^(\[-?\s*-\s*\[|\|-?\s*-\s*\||\|-\s*\[|\|\s*[—–-]\s*\||\[\s*-\s*\[|\+\.?\s*\||\|\s*\||\[-\s*\[)\s*/, '');
+        }
+
+        // B. Xóa bỏ các cụm rác cuối dòng do ô tích chọn [x] bên phải bị đọc nhầm
+        s = s.replace(/\s*(lxI.*|LxI.*|Ix\.T.*|ÖÕ.*|ÚÍ.*|l-\s*\.\]\s*\/?|\]\s*\/|\|\s*x\.\]|=\s*sa|\|\s*7ô|\._)\s*$/g, '');
+
+        // C. Xóa các ký tự rác đầu/cuối dòng
+        s = s.replace(/^[|!¡]+\s*/, '');
+        s = s.replace(/\s*[|!]+$/, '');
+
+        // D. Lọc bỏ các từ rác đơn lẻ còn sót lại
+        const tokens = s.split(/\s+/);
+        const cleanTokens = tokens.filter(t => !isVietnameseGibberishWord(t));
+        s = cleanTokens.join(' ').trim();
+
+        // Chạy lại Lexicon & Prefix Recovery một lần nữa sau khi đã gọt sạch ký tự rác đầu câu
+        s = applyConstructionLexiconFixes(s);
+        if (s.startsWith('☑')) {
+            hasCheckbox = true;
+            s = s.replace(/^☑\s*/, '');
+        }
+
+        if (!s) return '';
+
+        // E. Xử lý ký hiệu phân cột '|' hoặc '\' giữa dòng thành ký tự TAB (\t) chuẩn để tự động dựng bảng Word / Excel!
+        if (s.includes('|') || (s.includes('\\') && /\d{3}\.\d{3}/.test(s))) {
+            const cols = s.split(/[|\\]/).map(c => c.trim()).filter(Boolean);
+            if (cols.length >= 2) {
+                return cols.join('\t');
+            }
+            s = cols.join(' ');
+        }
+
+        // F. Nếu là mục đánh số đầu dòng của bảng thông tin (ví dụ: "1 Số hợp đồng 2005...", "2 Nhà thầu Công Ty...", "3 Gói thầu Cung ứng...")
+        const numberedRowMatch = s.match(/^([1-9]|1[0-5])\s+(Số hợp đồng|Nhà thầu|Gói thầu|Dự án|Chủ đầu tư|Giá trị hợp đồng[^\t]*)\s+(.+)$/i);
+        if (numberedRowMatch) {
+            return `${numberedRowMatch[1]}\t${numberedRowMatch[2]}\t${numberedRowMatch[3]}`;
+        }
+
+        if (hasCheckbox && !s.includes('\t')) {
+            return `☑ ${s}`;
+        }
+
+        return s;
+    }
+
+    // 6. Trích xuất dòng thông minh từ kết quả Tesseract (kết hợp Confidence + Spatial BBox + Multi-line Healing)
+    function extractSmartLinesFromTesseractResult(res) {
+        if (!res || !res.data) return [];
+        const resultLines = [];
+
+        if (res.data.lines && res.data.lines.length > 0) {
+            res.data.lines.forEach(lineObj => {
+                const lineConf = typeof lineObj.confidence === 'number' ? lineObj.confidence : 75;
+                let rawText = '';
+
+                if (lineObj.words && lineObj.words.length > 0) {
+                    const validWords = lineObj.words.filter((w, wIdx) => {
+                        const wText = (w.text || '').trim();
+                        const wConf = typeof w.confidence === 'number' ? w.confidence : 75;
+                        if (!wText) return false;
+                        // Từ đầu tiên trong dòng có thể nằm sát đường kẻ bảng nên ngưỡng tin cậy thấp hơn (20%), các từ sau dùng ngưỡng 36%
+                        const minConf = (wIdx === 0) ? 20 : 36;
+                        if (wConf < minConf && !/^[0-9.,/]+$/.test(wText)) return false;
+                        if (isVietnameseGibberishWord(wText)) return false;
+                        return true;
+                    });
+
+                    if (validWords.length === 0) return;
+
+                    let builder = '';
+                    let prevX1 = null;
+                    validWords.forEach(w => {
+                        const wText = w.text.trim();
+                        const x0 = w.bbox ? w.bbox.x0 : null;
+                        const x1 = w.bbox ? w.bbox.x1 : null;
+
+                        if (prevX1 !== null && x0 !== null && (x0 - prevX1) > 55) {
+                            builder += '\t' + wText;
+                        } else if (builder) {
+                            builder += ' ' + wText;
+                        } else {
+                            builder = wText;
+                        }
+                        if (x1 !== null) prevX1 = x1;
+                    });
+                    rawText = builder;
+                } else {
+                    rawText = (lineObj.text || '').trim();
+                }
+
+                if (isGarbageOcrLine(rawText, lineConf)) return;
+
+                const cleaned = smartCleanConstructionLine(rawText);
+                if (cleaned && !isGarbageOcrLine(cleaned, lineConf)) {
+                    resultLines.push(cleaned);
+                }
+            });
+        } else if (res.data.text) {
+            const rawLines = res.data.text.split('\n');
+            rawLines.forEach(rLine => {
+                if (isGarbageOcrLine(rLine, 75)) return;
+                const cleaned = smartCleanConstructionLine(rLine);
+                if (cleaned && !isGarbageOcrLine(cleaned, 75)) {
+                    resultLines.push(cleaned);
+                }
+            });
+        }
+
+        // Hàn gắn các câu dài trong cùng 1 ô bảng bị ngắt làm 2 dòng
+        return healBrokenMultiLines(resultLines);
+    }
+
+    function enhanceCanvasForOcrPm(srcCanvas) {
+      const width = srcCanvas.width;
+      const height = srcCanvas.height;
+      const ctx = srcCanvas.getContext('2d');
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      let minLum = 255;
+      let maxLum = 0;
+      const grayVals = new Uint8Array(width * height);
+
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (r > 135 && r > g * 1.35 && r > b * 1.35) {
+          gray = (gray < 140) ? Math.max(0, gray - 35) : 250;
+        }
+        grayVals[p] = gray;
+        if (gray < minLum) minLum = gray;
+        if (gray > maxLum) maxLum = gray;
+      }
+
+      const range = Math.max(1, maxLum - minLum);
+      const lumGrid = new Uint8Array(width * height);
+      for (let p = 0; p < grayVals.length; p++) {
+        let stretched = ((grayVals[p] - minLum) / range) * 255;
+        if (stretched > 222) stretched = 255;
+        else if (stretched < 160) stretched = Math.max(0, stretched * 0.76);
+        lumGrid[p] = stretched;
+      }
+
+      const minHorizLineLen = Math.max(45, Math.floor(width * 0.08));
+      for (let y = 3; y < height - 3; y++) {
+        let runStart = -1;
+        const rowOffset = y * width;
+        for (let x = 0; x < width; x++) {
+          if (lumGrid[rowOffset + x] < 195) {
+            if (runStart === -1) runStart = x;
+          } else {
+            if (runStart !== -1) {
+              if (x - runStart >= minHorizLineLen) {
+                for (let k = runStart; k < x; k++) {
+                  if (lumGrid[(y - 3) * width + k] > 200 && lumGrid[(y + 3) * width + k] > 200) {
+                    lumGrid[rowOffset + k] = 255;
+                    lumGrid[(y - 1) * width + k] = 255;
+                    lumGrid[(y + 1) * width + k] = 255;
+                  }
+                }
+              }
+              runStart = -1;
+            }
+          }
+        }
+      }
+
+      const minVertLineLen = 68;
+      for (let x = 3; x < width - 3; x++) {
+        let runStart = -1;
+        for (let y = 0; y < height; y++) {
+          if (lumGrid[y * width + x] < 195) {
+            if (runStart === -1) runStart = y;
+          } else {
+            if (runStart !== -1) {
+              if (y - runStart >= minVertLineLen) {
+                for (let k = runStart; k < y; k++) {
+                  if (lumGrid[k * width + (x - 3)] > 200 && lumGrid[k * width + (x + 3)] > 200) {
+                    lumGrid[k * width + x] = 255;
+                    lumGrid[k * width + (x - 1)] = 255;
+                    lumGrid[k * width + (x + 1)] = 255;
+                  }
+                }
+              }
+              runStart = -1;
+            }
+          }
+        }
+      }
+
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        const val = lumGrid[p];
+        data[i] = val; data[i + 1] = val; data[i + 2] = val;
+      }
+      ctx.putImageData(imgData, 0, 0);
+      return srcCanvas;
+    }
+
+    async function recognizePageTesseractPm(canvas) {
+      if (!window.Tesseract) return '';
+      if (!pmTesseractWorker) {
+        pmTesseractWorker = await Tesseract.createWorker('vie');
+      }
+      const res = await pmTesseractWorker.recognize(canvas);
+      const smartLines = extractSmartLinesFromTesseractResult(res);
+      return smartLines.join('\n');
+    }
+
+
+    async function startBatchPDFConversion() {
       if (pmConvertQueue.length === 0) {
         showToast('Vui lòng kéo thả ít nhất 1 tệp PDF hoặc ảnh vào hàng chờ!', 'warning');
         return;

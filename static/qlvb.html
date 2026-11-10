@@ -4610,10 +4610,60 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
     // =========================================================================
 
     // 1. Từ điển chuyên ngành Xây dựng & Pháp lý (Chạy TRƯỚC khi lọc từ để cứu các từ viết hoa bị dính chữ)
+// =========================================================================
+    // TRÍ TUỆ NHÂN TẠO XỬ LÝ HẬU KỲ OCR TIẾNG VIỆT & HÀN GẮN NGỮ CẢNH (2026 PRO V3)
+    // =========================================================================
+
+    // 1. Khôi phục từ vựng, cụm từ bị khuyết đầu dòng & sửa lỗi chính tả chuyên ngành Xây dựng - Pháp lý
+// =========================================================================
+    // TRÍ TUỆ NHÂN TẠO XỬ LÝ HẬU KỲ OCR TIẾNG VIỆT & HÀN GẮN NGỮ CẢNH (2026 PRO V3)
+    // =========================================================================
+
+    // 1. Khôi phục từ vựng, cụm từ bị khuyết đầu dòng & sửa lỗi chính tả chuyên ngành Xây dựng - Pháp lý
+// =========================================================================
+    // TRÍ TUỆ NHÂN TẠO XỬ LÝ HẬU KỲ OCR TIẾNG VIỆT & HÀN GẮN NGỮ CẢNH (2026 PRO V3)
+    // =========================================================================
+
+    // 1. Khôi phục từ vựng, cụm từ bị khuyết đầu dòng & sửa lỗi chính tả chuyên ngành Xây dựng - Pháp lý
     function applyConstructionLexiconFixes(str) {
         if (!str || typeof str !== 'string') return '';
         let s = cleanAndNormalizeVietnameseText(str).trim();
+        if (!s) return '';
 
+        // A. Chuẩn hóa dòng Watermark bảo mật của Tập đoàn T&T bị đọc nhòe
+        if (/(Tài\s+liệu|Tải\s+1o).*Tập\s+đoàn.*(phát\s+tán|phát\s+tớn|phất\s+tấn|trái\s+phép|trải\s+phép)/i.test(s)) {
+            return 'Tài liệu nội bộ của Tập đoàn T&T, không phát tán và sử dụng trái phép dưới mọi hình thức.';
+        }
+
+        // B. Bỏ các dòng rác Header/Watermark vô nghĩa
+        if (/^\)?C\s*SOFT\s+NGÀY/i.test(s)) return '';
+
+        // C. Sửa các tiêu đề bảng bị đọc nhầm
+        if (/NỘI\s+DUNG\s+['‘’]?Ó\s+KHÔNG/i.test(s)) {
+            return 'TT | NỘI DUNG KIỂM TRA | CÓ | KHÔNG | GHI CHÚ';
+        }
+        if (/^NGƯỜI\s+THỰC\s+HIỆN\s+NGƯỜI\s+(KIỂM\s+)?SOÁT/i.test(s)) {
+            return 'NGƯỜI THỰC HIỆN | NGƯỜI KIỂM SOÁT';
+        }
+
+        // D. Nhận diện dấu tích chọn (x / X) ở cột CÓ/KHÔNG bị dính vào cuối hoặc giữa câu
+        let hasCheckX = false;
+        if (/\s+(x\s*Ị|Iưm\s*Ị|Ị\s*ñ|x\s*[—–-]\s*I|ñ\s*x|x\s+TY|X\s+ĩ|X\s*[—–-]|x|X)\s*$/.test(s)) {
+            hasCheckX = true;
+        }
+        if (/\s+(ñ\s*x|x)\s+(Đang\s+th[ìi]\s+công|Ghi\s+rõ)/i.test(s)) {
+            hasCheckX = true;
+        }
+
+        // Xóa các ký tự rác cột Checkbox ở cuối dòng (lưu ý: tuyệt đối dùng \s+ phía trước, không dùng \b vì \b cắt chữ cái tiếng Việt có dấu)
+        s = s.replace(/\s+(x\s*Ị|Iưm\s*Ị|Ị\s*ñ|\(DJ|m1\s*[—–-]|1\s*[—–-]|[—–-]{1,3}\s*\.?|š|x\s*[—–-]\s*I|ñ\s*x|ũ|sim\s*[l1]|x\s+TY|X\s+ĩ|X\s*[—–-]|mm:?|1\s+1|bì|bị|u|M|3|1)\s*$/g, '');
+        s = s.replace(/[—–-]{2,}\s*\.?\s*$/g, '');
+        s = s.replace(/\s+(x|X|Ị|ế|ũ|š)\s*$/, function(match, p1) {
+            if (p1.toLowerCase() === 'x') hasCheckX = true;
+            return '';
+        });
+
+        // E. Từ điển sửa lỗi nhận diện chữ tiếng Việt trong hồ sơ Xây dựng / Thanh quyết toán
         const dictionaryFixes = [
             [/Y\s+KIEN\s+CUỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
             [/Y\s+KIẾN\s+CUỦA\s+HĐQT/gi, 'Ý KIẾN CỦA HĐQT'],
@@ -4624,37 +4674,184 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             [/CHITIẾT/gi, 'CHI TIẾT'],
             [/Phụ\s+lụchợp\s+đồng/gi, 'Phụ lục hợp đồng'],
             [/lụchợp/gi, 'lục hợp'],
-            [/\b\d*\s*n\.Dự\s*án/gi, '4\tDự án'],
+            [/(?:^|\s)\d*\s*n\.Dự\s*án/gi, '4 | Dự án'],
             [/Dựán/g, 'Dự án'],
             [/RAU\s+QUÁ/g, 'RAU QUẢ'],
             [/¡H\s+Thông\s+tin\s+ch[ỉi]\s+tiết/gi, 'II. Thông tin chi tiết'],
             [/Thông\s+tin\s+chỉ\s+tiết/gi, 'Thông tin chi tiết'],
             [/Tài\s+liệu\s+khác\s+chỉ\s+tiết/gi, 'Tài liệu khác chi tiết'],
+            [/đã\s+chỉ\s+tiết\s+số\s+ti[ểề]n/gi, 'đã chi tiết số tiền'],
+            [/chỉ\s+tiết\s+khói\s+lượng/gi, 'chi tiết khối lượng'],
+            [/khói\s+lượng/gi, 'khối lượng'],
+            [/số\s+tiển/gi, 'số tiền'],
+            [/số\s+tiềm/gi, 'số tiền'],
+            [/nôi\s+dung/gi, 'nội dung'],
+            [/^1\s+Yêu\s+cầu\s+về\s+chất\s+nội\s+dung/gi, '1. Yêu cầu về mặt nội dung'],
+            [/Yêu\s+cầu\s+về\s+chất\s+nội\s+dung/gi, 'Yêu cầu về mặt nội dung'],
+            [/số\s+tiến\s+độ\s+thanh\s+toán/gi, 'tiến độ thanh toán'],
+            [/1\/2\s+SỐ\s+tiền/gi, '1.2. Số tiền'],
+            [/^13\.\s+Bảng\s+tính/gi, '1.3. Bảng tính'],
+            [/^23\.\s+Thanh\s+toán/gi, '2.3. Thanh toán'],
+            [/^4\s+Quyế[t]?\s+toán/gi, '4. Quyết toán'],
+            [/^7\s+Trình\s+bày/gi, '7. Trình bày'],
+            [/SỐ\s+tiền/g, 'Số tiền'],
+            [/Sổ\s+lượng/g, 'Số lượng'],
+            [/bảng\s+tình\s+giá\s+trị/gi, 'bảng tính giá trị'],
+            [/bằng\s+tỉnh\s+giá\s+trị/gi, 'bảng tính giá trị'],
+            [/đề\s+nghị\s+thanh\s*(toán)?$/gi, 'đề nghị thanh toán'],
+            [/theo\s+số,\s+lượng/gi, 'theo số lượng'],
+            [/tỷ\s+lệ\s*%,\s*thành$/gi, 'tỷ lệ %, thành tiền'],
             [/phù,\s+hợp/gi, 'phù hợp'],
+            [/bản\s+giao\s+sản\s+phẩm/gi, 'bàn giao sản phẩm'],
+            [/tài\s+liệu\s+chứng;?\s*x?\s*m[ìi]nh/gi, 'tài liệu chứng minh'],
+            [/tài\s+liệu\s+chứng;?\s*$/gi, 'tài liệu chứng minh'],
+            [/^mình\s+kết\s+quả/gi, 'minh kết quả'],
+            [/Chỉ\s+phí\s+khác/gi, 'Chi phí khác'],
+            [/Phê\s+duyệt\s+chỉ\s+phí/gi, 'Phê duyệt chi phí'],
+            [/công\s+bỗ/gi, 'công bố'],
+            [/Cộng\s+ty/g, 'Công ty'],
+            [/Tự\s+vấn/g, 'Tư vấn'],
+            [/vận\s+hàn(?=\s|$)/gi, 'vận hành'],
+            [/thiết\s+kể/gi, 'thiết kế'],
+            [/giớm\s+sốt\s+tóc\s+giả/gi, 'giám sát tác giả'],
+            [/giám\s+sốt\s+tác\s+giả/gi, 'giám sát tác giả'],
+            [/vấn\s+giớn\s+sắt/gi, 'vấn giám sát'],
+            [/Hợp\s+động/gi, 'Hợp đồng'],
+            [/^động\s+có\s+quy\s+định/gi, 'Hợp đồng có quy định'],
+            [/hợp\s+đắng/gi, 'hợp đồng'],
+            [/báo\s+lãnh/gi, 'bảo lãnh'],
+            [/bập\s+lãnh/gi, 'bảo lãnh'],
+            [/bảo\s+lẵn\s+lài/gi, 'bảo lãnh lại'],
+            [/vệ\s+bảo\s+lãnh/gi, 'về bảo lãnh'],
+            [/Thông\s+trên\s+bảo\s+lãnh\s+đã\s+phù(?=\s|\(|$)/gi, 'Thông tin trên bảo lãnh đã phù hợp'],
+            [/Thông\s+thị\s+trên\s+bảo\s+lãnh/gi, 'Thông tin trên bảo lãnh'],
+            [/thời\s+hơn/gi, 'thời hạn'],
+            [/\(hình\s+thức,\s+thời\s+hạn,\s*$/gi, '(hình thức, thời hạn, giá trị)'],
+            [/giá\s+trì/gi, 'giá trị'],
+            [/đăng\s+còn\s+hiệu\s+lực/gi, 'đang còn hiệu lực'],
+            [/hiệu\s+lực\s+(Ghi\s+)?rõ\s+hi\s*ệu\s+lực\s+tới/gi, 'hiệu lực - Ghi rõ hiệu lực tới'],
+            [/yêu\s+câu/gi, 'yêu cầu'],
+            [/nhà\s+thâu/gi, 'nhà thầu'],
+            [/nhà\s+thầy/gi, 'nhà thầu'],
+            [/\(nêu\s+đến\s+thời\s+hạn\)/gi, '(nếu đến thời hạn)'],
+            [/ñ\s*x\s*Đang\s+th[ìi]\s+công\s+chưa\s+hoà[mn]/gi, '- Đang thi công chưa hoàn'],
+            [/Đang\s+th[ìi]\s+công\s+chưa\s+hoà[mn]/gi, '- Đang thi công chưa hoàn'],
+            [/bảo\s+lãnh\s+Ghi\s+rõ\s+thời\s+gia[in]\s+nhà\s+thầu:?/gi, 'bảo lãnh - Ghi rõ thời gian nhà thầu'],
+            [/thời\s+giai\s+nhà\s+thầu/gi, 'thời gian nhà thầu'],
+            [/\s+x\s+Ghi\s+rõ\s+kết\s+quả/gi, ' - Ghi rõ kết quả'],
+            [/như\s+thể\s+nào/gi, 'như thế nào'],
+            [/dỡ\s+dang/gi, 'dở dang'],
+            [/Tướng\s+mắc\s+từ\s+nhà(?=\s|$)/gi, 'Vướng mắc từ nhà thầu'],
+            [/Tướng\s+mắc/gi, 'Vướng mắc'],
+            [/Tướng\s+từ\s+các\s+cơ\s+quan/gi, 'Vướng mắc từ các cơ quan'],
+            [/mắc\s+tờ\s+các\s+đơn\s+vị/gi, 'Vướng mắc từ các đơn vị'],
+            [/đợn\s+vị\s+tư\s+vấn/gi, 'đơn vị tư vấn'],
+            [/Thạnh\s+toán/gi, 'Thanh toán'],
+            [/(?:nhà\s+)?thầu\s+về\s+thẹ\s+công/gi, 'nhà thầu về thi công'],
+            [/ĐỆ\s+nghị\s+hạnh\s+toán/gi, 'Đề nghị thanh toán'],
+            [/hạnh\s+toán/gi, 'thanh toán'],
+            [/nghiệm\s+thui/gi, 'nghiệm thu'],
+            [/nghiệm\s+thụ/gi, 'nghiệm thu'],
+            [/số\s+xác\s+nhân\s+các\s+bện/gi, 'có xác nhận các bên'],
+            [/Quyế\s+toán/gi, 'Quyết toán'],
+            [/^ở\s+Quyền\s+và\s+nghĩa\s+vụ/gi, '5. Quyền và nghĩa vụ'],
+            [/chữ\s+ký\s+của\s+tư"?\s*vớt\s+nhà\s+thầu\s+th[ịi]\s+công/gi, 'chữ ký của tư vấn giám sát với nhà thầu thi công'],
+            [/th[ịi]\s+công/gi, 'thi công'],
             [/sản\s+phẩm\s+u$/gi, 'sản phẩm'],
             [/hợp\s+đồng\.\s+bì$/gi, 'hợp đồng.'],
-            [/điều\s+kiện\s+thanh\s+toán\s+của\s+từng\s+hợp\s+đồng\s+mm:/gi, 'điều kiện thanh toán của từng hợp đồng:'],
-            [/Quyết\s+toán\s+hợp\s+đồng\s+ÚÍ.*$/gi, 'Quyết toán hợp đồng:'],
+            [/điều\s+kiện\s+thanh\s+toán\s+của\s+từng\s+hợp\s+đồng\s+mm:?/gi, 'điều kiện thanh toán của từng hợp đồng'],
+            [/Quyết\s+toán\s+hợp\s+đồng\s+ÚÍ.*$/gi, 'Quyết toán hợp đồng'],
             [/phục\s+cho\s+công\s+việc\s+của\s+công\s+b.*$/gi, 'phục vụ cho công việc của công trình'],
+            [/phục\s+cho\s+công\s+việc/gi, 'phục vụ cho công việc'],
             [/^V:\s+Phê\s+duyệt/i, 'V/v: Phê duyệt'],
-            [/\b15\s*\|\s*Chủ\s+đầu\s+tư/gi, '5 | Chủ đầu tư']
+            [/15\s*\|\s*Chủ\s+đầu\s+tư/gi, '5 | Chủ đầu tư']
         ];
 
         dictionaryFixes.forEach(([regex, replacement]) => {
             s = s.replace(regex, replacement);
         });
 
+        // F. KHÔI PHỤC TỪ ĐẦU CÂU BỊ MẤT DO NẰM SÁT ĐƯỜNG KẺ DỌC BẢNG (Missing Prefix Recovery)
+        const prefixRecoveries = [
+            [/^nghị\s+thanh\s+toán/i, 'Đề nghị thanh toán'],
+            [/^tính\s+giá\s+trị\s+đề\s+nghị\s+thanh\s+toán/i, 'Bảng tính giá trị đề nghị thanh toán'],
+            [/^bản\s+nghiệm\s+thu/i, 'Biên bản nghiệm thu'],
+            [/^bản\s+bàn\s+giao/i, 'Biên bản bàn giao'],
+            [/^đơn\s+hợp\s+lệ/i, 'Hóa đơn hợp lệ'],
+            [/^lãnh\s+tạm\s+ứng/i, 'Bảo lãnh tạm ứng'],
+            [/^lãnh\s+thực\s+hiện\s+hợp\s+đồng/i, 'Bảo lãnh thực hiện hợp đồng'],
+            [/^lãnh\s+đang\s+còn\s+hiệu\s+lực/i, 'Bảo lãnh đang còn hiệu lực'],
+            [/^đồng\/phụ\s+lục\s+hợp\s+đồng/i, 'Hợp đồng/phụ lục hợp đồng'],
+            [/^đồng\s+có\s+quy\s+định\s+về\s+bảo\s+lãnh/i, 'Hợp đồng có quy định về bảo lãnh'],
+            [/^phẩm\/dịch\s+vụ\s+của\s+hợp\s+đồng/i, 'Sản phẩm/dịch vụ của hợp đồng'],
+            [/^quyền\s+phê\s+duyệt\s+phù\s+hợp/i, 'Thẩm quyền phê duyệt phù hợp'],
+            [/^vấn\s+giám\s+sát/i, 'Tư vấn giám sát'],
+            [/^mắc\s+từ\s+các\s+đơn\s+vị/i, 'Vướng mắc từ các đơn vị'],
+            [/^khuyến\s+nghị\s+từ\s+đơn\s+vị/i, 'Các khuyến nghị từ đơn vị'],
+            [/^I\s+mục\s+các\s+tài\s+liệu/i, 'I. Danh mục các tài liệu'],
+            [/^đã\s+yêu\s+cầu\s+nhà\s+thầu\s+gia\s+hạn/i, 'CĐT đã yêu cầu nhà thầu gia hạn'],
+            [/^có\s+phải\s+yêu\s+cầu\s+nhà\s+thầu\s+gia\s+hạn/i, 'CĐT có phải yêu cầu nhà thầu gia hạn']
+        ];
+
+        prefixRecoveries.forEach(([regex, replacement]) => {
+            s = s.replace(regex, replacement);
+        });
+
+        if (hasCheckX && !s.startsWith('☑') && !s.includes('\t')) {
+            s = `☑ ${s}`;
+        }
+
         return s;
     }
 
-    // 2. Kiểm tra một từ có phải là rác nhiễu quang học (Gibberish / Noise Artifact) hay không
+    // 2. Hàn gắn các dòng văn bản bị ngắt đôi trong cùng 1 ô bảng (Multi-line Cell Healing)
+    function healBrokenMultiLines(linesArray) {
+        if (!Array.isArray(linesArray) || linesArray.length === 0) return [];
+        const healed = [];
+
+        for (let i = 0; i < linesArray.length; i++) {
+            let curr = (linesArray[i] || '').trim();
+            if (!curr) continue;
+
+            if (healed.length > 0) {
+                const prev = healed[healed.length - 1];
+                const cleanCurr = curr.replace(/^☑\s*/, '').trim();
+
+                // Nếu dòng hiện tại là phần nối tiếp rõ ràng của câu trên trong cùng 1 ô bảng:
+                const isContinuation = /^(minh\s+kết\s+quả|mình\s+kết\s+quả|chủ\s+đầu\s+tư$|thành$|gia\s+hạn\s+bảo\s+lãnh\s+lại|thế\s+nào$|thể\s+nào$|và\s+hóa\s+đơn|lượng,\s+đơn\s+giá|đề\s+nghị\s+thanh\s+toán\s+có\s+phù\s+hợp|thu,\s+bàn\s+giao|toán\s+theo\s+giai\s+đoạn|toán\s+của\s+từng\s+hợp\s+đồng|trong\s+giai\s+đoạn\s+thanh\s+toán|với\s+nhà\s+thầu\s+thi\s+công|hình\s+thức\.?$)/i.test(cleanCurr);
+
+                if (isContinuation && !prev.includes('\t')) {
+                    const hadCheck = prev.startsWith('☑') || curr.startsWith('☑');
+                    let cleanPrev = prev.replace(/^☑\s*/, '').replace(/[:;,]\s*$/, '').trim();
+                    // Trường hợp đặc biệt: "tài liệu chứng minh" + "minh kết quả" -> tránh lặp chữ "minh"
+                    if (/chứng\s+minh$/i.test(cleanPrev) && /^minh\s+/i.test(cleanCurr)) {
+                        cleanPrev = cleanPrev.replace(/\s+minh$/i, '');
+                    }
+                    if (/thanh\s+toán$/i.test(cleanPrev) && /^toán\s+/i.test(cleanCurr)) {
+                        cleanPrev = cleanPrev.replace(/\s+toán$/i, '');
+                    }
+                    let merged = applyConstructionLexiconFixes(`${cleanPrev} ${cleanCurr}`);
+                    if (hadCheck && !merged.startsWith('☑')) {
+                        merged = `☑ ${merged}`;
+                    }
+                    healed[healed.length - 1] = merged;
+                    continue;
+                }
+            }
+            healed.push(curr);
+        }
+
+        return healed;
+    }
+
+    // 3. Kiểm tra một từ có phải là rác nhiễu quang học (Gibberish / Noise Artifact) hay không
     function isVietnameseGibberishWord(word) {
         if (!word) return true;
         const w = word.trim();
         if (!w) return true;
 
         // Ký tự ngoại lai châu Âu không bao giờ có trong văn bản tiếng Việt chuẩn
-        if (/[ÖÕÜÄËÏŸ¡¿†‡§¶¤¦¨©ª«¬®¯°±²³´µ¸¹º»¼½¾]/.test(w)) return true;
+        if (/[ÖÕÜÄËÏŸ¡¿†‡§¶¤¦¨©ª«¬®¯°±²³´µ¸¹º»¼½¾šñ]/.test(w)) return true;
 
         // Dãy số/chữ hỗn loạn dài vô nghĩa do đọc nhầm đường kẻ bảng chấm chấm (ví dụ: 0000005/000000902/080000...)
         if (w.length >= 16 && (w.match(/000/g) || []).length >= 2) {
@@ -4662,7 +4859,7 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         }
 
         // Từ rác đặc trưng do nhận diện nhầm ô checkbox [x] hoặc đường kẻ
-        if (/^(lxI|LxI|Ix\.T|IESE|Gyy|lzt|LẾth|L-i|i77|7ô|\[si)$/i.test(w)) return true;
+        if (/^(lxI|LxI|Ix\.T|IESE|Gyy|lzt|LẾth|L-i|i77|7ô|\[si|Iưm|\(DJ|m1|sim)$/i.test(w)) return true;
 
         // Nhiều dấu câu/ký hiệu kỳ dị trộn lẫn trong 1 từ ngắn (ví dụ: „r/érrỶmưẲ, mr”=ơ=, ""“)
         const weirdSymbols = (w.match(/[„“”"'`~^<>|\\\/\[\]{}_=+*]/g) || []).length;
@@ -4670,7 +4867,7 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         if (/^[„“”"'`~^<>|\\\/\[\]{}_=+*.,:;!?-]+$/.test(w)) return true;
 
         // Từ có cả chữ thường có dấu VÀ chữ hoa có dấu lộn xộn ở giữa từ (ví dụ: érrỶmưẲ, ọ<ÚÚẮÖẮẲ)
-        // Nhưng bảo toàn 100% các từ viết HOA toàn bộ (như HĐQT, PLHĐ, QUẢ, 2005/2022/HĐTT/XNKRQ-NTC)
+        // Nhưng bảo toàn 100% các từ viết HOA toàn bộ (như HĐQT, PLHĐ, QUẢ, CĐT, 2005/2022/HĐTT/XNKRQ-NTC)
         const cleanAlpha = w.replace(/[^a-zA-ZÀ-ỹ]/g, '');
         if (cleanAlpha.length >= 3 && cleanAlpha !== cleanAlpha.toUpperCase()) {
             const innerCaps = cleanAlpha.slice(1).match(/[A-ZÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ]/g);
@@ -4683,7 +4880,7 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         return false;
     }
 
-    // 3. Kiểm tra cả một dòng có phải là dòng rác sinh ra từ đường kẻ ngang của bảng không
+    // 4. Kiểm tra cả một dòng có phải là dòng rác sinh ra từ đường kẻ ngang của bảng không
     function isGarbageOcrLine(lineStr, confidence = 80) {
         if (!lineStr) return true;
         const s = applyConstructionLexiconFixes(lineStr);
@@ -4713,19 +4910,22 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         });
 
         if (badCount / words.length >= 0.4) return true;
-        if (words.length <= 4 && confidence < 58) return true;
+        if (words.length <= 3 && confidence < 50) return true;
 
         return false;
     }
 
-    // 4. Làm sạch sâu và chuẩn hóa thông minh từng dòng văn bản hồ sơ xây dựng / pháp lý
+    // 5. Làm sạch sâu và chuẩn hóa thông minh từng dòng văn bản hồ sơ xây dựng / pháp lý
     function smartCleanConstructionLine(rawLine) {
         if (!rawLine || typeof rawLine !== 'string') return '';
         let s = applyConstructionLexiconFixes(rawLine);
         if (!s) return '';
 
         // A. Nhận diện các ký hiệu Checkbox ở đầu dòng: [- - [, |- - |, |- [, | — |, +. |, | |
-        let hasCheckbox = false;
+        let hasCheckbox = s.startsWith('☑');
+        if (hasCheckbox) {
+            s = s.replace(/^☑\s*/, '');
+        }
         if (/^(\[-?\s*-\s*\[|\|-?\s*-\s*\||\|-\s*\[|\|\s*[—–-]\s*\||\[\s*-\s*\[|\+\.?\s*\||\|\s*\||\[-\s*\[)/.test(s)) {
             hasCheckbox = true;
             s = s.replace(/^(\[-?\s*-\s*\[|\|-?\s*-\s*\||\|-\s*\[|\|\s*[—–-]\s*\||\[\s*-\s*\[|\+\.?\s*\||\|\s*\||\[-\s*\[)\s*/, '');
@@ -4742,6 +4942,13 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         const tokens = s.split(/\s+/);
         const cleanTokens = tokens.filter(t => !isVietnameseGibberishWord(t));
         s = cleanTokens.join(' ').trim();
+
+        // Chạy lại Lexicon & Prefix Recovery một lần nữa sau khi đã gọt sạch ký tự rác đầu câu
+        s = applyConstructionLexiconFixes(s);
+        if (s.startsWith('☑')) {
+            hasCheckbox = true;
+            s = s.replace(/^☑\s*/, '');
+        }
 
         if (!s) return '';
 
@@ -4760,14 +4967,14 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             return `${numberedRowMatch[1]}\t${numberedRowMatch[2]}\t${numberedRowMatch[3]}`;
         }
 
-        if (hasCheckbox) {
+        if (hasCheckbox && !s.includes('\t')) {
             return `☑ ${s}`;
         }
 
         return s;
     }
 
-    // 4. Trích xuất dòng thông minh từ kết quả Tesseract (kết hợp Confidence + Spatial BBox + Smart Clean)
+    // 6. Trích xuất dòng thông minh từ kết quả Tesseract (kết hợp Confidence + Spatial BBox + Multi-line Healing)
     function extractSmartLinesFromTesseractResult(res) {
         if (!res || !res.data) return [];
         const resultLines = [];
@@ -4777,14 +4984,14 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
                 const lineConf = typeof lineObj.confidence === 'number' ? lineObj.confidence : 75;
                 let rawText = '';
 
-                // Nếu có danh sách words với tọa độ bbox, kiểm tra khoảng cách ngang để tách cột bảng
                 if (lineObj.words && lineObj.words.length > 0) {
-                    const validWords = lineObj.words.filter(w => {
+                    const validWords = lineObj.words.filter((w, wIdx) => {
                         const wText = (w.text || '').trim();
                         const wConf = typeof w.confidence === 'number' ? w.confidence : 75;
                         if (!wText) return false;
-                        // Bỏ ngay các từ có độ tin cậy quá thấp (< 40%) trừ khi là số rõ ràng
-                        if (wConf < 40 && !/^[0-9.,]+$/.test(wText)) return false;
+                        // Từ đầu tiên trong dòng có thể nằm sát đường kẻ bảng nên ngưỡng tin cậy thấp hơn (20%), các từ sau dùng ngưỡng 36%
+                        const minConf = (wIdx === 0) ? 20 : 36;
+                        if (wConf < minConf && !/^[0-9.,/]+$/.test(wText)) return false;
                         if (isVietnameseGibberishWord(wText)) return false;
                         return true;
                     });
@@ -4798,8 +5005,7 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
                         const x0 = w.bbox ? w.bbox.x0 : null;
                         const x1 = w.bbox ? w.bbox.x1 : null;
 
-                        if (prevX1 !== null && x0 !== null && (x0 - prevX1) > 45) {
-                            // Khoảng cách giữa 2 từ lớn (> 45px) -> Đây là 2 cột khác nhau của bảng!
+                        if (prevX1 !== null && x0 !== null && (x0 - prevX1) > 55) {
                             builder += '\t' + wText;
                         } else if (builder) {
                             builder += ' ' + wText;
@@ -4831,14 +5037,11 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             });
         }
 
-        return resultLines;
+        // Hàn gắn các câu dài trong cùng 1 ô bảng bị ngắt làm 2 dòng
+        return healBrokenMultiLines(resultLines);
     }
 
-
-    // =========================================================================
-    // BỘ TIỀN XỬ LÝ HÌNH ẢNH CANVAS + KHỬ ĐƯỜNG KẺ BẢNG (MORPHOLOGICAL LINE STRIPPING)
-    // =========================================================================
-    function enhanceCanvasForOcr(srcCanvas) {
+        function enhanceCanvasForOcr(srcCanvas) {
         const width = srcCanvas.width;
         const height = srcCanvas.height;
         const ctx = srcCanvas.getContext('2d');
@@ -4910,7 +5113,7 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         }
 
         // 4. KHỬ ĐƯỜNG KẺ DỌC CỦA BẢNG & KHUNG CHECKBOX (Chống sinh ký tự '|', '[- - [', 'LxI')
-        const minVertLineLen = 28;
+        const minVertLineLen = 68;
         for (let x = 3; x < width - 3; x++) {
             let runStart = -1;
             for (let y = 0; y < height; y++) {
@@ -5505,7 +5708,7 @@ td, th { border: 1px solid #334155; padding: 4pt 6pt; vertical-align: top; }
 
                         // 2. VẼ TRANG PDF LÊN CANVAS ĐỂ QUÉT QUANG HỌC (OCR)
                         // Scale 1.85 giúp chữ scan nét căng mà vẫn tiết kiệm RAM khi chạy 110 trang
-                        const vp = page.getViewport({ scale: 1.85 });
+                        const vp = page.getViewport({ scale: 2.15 });
                         const canvas = document.createElement('canvas');
                         canvas.width = vp.width;
                         canvas.height = vp.height;
