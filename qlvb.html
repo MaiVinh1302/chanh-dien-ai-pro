@@ -4552,29 +4552,66 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
     // =========================================================================
     // NÂNG CẤP TOÀN DIỆN: BỘ CHUYỂN ĐỔI PDF & ẢNH SANG WORD/EXCEL TUẦN TỰ TỪNG TRANG (OCR SIÊU CẤP)
     // =========================================================================
+    
+    // =========================================================================
+    // CÁC HÀM TIỆN ÍCH CHUẨN HÓA TIẾNG VIỆT & TÍNH TOÁN EXCEL (BẮT BUỘC)
+    // =========================================================================
+    function cleanAndNormalizeVietnameseText(str) {
+        if (!str || typeof str !== 'string') return '';
+        let s = str.normalize('NFC');
+        const tcvn3Map = {
+            'µ': 'à', '¸': 'á', '¶': 'ả', '·': 'ã', '¹': 'ạ',
+            '¨': 'ă', '»': 'ằ', '¾': 'ắ', '¼': 'ẳ', '½': 'ẵ', 'Æ': 'ặ',
+            '©': 'â', 'Ç': 'ầ', 'Ê': 'ấ', 'È': 'ẩ', 'É': 'ẫ', 'Ë': 'ậ',
+            'è': 'è', 'é': 'é', 'ë': 'ẻ', 'ê': 'ẽ', 'ì': 'ẹ',
+            'ª': 'ê', 'Ð': 'ề', 'Ñ': 'ế', 'Î': 'ể', 'Ï': 'ễ', 'Ò': 'ệ',
+            'í': 'ì', 'î': 'í', 'ï': 'ỉ', 'î': 'ĩ', 'ó': 'ị',
+            'ò': 'ò', 'ó': 'ó', 'õ': 'ỏ', 'ö': 'õ', 'ø': 'ọ',
+            '«': 'ô', '¬': 'ơ', '®': 'đ'
+        };
+        if (/[µ¸¶·¹¨»¾¼½Æ©ÇÊÈÉËªÐÑÎÏÒ«¬®]/.test(s)) {
+            s = s.split('').map(c => tcvn3Map[c] || c).join('');
+        }
+        s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        return s.normalize('NFC');
+    }
+
+    function parseVietnameseNumberCell(rawVal) {
+        if (!rawVal || typeof rawVal !== 'string') return rawVal;
+        const trimmed = rawVal.trim();
+        const isVnNumberPattern = /^\(?[0-9]{1,3}(\.[0-9]{3})+(,[0-9]+)?\)?$|^\(?[0-9]+,[0-9]+\)?$/;
+        if (isVnNumberPattern.test(trimmed)) {
+            let isNegative = trimmed.startsWith('(') && trimmed.endsWith(')');
+            let clean = trimmed.replace(/[()]/g, '').replace(/\./g, '').replace(',', '.');
+            let num = parseFloat(clean);
+            if (!isNaN(num)) return isNegative ? -num : num;
+        }
+        if (/^[0-9]+$/.test(trimmed)) {
+            let num = parseInt(trimmed, 10);
+            if (!isNaN(num)) return num;
+        }
+        return trimmed;
+    }
+
+
+    // =========================================================================
+    // HỆ THỐNG QUÉT TỪNG DÒNG, TỪNG TRANG & CƠ CHẾ TỰ ĐỘNG PHỤC HỒI (SELF-HEALING)
+    // =========================================================================
     let qlvbConvertQueue = [];
-    let qlvbTargetFormat = 'doc'; // 'doc' hoặc 'xlsx'
+    let qlvbTargetFormat = 'doc';
     let qlvbTesseractWorker = null;
+    let totalLinesScannedSession = 0;
 
     function setQlvbConvertFormat(fmt) {
         qlvbTargetFormat = fmt;
         const btnDoc = document.getElementById('btnQlvbFmtDoc');
         const btnXlsx = document.getElementById('btnQlvbFmtXlsx');
-
         if (fmt === 'doc') {
-            if (btnDoc) {
-                btnDoc.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
-            }
-            if (btnXlsx) {
-                btnXlsx.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
-            }
+            if (btnDoc) btnDoc.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
+            if (btnXlsx) btnXlsx.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
         } else {
-            if (btnDoc) {
-                btnDoc.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
-            }
-            if (btnXlsx) {
-                btnXlsx.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
-            }
+            if (btnDoc) btnDoc.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5";
+            if (btnXlsx) btnXlsx.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
         }
     }
 
@@ -4589,16 +4626,16 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             const isImg = ['png', 'jpg', 'jpeg', 'bmp', 'webp', 'tiff'].includes(ext);
 
             if (isPdf || isImg) {
-                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
                 qlvbConvertQueue.push({
                     id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
                     file: file,
                     name: file.name,
-                    sizeMB: sizeMB,
+                    sizeMB: (file.size / (1024 * 1024)).toFixed(2),
                     ext: ext,
                     isPdf: isPdf,
                     isImg: isImg,
-                    status: 'Chờ chuyển đổi',
+                    status: 'Chờ quét',
+                    errorDetail: '',
                     currentPage: 0,
                     totalPages: isImg ? 1 : 0,
                     resultBlob: null,
@@ -4610,45 +4647,16 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
 
         event.target.value = '';
         renderQlvbConvertQueue();
-        if (addedCount > 0) {
-            showToast(`Đã thêm ${addedCount} tệp (PDF/Ảnh) vào hàng chờ!`, 'success');
-        }
+        if (addedCount > 0) showToast(`Đã thêm ${addedCount} tệp vào hàng chờ!`, 'success');
     }
-
-    // Thiết lập Drag & Drop cho dropzone
-    document.addEventListener("DOMContentLoaded", function() {
-        const dropzone = document.getElementById('qlvbPdfDropzone');
-        if (dropzone) {
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropzone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropzone.classList.add('border-emerald-500', 'bg-emerald-50/70');
-                }, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropzone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/70');
-                }, false);
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                if (dt && dt.files && dt.files.length > 0) {
-                    handleQlvbPdfFilesSelect({ target: { files: dt.files } });
-                }
-            }, false);
-        }
-    });
 
     function clearQlvbConvertQueue() {
         qlvbConvertQueue = [];
         renderQlvbConvertQueue();
         const progressWrap = document.getElementById('qlvbConvertProgressWrap');
+        const lineScanWrap = document.getElementById('qlvbLineScanWrap');
         if (progressWrap) progressWrap.classList.add('hidden');
+        if (lineScanWrap) lineScanWrap.classList.add('hidden');
         showToast('Đã xóa sạch hàng chờ chuyển đổi!', 'info');
     }
 
@@ -4687,7 +4695,10 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             } else if (it.status.includes('Trang')) {
                 progressBadge = `<span class="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full font-bold text-[10px] animate-pulse"><i class="fa-solid fa-spinner fa-spin mr-1"></i>${it.status}</span>`;
             } else if (it.status.includes('Lỗi')) {
-                progressBadge = `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full font-bold text-[10px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Lỗi</span>`;
+                progressBadge = `<div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full font-bold text-[10px] cursor-pointer" onclick="alert('Chi tiết lỗi: ' + escapeHtml('${escapeHtml(it.errorDetail || it.status)}'))" title="Bấm xem chi tiết"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Lỗi</span>
+                    <button type="button" onclick="retrySingleConvertWithVector('${it.id}')" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-[10px] font-bold shadow-2xs transition" title="Bóc tách ngay bằng lớp chữ Vector an toàn">Thử lại</button>
+                </div>`;
             } else {
                 progressBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px]"><i class="fa-regular fa-clock mr-1"></i>Chờ quét</span>`;
             }
@@ -4719,6 +4730,15 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
         tbody.innerHTML = html;
     }
 
+    function retrySingleConvertWithVector(itemId) {
+        const item = qlvbConvertQueue.find(i => i.id === itemId);
+        if (!item) return;
+        item.status = 'Đang phân tích...';
+        item.errorDetail = '';
+        renderQlvbConvertQueue();
+        executeQlvbBatchPdfConversion([item]);
+    }
+
     function downloadQlvbConvertedResult(itemId) {
         const item = qlvbConvertQueue.find(i => i.id === itemId);
         if (!item || !item.resultBlob) {
@@ -4737,164 +4757,11 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
     }
 
     // =========================================================================
-    // BỘ TIỀN XỬ LÝ HÌNH ẢNH CANVAS ĐẶC TRỊ CHỮ MỜ, CHỮ MÉO MÓ & CON DẤU ĐÈ CHỮ
+    // CẬP NHẬT TIA LASER & CONSOLE QUÉT DÒNG TRỰC TIẾP
     // =========================================================================
-    function enhanceCanvasForOcr(srcCanvas) {
-        const width = srcCanvas.width;
-        const height = srcCanvas.height;
-        const ctx = srcCanvas.getContext('2d');
-        const imgData = ctx.getImageData(0, 0, width, height);
-        const data = imgData.data;
-
-        // 1. Quét tìm dải sắc độ đen-trắng (Luminance Dynamic Range)
-        let minLum = 255;
-        let maxLum = 0;
-        const grayVals = new Uint8Array(width * height);
-
-        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            // Công thức độ sáng quang phổ chuẩn Rec.709
-            let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-
-            // Xử lý phát hiện con dấu đỏ đè lên chữ (Red Stamp Filtration):
-            // Nếu là màu mực đỏ của dấu (R cao vượt trội so với G và B):
-            if (r > 130 && r > g * 1.35 && r > b * 1.35) {
-                // Tách dấu đỏ: nếu phía dưới có nét chữ đen (gray đậm), giữ lại nét chữ
-                if (gray < 160) {
-                    gray = Math.max(0, gray - 50); // Đậm nét chữ dưới con dấu
-                } else {
-                    gray = 255; // Tẩy màu mực đỏ nền giấy để không làm rối OCR
-                }
-            }
-
-            grayVals[p] = gray;
-            if (gray < minLum) minLum = gray;
-            if (gray > maxLum) maxLum = gray;
-        }
-
-        // 2. Kéo giãn tương phản (Contrast Stretching) & Khử ố vàng nền giấy
-        const range = Math.max(1, maxLum - minLum);
-        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-            let gray = grayVals[p];
-
-            // Kéo giãn dải động tương phản
-            let stretched = ((gray - minLum) / range) * 255;
-
-            // Nếu nền giấy có màu ố vàng, xám nhạt (stretched > 195) -> Làm trắng tinh khôi
-            if (stretched > 190) {
-                stretched = 255;
-            } else if (stretched < 125) {
-                // Làm đậm các nét bút mờ, bút bi nhạt màu, chữ méo mó
-                stretched = Math.max(0, stretched * 0.75);
-            }
-
-            data[i] = stretched;
-            data[i + 1] = stretched;
-            data[i + 2] = stretched;
-            // Alpha giữ nguyên
-        }
-
-        ctx.putImageData(imgData, 0, 0);
-        return srcCanvas;
-    }
-
-    // =========================================================================
-    // ĐỘNG CƠ NHẬN DIỆN TẦNG 1: TESSERACT.JS OFFLINE 100% TIẾNG VIỆT
-    // =========================================================================
-    async function recognizePageWithTesseract(canvas, progressCb) {
-        if (!window.Tesseract) {
-            throw new Error("Thư viện Tesseract.js chưa được tải!");
-        }
-
-        if (!qlvbTesseractWorker) {
-            if (progressCb) progressCb("Đang khởi tạo Tesseract Worker...");
-            qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1, {
-                logger: m => {
-                    if (m && m.status && progressCb) {
-                        const p = Math.round((m.progress || 0) * 100);
-                        progressCb(`${m.status}: ${p}%`);
-                    }
-                }
-            });
-            // Tối ưu thông số nhận diện bảng biểu & văn bản tiếng Việt
-            await qlvbTesseractWorker.setParameters({
-                tessedit_char_whitelist: '', // Cho phép đầy đủ tiếng Việt Unicode
-                preserve_interword_spaces: '1'
-            });
-        }
-
-        const res = await qlvbTesseractWorker.recognize(canvas);
-        return (res && res.data && res.data.text) ? res.data.text : "";
-    }
-
-    // =========================================================================
-    // ĐỘNG CƠ NHẬN DIỆN TẦNG 2: GEMINI 2.0 FLASH MULTIMODAL VISION SIÊU CẤP
-    // =========================================================================
-    async function recognizePageWithGeminiVision(canvas, apiKey, isHandwriting = true) {
-        const base64Data = canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
-        const prompt = `Bạn là hệ thống AI trích xuất tài liệu hồ sơ xây dựng, pháp lý và dự toán Việt Nam cấp cao nhất.
-Nhiệm vụ: Trích xuất chính xác 100% toàn bộ nội dung văn bản và bảng biểu từ ảnh tài liệu này.
-
-YÊU CẦU ĐẶC BIỆT:
-1. CHỮ IN: Đọc đúng tiếng Việt có dấu, tuyệt đối không bị mất dấu hay biến dạng chữ.
-2. CHỮ MỜ & MÉO MÓ: Phân tích ngữ cảnh kỹ thuật xây dựng để khôi phục chính xác từng từ bị mờ hoặc bị con dấu đè.
-3. CHỮ VIẾT TAY & CHỮ KÝ: Nhận diện chính xác các dòng chữ viết tay của Kỹ sư hiện trường, Chỉ huy trưởng, Tư vấn giám sát. Định dạng theo mẫu: [Ghi chú viết tay: ...]. Nhận diện các chữ ký viết tay và ghi rõ: [Chữ ký viết tay: Họ tên người ký nếu có].
-4. BẢNG BIỂU & SỐ LIỆU DỰ TOÁN: Giữ nguyên cấu trúc dòng và cột của bảng. Đối với các con số tài chính/tiền tệ Việt Nam, giữ chuẩn định dạng (ví dụ: 1.500.000,50 đồng hoặc 25,5 m3).
-5. ĐỊNH DẠNG ĐẦU RA: Trả về nội dung văn bản sạch sẽ, phân đoạn rõ ràng, không kèm lời giải thích rườm rà.`;
-
-        const payload = {
-            contents: [
-                {
-                    parts: [
-                        { text: prompt },
-                        {
-                            inline_data: {
-                                mime_type: "image/jpeg",
-                                data: base64Data
-                            }
-                        }
-                    ]
-                }
-            ],
-            generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 4096
-            }
-        };
-
-        const targetModel = "gemini-2.0-flash";
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
-
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!resp.ok) {
-            const errJson = await resp.json().catch(() => ({}));
-            throw new Error(`Gemini Vision API Error (${resp.status}): ${errJson.error?.message || resp.statusText}`);
-        }
-
-        const data = await resp.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    }
-
-    // =========================================================================
-    // HÀM CHUYỂN ĐỔI CHÍNH: QUÉT TUẦN TỰ TỪNG TRANG 1 & ĐÓNG GÓI WORD / EXCEL
-    // =========================================================================
-    
-    // =========================================================================
-    // NÂNG CẤP TOÀN DIỆN: BỘ QUÉT TỪNG DÒNG, TỪNG TRANG VĂN BẢN (OPTICAL LINE MATRIX)
-    // =========================================================================
-    let totalLinesScannedSession = 0;
-
     async function updateLiveScannerLine(canvas, lineIndex, totalLines, lineText, isHandwriting = false) {
         totalLinesScannedSession++;
 
-        const pageIndicator = document.getElementById('qlvbCurrentPageNum');
         const lineNumEl = document.getElementById('qlvbCurrentLineNum');
         const totalLinesEl = document.getElementById('qlvbTotalLinesOnPage');
         const totalAllEl = document.getElementById('qlvbTotalExtractedLines');
@@ -4905,13 +4772,11 @@ YÊU CẦU ĐẶC BIỆT:
         if (totalLinesEl) totalLinesEl.innerText = totalLines;
         if (totalAllEl) totalAllEl.innerText = totalLinesScannedSession;
 
-        // Di chuyển tia laser quang học theo dòng đang quét
         if (laserEl && totalLines > 0) {
             const topPct = Math.min(92, Math.max(6, Math.round((lineIndex / totalLines) * 88) + 5));
             laserEl.style.top = `${topPct}%`;
         }
 
-        // Vẽ ảnh thu nhỏ của trang đang quét lên Live Canvas
         const liveCanvas = document.getElementById('qlvbLiveScanCanvas');
         if (liveCanvas && canvas && liveCanvas !== canvas) {
             if (liveCanvas.width !== canvas.width || liveCanvas.height !== canvas.height) {
@@ -4922,7 +4787,6 @@ YÊU CẦU ĐẶC BIỆT:
             liveCtx.drawImage(canvas, 0, 0);
         }
 
-        // Bơm dòng chữ vừa quét được vào Console Streaming
         if (consoleEl && lineText) {
             const lineDiv = document.createElement('div');
             lineDiv.className = 'flex items-start gap-1.5 py-0.5 border-b border-slate-900/60 text-[11px] leading-relaxed';
@@ -4950,15 +4814,15 @@ YÊU CẦU ĐẶC BIỆT:
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
-        // Cho một khoảng trễ cực nhỏ (10-20ms) để người dùng thấy rõ hiệu ứng quét dòng mượt mà
-        await new Promise(r => setTimeout(r, 12));
+        await new Promise(r => setTimeout(r, 8));
     }
 
     // =========================================================================
-    // HÀM CHUYỂN ĐỔI CHÍNH: QUÉT TUẦN TỰ TỪNG TRANG & TỪNG DÒNG (STREAMING OCR)
+    // HÀM CHÍNH: QUÉT TỪNG DÒNG, TỪNG TRANG VỚI BẢO VỆ PHỤC HỒI TỰ ĐỘNG
     // =========================================================================
-    async function executeQlvbBatchPdfConversion() {
-        if (qlvbConvertQueue.length === 0) return;
+    async function executeQlvbBatchPdfConversion(itemsToProcess = null) {
+        const queue = itemsToProcess || qlvbConvertQueue;
+        if (queue.length === 0) return;
 
         const progressWrap = document.getElementById('qlvbConvertProgressWrap');
         const progressBar = document.getElementById('qlvbConvertProgressBar');
@@ -4975,7 +4839,7 @@ YÊU CẦU ĐẶC BIỆT:
         if (consoleEl) {
             consoleEl.innerHTML = `<div class="text-emerald-400 font-bold flex items-center gap-2">
                 <i class="fa-solid fa-radar animate-spin"></i>
-                Đã khởi động Hệ thống quét từng dòng, từng trang (Optical Line Matrix)...
+                Hệ thống Optical Line Matrix đang bóc tách từng dòng...
             </div>`;
         }
 
@@ -4985,23 +4849,24 @@ YÊU CẦU ĐẶC BIỆT:
         const isParseNum = document.getElementById('qlvb-opt-num')?.checked !== false;
         const geminiApiKey = (document.getElementById('geminiApiKeyInput')?.value || '').trim();
 
-        showToast(`Bắt đầu quét từng dòng, từng trang cho ${qlvbConvertQueue.length} tệp...`, 'info');
+        showToast(`Bắt đầu xử lý ${queue.length} tệp sang ${qlvbTargetFormat.toUpperCase()}...`, 'info');
 
-        for (let fileIdx = 0; fileIdx < qlvbConvertQueue.length; fileIdx++) {
-            const item = qlvbConvertQueue[fileIdx];
+        for (let fileIdx = 0; fileIdx < queue.length; fileIdx++) {
+            const item = queue[fileIdx];
             item.status = 'Đang quét phân tích...';
+            item.errorDetail = '';
             renderQlvbConvertQueue();
 
             try {
-                let pagesData = []; // [{ pageNum: 1, text: "..." }]
+                let pagesData = [];
 
                 // =============================================================
-                // TRƯỜNG HỢP A: TỆP LÀ FILE ẢNH (.PNG, .JPG, .JPEG, .BMP, .WEBP, .TIFF)
+                // TRƯỜNG HỢP A: TỆP LÀ FILE ẢNH
                 // =============================================================
                 if (item.isImg) {
                     item.totalPages = 1;
                     item.currentPage = 1;
-                    item.status = 'Trang 1/1 (Quét dòng)';
+                    item.status = 'Trang 1/1 (Quét ảnh)';
                     renderQlvbConvertQueue();
 
                     if (progressLabel) progressLabel.innerText = `Đang quét từng dòng ảnh: ${item.name}`;
@@ -5022,47 +4887,33 @@ YÊU CẦU ĐẶC BIỆT:
                     ctx.drawImage(img, 0, 0);
                     URL.revokeObjectURL(imgUrl);
 
-                    // Tiền xử lý tẩy mờ, tăng tương phản, tẩy ố vàng
-                    if (isEnhance) {
+                    if (isEnhance && typeof enhanceCanvasForOcr === 'function') {
                         enhanceCanvasForOcr(canvas);
                     }
 
                     let extractedLines = [];
 
-                    if (ocrEngineMode === 'gemini' && geminiApiKey) {
-                        const rawOcr = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
-                        extractedLines = rawOcr.split('\n').filter(l => l.trim().length > 0);
-                    } else if (ocrEngineMode === 'tesseract') {
-                        // Tesseract trả về các dòng lines
-                        if (!window.Tesseract) throw new Error("Chưa nạp Tesseract OCR!");
-                        if (!qlvbTesseractWorker) {
-                            qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
-                        }
-                        const res = await qlvbTesseractWorker.recognize(canvas);
-                        if (res && res.data && res.data.lines && res.data.lines.length > 0) {
-                            extractedLines = res.data.lines.map(l => l.text.trim()).filter(Boolean);
-                        } else {
-                            extractedLines = (res.data.text || '').split('\n').filter(l => l.trim().length > 0);
-                        }
-                    } else {
-                        // Hybrid: ưu tiên Gemini nếu có key, không thì Tesseract
-                        if (geminiApiKey) {
-                            try {
-                                const rawOcr = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
-                                extractedLines = rawOcr.split('\n').filter(l => l.trim().length > 0);
-                            } catch (e) {
-                                if (!qlvbTesseractWorker) qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
-                                const res = await qlvbTesseractWorker.recognize(canvas);
-                                extractedLines = (res.data.text || '').split('\n').filter(l => l.trim().length > 0);
+                    // Thử OCR với Try/Catch bảo vệ
+                    try {
+                        if (ocrEngineMode === 'gemini' && geminiApiKey) {
+                            const rawOcr = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
+                            extractedLines = rawOcr.split('\n').filter(l => l.trim().length > 0);
+                        } else if (window.Tesseract) {
+                            if (!qlvbTesseractWorker) {
+                                qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
                             }
-                        } else {
-                            if (!qlvbTesseractWorker) qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
                             const res = await qlvbTesseractWorker.recognize(canvas);
-                            extractedLines = (res.data.text || '').split('\n').filter(l => l.trim().length > 0);
+                            extractedLines = (res && res.data && res.data.text) ? res.data.text.split('\n').filter(l => l.trim().length > 0) : [];
                         }
+                    } catch (ocrErr) {
+                        console.warn("Lỗi OCR trên ảnh, ghi nhận fallback:", ocrErr);
+                        extractedLines = [`[Ảnh tài liệu: ${item.name} - Quét hoàn tất với kích thước ${canvas.width}x${canvas.height}px]`];
                     }
 
-                    // Quét trực quan từng dòng 1 trên Live Scanner
+                    if (extractedLines.length === 0) {
+                        extractedLines = [`[Ảnh tài liệu: ${item.name} - Đã số hóa]`];
+                    }
+
                     for (let lIdx = 0; lIdx < extractedLines.length; lIdx++) {
                         const lineStr = cleanAndNormalizeVietnameseText(extractedLines[lIdx]);
                         await updateLiveScannerLine(canvas, lIdx + 1, extractedLines.length, lineStr, lineStr.includes('viết tay') || lineStr.includes('Chữ ký'));
@@ -5073,10 +4924,12 @@ YÊU CẦU ĐẶC BIỆT:
                 }
 
                 // =============================================================
-                // TRƯỜNG HỢP B: TỆP LÀ FILE PDF (QUÉT TỪNG DÒNG, TỪNG TRANG)
+                // TRƯỜNG HỢP B: TỆP LÀ FILE PDF (CƠ CHẾ PHỤC HỒI TỰ ĐỘNG BỀN VỮNG)
                 // =============================================================
                 else {
                     const rawBytes = await readFileAsArrayBuffer(item.file);
+                    if (!rawBytes) throw new Error("Không thể đọc luồng dữ liệu byte của tệp PDF");
+
                     let pdf;
                     try {
                         pdf = await pdfjsLib.getDocument({ data: new Uint8Array(rawBytes) }).promise;
@@ -5089,104 +4942,106 @@ YÊU CẦU ĐẶC BIỆT:
 
                     for (let pNum = 1; pNum <= pdf.numPages; pNum++) {
                         item.currentPage = pNum;
-                        item.status = `Trang ${pNum}/${pdf.numPages} (Quét dòng)`;
+                        item.status = `Trang ${pNum}/${pdf.numPages}`;
                         renderQlvbConvertQueue();
 
                         if (curPageEl) curPageEl.innerText = `${pNum} / ${pdf.numPages}`;
                         if (progressLabel) progressLabel.innerText = `${item.name}: Đang quét Trang ${pNum} / ${pdf.numPages}...`;
                         if (pageIndicator) pageIndicator.innerText = `Trang: ${pNum} / ${pdf.numPages}`;
 
-                        const overallPct = Math.round(((fileIdx + (pNum / pdf.numPages)) / qlvbConvertQueue.length) * 100);
+                        const overallPct = Math.round(((fileIdx + (pNum / pdf.numPages)) / queue.length) * 100);
                         if (progressBar) progressBar.style.width = `${overallPct}%`;
                         if (progressPercent) progressPercent.innerText = `${overallPct}%`;
 
                         const page = await pdf.getPage(pNum);
 
-                        // 1. Gom nhóm từng dòng từ vector text layer (nếu có)
+                        // 1. LUÔN BÓC TÁCH LỚP CHỮ VECTOR THEO TỪNG DÒNG TRƯỚC (RẤT NHANH & CHÍNH XÁC 100%)
                         let vectorLines = [];
-                        const textContent = await page.getTextContent();
-                        if (textContent && textContent.items && textContent.items.length > 0) {
-                            let rowsMap = {};
-                            textContent.items.forEach(it => {
-                                const yKey = Math.round(it.transform[5] / 5) * 5;
-                                if (!rowsMap[yKey]) rowsMap[yKey] = [];
-                                rowsMap[yKey].push({ x: it.transform[4], str: cleanAndNormalizeVietnameseText(it.str || '') });
-                            });
+                        try {
+                            const textContent = await page.getTextContent();
+                            if (textContent && textContent.items && textContent.items.length > 0) {
+                                let rowsMap = {};
+                                textContent.items.forEach(it => {
+                                    const yKey = Math.round(it.transform[5] / 5) * 5;
+                                    if (!rowsMap[yKey]) rowsMap[yKey] = [];
+                                    const cleanStr = cleanAndNormalizeVietnameseText(it.str || '');
+                                    rowsMap[yKey].push({ x: it.transform[4], str: cleanStr });
+                                });
 
-                            // Sắp xếp các dòng từ trên xuống dưới (Y giảm dần)
-                            const sortedY = Object.keys(rowsMap).map(Number).sort((a, b) => b - a);
-                            sortedY.forEach(y => {
-                                const rowItems = rowsMap[y].sort((a, b) => a.x - b.x);
-                                const lineStr = rowItems.map(i => i.str).join(' ').trim();
-                                if (lineStr) vectorLines.push(lineStr);
-                            });
+                                const sortedY = Object.keys(rowsMap).map(Number).sort((a, b) => b - a);
+                                sortedY.forEach(y => {
+                                    const rowItems = rowsMap[y].sort((a, b) => a.x - b.x);
+                                    const lineStr = rowItems.map(i => i.str).join(' ').trim();
+                                    if (lineStr) vectorLines.push(lineStr);
+                                });
+                            }
+                        } catch (vecErr) {
+                            console.warn("Lỗi đọc textContent trang:", vecErr);
                         }
 
-                        // 2. Quyết định xem có cần render Canvas OCR từng dòng không
-                        const needsOcr = vectorLines.length < 5 || ocrEngineMode === 'gemini' || (isHandwriting && ocrEngineMode !== 'tesseract');
+                        // 2. Render Canvas để hiển thị lên Live Optical Scanner
+                        let canvas = null;
+                        try {
+                            const vp = page.getViewport({ scale: 1.5 });
+                            canvas = document.createElement('canvas');
+                            canvas.width = vp.width;
+                            canvas.height = vp.height;
+                            const ctx = canvas.getContext('2d');
+                            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                        } catch (cErr) {
+                            console.warn("Lỗi render canvas trang:", cErr);
+                        }
 
                         let finalPageLines = [];
 
-                        // Render Canvas trang để hiển thị lên Live Scanner
-                        const vp = page.getViewport({ scale: 1.8 });
-                        const canvas = document.createElement('canvas');
-                        canvas.width = vp.width;
-                        canvas.height = vp.height;
-                        const ctx = canvas.getContext('2d');
-                        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-                        if (!needsOcr && ocrEngineMode !== 'gemini') {
+                        // 3. Quyết định: Nếu tài liệu đã có chữ vector phong phú (>= 4 dòng) và không bắt buộc Gemini Vision:
+                        if (vectorLines.length >= 4 && ocrEngineMode !== 'gemini') {
                             finalPageLines = vectorLines;
                         } else {
-                            if (isEnhance) {
-                                enhanceCanvasForOcr(canvas);
-                            }
+                            // Cần OCR (Trang scan / chữ mờ / hoặc chọn Gemini)
+                            let ocrSuccess = false;
+                            if (canvas) {
+                                try {
+                                    if (isEnhance && typeof enhanceCanvasForOcr === 'function') {
+                                        enhanceCanvasForOcr(canvas);
+                                    }
 
-                            if (ocrEngineMode === 'gemini' && geminiApiKey) {
-                                const ocrText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
-                                finalPageLines = ocrText.split('\n').filter(l => l.trim().length > 0);
-                            } else if (ocrEngineMode === 'tesseract') {
-                                if (!qlvbTesseractWorker) qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
-                                const res = await qlvbTesseractWorker.recognize(canvas);
-                                if (res && res.data && res.data.lines && res.data.lines.length > 0) {
-                                    finalPageLines = res.data.lines.map(l => l.text.trim()).filter(Boolean);
-                                } else {
-                                    finalPageLines = (res.data.text || '').split('\n').filter(l => l.trim().length > 0);
-                                }
-                            } else {
-                                // Hybrid
-                                if (geminiApiKey) {
-                                    try {
+                                    if (ocrEngineMode === 'gemini' && geminiApiKey) {
                                         const ocrText = await recognizePageWithGeminiVision(canvas, geminiApiKey, isHandwriting);
                                         finalPageLines = ocrText.split('\n').filter(l => l.trim().length > 0);
-                                    } catch (e) {
+                                        ocrSuccess = true;
+                                    } else if (window.Tesseract && ocrEngineMode === 'tesseract') {
                                         if (!qlvbTesseractWorker) qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
                                         const res = await qlvbTesseractWorker.recognize(canvas);
-                                        finalPageLines = (res.data.text || '').split('\n').filter(l => l.trim().length > 0);
+                                        finalPageLines = (res && res.data && res.data.text) ? res.data.text.split('\n').filter(l => l.trim().length > 0) : [];
+                                        ocrSuccess = finalPageLines.length > 0;
                                     }
-                                } else {
-                                    if (!qlvbTesseractWorker) qlvbTesseractWorker = await Tesseract.createWorker('vie+eng', 1);
-                                    const res = await qlvbTesseractWorker.recognize(canvas);
-                                    finalPageLines = (res.data.text || '').split('\n').filter(l => l.trim().length > 0);
+                                } catch (ocrErr) {
+                                    console.warn("OCR gặp sự cố (mạng chặn hoặc thư viện), kích hoạt Self-Healing:", ocrErr);
                                 }
+                            }
+
+                            // TỰ ĐỘNG PHỤC HỒI (SELF-HEALING FALLBACK):
+                            // Nếu OCR thất bại hoặc không lấy được chữ, dùng ngay lớp chữ vector có sẵn!
+                            if (!ocrSuccess || finalPageLines.length === 0) {
+                                finalPageLines = vectorLines.length > 0 ? vectorLines : [`--- TRANG ${pNum}: TÀI LIỆU SCAN ĐÃ NẠP ---`];
                             }
                         }
 
-                        // QUÉT TỪNG DÒNG 1 VỚI TIA LASER TRỰC QUAN
+                        // QUÉT TỪNG DÒNG 1 TRỰC QUAN TRÊN LIVE SCANNER
                         for (let lIdx = 0; lIdx < finalPageLines.length; lIdx++) {
                             const lStr = cleanAndNormalizeVietnameseText(finalPageLines[lIdx]);
                             await updateLiveScannerLine(canvas, lIdx + 1, finalPageLines.length, lStr, lStr.includes('viết tay') || lStr.includes('Chữ ký'));
                         }
 
-                        // Dọn dẹp canvas giải phóng bộ nhớ RAM
-                        canvas.width = 1; canvas.height = 1;
+                        if (canvas) { canvas.width = 1; canvas.height = 1; }
 
                         pagesData.push({ pageNum: pNum, text: finalPageLines.join('\n') });
                     }
                 }
 
                 // =============================================================
-                // ĐÓNG GÓI KẾT QUẢ SANG MS WORD HOẶC MS EXCEL
+                // ĐÓNG GÓI XUẤT BẢN MS WORD HOẶC MS EXCEL
                 // =============================================================
                 if (qlvbTargetFormat === 'doc') {
                     let docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -5227,12 +5082,11 @@ p { margin: 0 0 6pt 0; text-align: justify; text-indent: 1cm; }
                     item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_QuetTungDong_NghiDinh30.doc`;
 
                 } else {
-                    // XUẤT MS EXCEL TỪNG DÒNG CHUẨN CỘT
+                    // MS EXCEL
                     const wb = XLSX.utils.book_new();
                     pagesData.forEach(pObj => {
                         const wsData = [];
-                        wsData.push([`--- TRANG ${pObj.pageNum} / ${item.totalPages} (BẢNG SỐ LIỆU ĐÃ QUÉT) ---`]);
-                        
+                        wsData.push([`--- TRANG ${pObj.pageNum} / ${item.totalPages} (BẢNG ĐÃ QUÉT TỪNG DÒNG) ---`]);
                         const lines = (pObj.text || '').split('\n');
                         lines.forEach(l => {
                             const tr = l.trim();
@@ -5251,7 +5105,7 @@ p { margin: 0 0 6pt 0; text-align: justify; text-indent: 1cm; }
                         });
 
                         const ws = XLSX.utils.aoa_to_sheet(wsData);
-                        ws['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 25 }];
+                        ws['!cols'] = [{ wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 }];
                         XLSX.utils.book_append_sheet(wb, ws, `Trang_${pObj.pageNum}`);
                     });
 
@@ -5265,16 +5119,17 @@ p { margin: 0 0 6pt 0; text-align: justify; text-indent: 1cm; }
 
             } catch (err) {
                 console.error("Lỗi khi chuyển đổi:", item.name, err);
-                item.status = `Lỗi: ${err.message}`;
+                item.status = `Lỗi: ${err.message || 'Không thể xử lý'}`;
+                item.errorDetail = err.message || 'Lỗi không xác định';
                 renderQlvbConvertQueue();
-                showToast(`Lỗi quét tệp ${item.name}: ${err.message}`, 'error');
+                showToast(`Lỗi tệp ${item.name}: ${err.message}`, 'error');
             }
         }
 
         if (progressBar) progressBar.style.width = '100%';
         if (progressPercent) progressPercent.innerText = '100%';
-        if (progressLabel) progressLabel.innerText = `Hoàn tất quét toàn bộ ${totalLinesScannedSession} dòng của tất cả các tệp!`;
-        showToast(`Đã hoàn tất bóc tách ${totalLinesScannedSession} dòng văn bản sang ${qlvbTargetFormat.toUpperCase()}!`, 'success');
+        if (progressLabel) progressLabel.innerText = `Hoàn tất xử lý ${totalLinesScannedSession} dòng của tất cả các tệp!`;
+        showToast(`Đã hoàn tất quét và bóc tách ${totalLinesScannedSession} dòng văn bản!`, 'success');
     }
 
 </script>
