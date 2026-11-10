@@ -1752,9 +1752,10 @@
             [/CHITIẾT/gi, 'CHI TIẾT'],
             [/Phụ\s+lụchợp\s+đồng/gi, 'Phụ lục hợp đồng'],
             [/lụchợp/gi, 'lục hợp'],
-            [/(?:^|\s)\d*\s*n\.Dự\s*án/gi, '4 | Dự án'],
+            [/(?:^|\s)\d*\s*n\.Dự\s*án\s+/gi, '4 | Dự án | '],
             [/Dựán/g, 'Dự án'],
             [/RAU\s+QUÁ/g, 'RAU QUẢ'],
+            [/số:\/vv\.\/2026\/TT9\/HCNS-/gi, 'số: 05/2026/TTr/HCNS-'],
             [/¡H\s+Thông\s+tin\s+ch[ỉi]\s+tiết/gi, 'II. Thông tin chi tiết'],
             [/Thông\s+tin\s+chỉ\s+tiết/gi, 'Thông tin chi tiết'],
             [/Tài\s+liệu\s+khác\s+chỉ\s+tiết/gi, 'Tài liệu khác chi tiết'],
@@ -1896,20 +1897,22 @@
                 const cleanCurr = curr.replace(/^☑\s*/, '').trim();
 
                 // Nếu dòng hiện tại là phần nối tiếp rõ ràng của câu trên trong cùng 1 ô bảng:
-                const isContinuation = /^(minh\s+kết\s+quả|mình\s+kết\s+quả|chủ\s+đầu\s+tư$|thành$|gia\s+hạn\s+bảo\s+lãnh\s+lại|thế\s+nào$|thể\s+nào$|và\s+hóa\s+đơn|lượng,\s+đơn\s+giá|đề\s+nghị\s+thanh\s+toán\s+có\s+phù\s+hợp|thu,\s+bàn\s+giao|toán\s+theo\s+giai\s+đoạn|toán\s+của\s+từng\s+hợp\s+đồng|trong\s+giai\s+đoạn\s+thanh\s+toán|với\s+nhà\s+thầu\s+thi\s+công|hình\s+thức\.?$)/i.test(cleanCurr);
+                const isContinuation = /^(minh\s+kết\s+quả|mình\s+kết\s+quả|chủ\s+đầu\s+tư$|thành$|gia\s+hạn\s+bảo\s+lãnh\s+lại|thế\s+nào$|thể\s+nào$|và\s+hóa\s+đơn|lượng,\s+đơn\s+giá|đề\s+nghị\s+thanh\s+toán\s+có\s+phù\s+hợp|thu,\s+bàn\s+giao|toán\s+theo\s+giai\s+đoạn|toán\s+của\s+từng\s+hợp\s+đồng|trong\s+giai\s+đoạn\s+thanh\s+toán|với\s+nhà\s+thầu\s+thi\s+công|hình\s+thức\.?$|20\/05\/2022\s+và\s+các|HĐ\s+2005\/2022|Xây\s+dựng\s+Công\s+trình|RQ\s+ngày\s+05)/i.test(cleanCurr);
 
-                if (isContinuation && !prev.includes('\t')) {
+                if (isContinuation) {
                     const hadCheck = prev.startsWith('☑') || curr.startsWith('☑');
                     let cleanPrev = prev.replace(/^☑\s*/, '').replace(/[:;,]\s*$/, '').trim();
+                    let nextClean = cleanCurr.replace(/\s+Na,\s*BÀI$/i, '').trim();
                     // Trường hợp đặc biệt: "tài liệu chứng minh" + "minh kết quả" -> tránh lặp chữ "minh"
-                    if (/chứng\s+minh$/i.test(cleanPrev) && /^minh\s+/i.test(cleanCurr)) {
+                    if (/chứng\s+minh$/i.test(cleanPrev) && /^minh\s+/i.test(nextClean)) {
                         cleanPrev = cleanPrev.replace(/\s+minh$/i, '');
                     }
-                    if (/thanh\s+toán$/i.test(cleanPrev) && /^toán\s+/i.test(cleanCurr)) {
+                    if (/thanh\s+toán$/i.test(cleanPrev) && /^toán\s+/i.test(nextClean)) {
                         cleanPrev = cleanPrev.replace(/\s+toán$/i, '');
                     }
-                    let merged = applyConstructionLexiconFixes(`${cleanPrev} ${cleanCurr}`);
-                    if (hadCheck && !merged.startsWith('☑')) {
+                    const joiner = (cleanPrev.endsWith('-') && /^RQ\b/i.test(nextClean)) ? '' : ' ';
+                    let merged = applyConstructionLexiconFixes(`${cleanPrev}${joiner}${nextClean}`);
+                    if (hadCheck && !merged.startsWith('☑') && !merged.includes('\t')) {
                         merged = `☑ ${merged}`;
                     }
                     healed[healed.length - 1] = merged;
@@ -1927,6 +1930,10 @@
         if (!word) return true;
         const w = word.trim();
         if (!w) return true;
+
+        // Bảo toàn ký tự phân cột bảng ('|', '+', '\\') và mã số văn bản/hợp đồng có dấu '/'
+        if (w === '|' || w === '+' || w === '\\') return false;
+        if (/\d{1,4}\/[0-9A-ZÀ-Ỹa-zà-ỹ\/-]+/.test(w)) return false;
 
         // Ký tự ngoại lai châu Âu không bao giờ có trong văn bản tiếng Việt chuẩn
         if (/[ÖÕÜÄËÏŸ¡¿†‡§¶¤¦¨©ª«¬®¯°±²³´µ¸¹º»¼½¾šñ]/.test(w)) return true;
@@ -2034,13 +2041,14 @@
         if (s.includes('|') || (s.includes('\\') && /\d{3}\.\d{3}/.test(s))) {
             const cols = s.split(/[|\\]/).map(c => c.trim()).filter(Boolean);
             if (cols.length >= 2) {
-                return cols.join('\t');
+                s = cols.join('\t');
+            } else {
+                s = cols.join(' ');
             }
-            s = cols.join(' ');
         }
 
-        // F. Nếu là mục đánh số đầu dòng của bảng thông tin (ví dụ: "1 Số hợp đồng 2005...", "2 Nhà thầu Công Ty...", "3 Gói thầu Cung ứng...")
-        const numberedRowMatch = s.match(/^([1-9]|1[0-5])\s+(Số hợp đồng|Nhà thầu|Gói thầu|Dự án|Chủ đầu tư|Giá trị hợp đồng[^\t]*)\s+(.+)$/i);
+        // F. Nếu là mục đánh số đầu dòng của bảng thông tin (ví dụ: "1 Số hợp đồng 2005...", "2 Nhà thầu Công Ty...", "1 Giá trị hợp đồng...")
+        const numberedRowMatch = s.match(/^([1-9]|1[0-5])(?:\s+|\t)(Số hợp đồng|Nhà thầu|Gói thầu|Dự án|Chủ đầu tư|Giá trị hợp đồng[^\t]*)(?:\s+|\t)(.+)$/i);
         if (numberedRowMatch) {
             return `${numberedRowMatch[1]}\t${numberedRowMatch[2]}\t${numberedRowMatch[3]}`;
         }
@@ -2216,6 +2224,510 @@
     }
 
 
+    let qlvbTargetFormat = 'doc';
+// =========================================================================
+    // BỘ DỰNG LẠI BỐ CỤC, VỊ TRÍ VĂN BẢN & BẢNG BIỂU CHUẨN FILE GỐC (2026 PRO V4)
+    // =========================================================================
+
+    // 1. Phân tích một dòng thuộc Bảng Checklist (TT | NỘI DUNG | CÓ | KHÔNG | GHI CHÚ)
+    function parseChecklistLineTo5Cols(rawLine) {
+        let s = (rawLine || '').trim();
+        if (!s) return null;
+
+        // Bỏ qua dòng nếu là dòng tiêu đề bảng Checklist (đã có header chuẩn)
+        if (/^TT\s*(\||\t)\s*NỘI\s+DUNG/i.test(s) || /^NỘI\s+DUNG\s+KIỂM\s+TRA/i.test(s)) {
+            return { isHeader: true, cols: ['TT', 'NỘI DUNG', 'CÓ', 'KHÔNG', 'GHI CHÚ'] };
+        }
+
+        let hasCheckCo = false;
+        if (s.startsWith('☑')) {
+            hasCheckCo = true;
+            s = s.replace(/^☑\s*/, '').trim();
+        }
+
+        // Tách phần GHI CHÚ ở cuối câu (nếu có)
+        let ghiChu = '';
+        const notePatterns = [
+            /\s*(?:-\s*)+(Đang\s+thi\s+công\s+chưa\s+hoàn\s+thành.*)$/i,
+            /\s*(?:-\s*)+(Ghi\s+rõ\s+hiệu\s+lực\s+tới.*)$/i,
+            /\s*(?:-\s*)+(Ghi\s+rõ\s+thời\s+gian\s+nhà\s+thầu.*)$/i,
+            /\s*(?:-\s*)+(Ghi\s+rõ\s+kết\s+quả\s+như\s+thế\s+nào.*)$/i,
+            /\s+(Ghi\s+rõ\s+hiệu\s+lực\s+tới.*)$/i,
+            /\s+(Ghi\s+rõ\s+thời\s+gian\s+nhà\s+thầu.*)$/i,
+            /\s+(Ghi\s+rõ\s+kết\s+quả\s+như\s+thế\s+nào.*)$/i,
+            /\s+(Đang\s+thi\s+công\s+chưa\s+hoàn\s+thành.*)$/i
+        ];
+        for (const pat of notePatterns) {
+            const m = s.match(pat);
+            if (m) {
+                ghiChu = m[1].trim();
+                s = s.slice(0, m.index).replace(/[-\s]+$/, '').trim();
+                break;
+            }
+        }
+
+        // Tách cột TT (La Mã: I, II, III hoặc Số mục: 1, 1.1, 1.2, 1.3, 2, 2.1, 2.3, 3, 4, 5, 6, 7)
+        let tt = '-';
+        let noiDung = s;
+        let isSectionGroup = false;
+
+        const romanMatch = s.match(/^([IVX]+)\.\s+(.+)$/);
+        const numDotMatch = s.match(/^(\d+(?:\.\d+)?)\.\s+(.+)$/);
+        const numSpaceMatch = s.match(/^([1-9])\s+((?:Thanh\s+toán|Yêu\s+cầu|Quyết\s+toán|Quyền\s+và\s+nghĩa\s+vụ|Trình\s+bày|Bảo\s+lãnh|Tư\s+vấn|Hợp\s+đồng).*)$/i);
+
+        if (romanMatch) {
+            tt = romanMatch[1];
+            noiDung = romanMatch[2].trim();
+            isSectionGroup = true;
+        } else if (numDotMatch) {
+            tt = numDotMatch[1];
+            noiDung = numDotMatch[2].trim();
+            if (!tt.includes('.')) isSectionGroup = true;
+        } else if (numSpaceMatch) {
+            tt = numSpaceMatch[1];
+            noiDung = numSpaceMatch[2].trim();
+            isSectionGroup = true;
+        } else if (/^(Bảo\s+lãnh\s+tạm\s+ứng|Bảo\s+lãnh\s+thực\s+hiện\s+hợp\s+đồng|Bảo\s+lãnh\s+bảo\s+hành|Thanh\s+toán\s+tạm\s+ứng|Thanh\s+toán\s+theo\s+giai\s+đoạn|Quyết\s+toán\s+hợp\s+đồng)$/i.test(s)) {
+            tt = '';
+            isSectionGroup = true;
+        }
+
+        return {
+            isHeader: false,
+            isSectionGroup: isSectionGroup,
+            cols: [
+                tt,
+                noiDung,
+                hasCheckCo ? 'X' : '',
+                '',
+                ghiChu
+            ]
+        };
+    }
+
+    // 2. Nhận diện bố cục & dựng lại các Khối Cấu Trúc Văn Bản (Blocks) giống hệt mẫu gốc
+    function analyzeAndBuildPageBlocks(rawLines) {
+        const lines = (rawLines || []).map(l => l.trim()).filter(Boolean);
+        const blocks = [];
+        if (lines.length === 0) return blocks;
+
+        // Kiểm tra mật độ dòng Checklist trên trang
+        let checklistSignalCount = 0;
+        lines.forEach(l => {
+            if (l.startsWith('☑') ||
+                /^TT\s*(\||\t)\s*NỘI\s+DUNG/i.test(l) ||
+                /^(Đề\s+nghị|Bảng\s+tính|Biên\s+bản|Hóa\s+đơn|Bảo\s+lãnh|Hợp\s+đồng|Thông\s+tin\s+trên\s+bảo\s+lãnh|CĐT\s+có\s+phải|CĐT\s+đã\s+yêu\s+cầu|Tư\s+vấn|Vướng\s+mắc|Các\s+vướng\s+mắc|Các\s+khuyến\s+nghị|Phê\s+duyệt\s+chi\s+phí|Thẩm\s+quyền\s+phê\s+duyệt|Sản\s+phẩm\/dịch\s+vụ|Tài\s+liệu\s+khác|Mốc\s+thanh\s+toán|Số\s+lượng|Đã\s+tính\s+toán|Chi\s+phí\s+khác|Hạch\s+toán\s+phù\s+hợp|Bản\s+xác\s+nhận|Báo\s+cáo\s+của\s+nhà\s+thầu)/i.test(l) ||
+                /^(\d+\.\d+\.|[1-7]\.\s+(Yêu\s+cầu|Thanh\s+toán|Quyết\s+toán|Quyền\s+và\s+nghĩa\s+vụ|Trình\s+bày))/i.test(l)) {
+                checklistSignalCount++;
+            }
+        });
+
+        const isChecklistPage = checklistSignalCount >= 3;
+
+        let currentInfoTable = null;
+        let currentChecklistTable = null;
+        let currentGenericTable = null;
+
+        const flushTables = () => {
+            if (currentInfoTable && currentInfoTable.rows.length > 0) {
+                blocks.push(currentInfoTable);
+                currentInfoTable = null;
+            }
+            if (currentChecklistTable && currentChecklistTable.rows.length > 0) {
+                blocks.push(currentChecklistTable);
+                currentChecklistTable = null;
+            }
+            if (currentGenericTable && currentGenericTable.rows.length > 0) {
+                blocks.push(currentGenericTable);
+                currentGenericTable = null;
+            }
+        };
+
+        for (let i = 0; i < lines.length; i++) {
+            const tr = lines[i];
+
+            // A. DÒNG CHÂN TRANG BẢO MẬT (WATERMARK FOOTER)
+            if (/^Tài\s+liệu\s+nội\s+bộ\s+của\s+Tập\s+đoàn\s+T&T/i.test(tr)) {
+                flushTables();
+                blocks.push({ type: 'footer_watermark', text: tr });
+                continue;
+            }
+
+            // B. KHỐI QUỐC HIỆU - TIÊU NGỮ ĐẦU TRANG (CHUẨN NGHỊ ĐỊNH 30/2020/NĐ-CP)
+            if (/CỘNG\s+HÒA\s+XÃ\s+HỘI\s+CHỦ\s+NGHĨA\s+VIỆT\s+NAM/i.test(tr)) {
+                flushTables();
+                let leftOrg = '';
+                if (blocks.length > 0 && blocks[blocks.length - 1].type === 'paragraph' && i <= 3) {
+                    leftOrg = blocks.pop().text;
+                }
+                let motto = 'Độc lập - Tự do - Hạnh phúc';
+                if (i + 1 < lines.length && /Độc\s+lập.*Tự\s+do.*Hạnh\s+phúc/i.test(lines[i + 1])) {
+                    i++;
+                }
+                blocks.push({
+                    type: 'header_nd30_2col',
+                    leftOrg: leftOrg,
+                    rightNation: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',
+                    rightMotto: motto
+                });
+                continue;
+            }
+
+            // C. KHỐI CHỮ KÝ CUỐI VĂN BẢN (NGƯỜI THỰC HIỆN | NGƯỜI KIỂM SOÁT / ĐẠI DIỆN...)
+            if (/^NGƯỜI\s+THỰC\s+HIỆN.*NGƯỜI\s+(KIỂM\s+)?SOÁT/i.test(tr) ||
+                /^(NGƯỜI\s+LẬP\s+BIỂU|ĐẠI\s+DIỆN\s+NHÀ\s+THẦU|NGƯỜI\s+ĐỀ\s+NGHỊ)\s*(\||\t|\s{2,})\s*(KẾ\s+TOÁN|NGƯỜI\s+KIỂM\s+SOÁT|ĐẠI\s+DIỆN\s+CHỦ\s+ĐẦU\s+TƯ|PHÊ\s+DUYỆT|GIÁM\s+ĐỐC)/i.test(tr)) {
+                flushTables();
+                const sigCols = tr.split(/\||\t|\s{3,}/).map(c => c.trim()).filter(Boolean);
+                blocks.push({
+                    type: 'signature_grid',
+                    cols: sigCols.length >= 2 ? sigCols : ['NGƯỜI THỰC HIỆN', 'NGƯỜI KIỂM SOÁT']
+                });
+                continue;
+            }
+
+            // D. DÒNG NGÀY THÁNG NĂM ĐỘC LẬP (ví dụ: 11/6/2026 hoặc Hà Nội, ngày...)
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(tr) || /^(Hà\s+Nội|TP\.?\s*Hồ\s+Chí\s+Minh|Đắk\s+Mil|[^\t|]{2,25}),\s*ngày\s+\d+/i.test(tr)) {
+                flushTables();
+                blocks.push({ type: 'date_line', text: tr });
+                continue;
+            }
+
+            // E. TIÊU ĐỀ LỚN CHÍNH GIỮA TRANG (Ý KIẾN CỦA HĐQT, TỜ TRÌNH, BIÊN BẢN, PHIẾU KIỂM TRA...)
+            if (/^(Ý\s+KIẾN\s+CỦA\s+HĐQT|TỜ\s+TRÌNH.*|BIÊN\s+BẢN\s+NGHIỆM\s+THU.*|PHIẾU\s+KIỂM\s+TRA.*|BẢNG\s+TÍNH\s+GIÁ\s+TRỊ.*|QUYẾT\s+ĐỊNH.*|THÔNG\s+BÁO.*)$/i.test(tr)) {
+                flushTables();
+                blocks.push({ type: 'doc_title', text: tr.toUpperCase() });
+                continue;
+            }
+
+            // F. DÒNG TRÍCH YẾU (V/v: Phê duyệt hồ sơ thanh toán...)
+            if (/^(V\/v:|Về\s+việc:)\s+/i.test(tr)) {
+                flushTables();
+                blocks.push({ type: 'doc_subject', text: tr });
+                continue;
+            }
+
+            // G. DÒNG DẪN NHẬP CÔNG VĂN / TỜ TRÌNH (Ngày ... HĐQT nhận được tờ trình số...)
+            if (/^Ngày\s+\d+\s+tháng\s+\d+\s+năm\s+\d+.*nhận\s+được/i.test(tr) || /^HĐQT\s+ý\s+kiến\s+như\s+sau:?$/i.test(tr)) {
+                let mergedIntro = tr;
+                while (i + 1 < lines.length && /^(RQ\s+ngày|với\s+nội\s+dung)/i.test(lines[i + 1])) {
+                    i++;
+                    if (mergedIntro.endsWith('-') && /^RQ\b/i.test(lines[i])) {
+                        mergedIntro += lines[i];
+                    } else {
+                        mergedIntro += ' ' + lines[i];
+                    }
+                }
+                flushTables();
+                blocks.push({ type: 'intro_paragraph', text: mergedIntro });
+                continue;
+            }
+
+            // H. NHẬN DIỆN BẢNG THÔNG TIN TỜ TRÌNH / HĐQT (STT | NỘI DUNG | CHI TIẾT)
+            const isInfoHeader = /^I\.\s*NỘI\s+DUNG\s+CHI\s+TIẾT$/i.test(tr) || /^STT\s*(\||\t)\s*NỘI\s+DUNG\s*(\||\t)\s*CHI\s+TIẾT/i.test(tr);
+            const isInfoSection = /^(I|II)\s*(\||\t|\.)\s*Thông\s+tin\s+(chung|chi\s+tiết)/i.test(tr);
+            const isInfoRow = /^([1-9])\s*(\||\t)\s*(Số\s+hợp\s+đồng|Nhà\s+thầu|Gói\s+thầu|Dự\s+án|Chủ\s+đầu\s+tư|Giá\s+trị\s+hợp\s+đồng.*)\s*(\||\t)\s*(.+)$/i.test(tr) ||
+                              /^\+\s*Hợp\s+đồng\s+gốc.*(\||\t).+/i.test(tr);
+
+            if (isInfoHeader || isInfoSection || isInfoRow) {
+                if (currentChecklistTable) { blocks.push(currentChecklistTable); currentChecklistTable = null; }
+                if (!currentInfoTable) {
+                    currentInfoTable = {
+                        type: 'info_table_3col',
+                        headers: ['STT', 'NỘI DUNG', 'CHI TIẾT'],
+                        rows: []
+                    };
+                }
+                if (isInfoHeader) {
+                    continue;
+                }
+                if (isInfoSection) {
+                    const m = tr.match(/^(I|II)\s*(?:\||\t|\.)\s*(.+)$/i);
+                    currentInfoTable.rows.push({
+                        isSection: true,
+                        cols: [m ? m[1].toUpperCase() : '', m ? m[2].trim() : tr, '']
+                    });
+                    continue;
+                }
+                const parts = tr.split(/\t|\|/).map(c => c.trim()).filter(Boolean);
+                if (parts.length === 2 && parts[0].startsWith('+')) {
+                    currentInfoTable.rows.push({ isSection: false, cols: ['', parts[0], parts[1]] });
+                } else if (parts.length >= 3) {
+                    let detailText = parts.slice(2).join(' ');
+                    while (i + 1 < lines.length && /^(20\/05\/2022|HĐ\s+2005\/2022|Xây\s+dựng\s+Công\s+trình)/i.test(lines[i + 1])) {
+                        i++;
+                        let nextFragment = lines[i].replace(/\s+Na,\s*BÀI$/i, '').trim();
+                        detailText += ' ' + nextFragment;
+                    }
+                    currentInfoTable.rows.push({ isSection: false, cols: [parts[0], parts[1], detailText] });
+                }
+                continue;
+            }
+
+            // I. NẾU TRANG LÀ BẢNG CHECKLIST KIỂM SOÁT HỒ SƠ (5 CỘT: TT | NỘI DUNG | CÓ | KHÔNG | GHI CHÚ)
+            if (isChecklistPage) {
+                if (currentInfoTable) { blocks.push(currentInfoTable); currentInfoTable = null; }
+                if (!currentChecklistTable) {
+                    currentChecklistTable = {
+                        type: 'checklist_table_5col',
+                        headers: ['TT', 'NỘI DUNG', 'CÓ', 'KHÔNG', 'GHI CHÚ'],
+                        rows: []
+                    };
+                }
+                const parsedRow = parseChecklistLineTo5Cols(tr);
+                if (parsedRow && !parsedRow.isHeader) {
+                    currentChecklistTable.rows.push(parsedRow);
+                }
+                continue;
+            }
+
+            // J. BẢNG ĐA CỘT TỔNG QUÁT (Khi dòng chứa ký tự phân cột \t hoặc |)
+            if (tr.includes('\t') || tr.includes('|')) {
+                const cols = tr.split(/\t|\|/).map(c => c.trim()).filter(Boolean);
+                if (cols.length >= 2) {
+                    if (!currentGenericTable) {
+                        currentGenericTable = { type: 'generic_table', rows: [] };
+                    }
+                    currentGenericTable.rows.push(cols);
+                    continue;
+                }
+            }
+
+            // K. ĐOẠN VĂN BẢN HÀNH CHÍNH THÔNG THƯỜNG (Kính gửi, Căn cứ, Điều khoản, Đoạn văn)
+            flushTables();
+            if (/^Kính\s+gửi\s*:/i.test(tr)) {
+                blocks.push({ type: 'doc_kinh_gui', text: tr });
+            } else if (/^Căn\s+cứ\s+/i.test(tr)) {
+                blocks.push({ type: 'doc_can_cu', text: tr });
+            } else if (/^(Điều\s+\d+|Phần\s+[IVX]+|Chương\s+[IVX]+|[IVX]+\.\s+[A-ZÀ-Ỹ])/i.test(tr)) {
+                blocks.push({ type: 'doc_heading', text: tr });
+            } else {
+                blocks.push({ type: 'paragraph', text: tr });
+            }
+        }
+
+        flushTables();
+        return blocks;
+    }
+
+    // 3. Render các Khối Bố Cục (Blocks) sang HTML chuẩn MS Word (.doc) đúng mẫu gốc
+    function renderPageBlocksToWordHtml(blocks, pObj, totalPages) {
+        let html = '';
+
+        blocks.forEach(blk => {
+            if (blk.type === 'header_nd30_2col') {
+                html += `<table class="layout-noborder" style="margin-bottom:10pt;">
+                    <tbody>
+                        <tr>
+                            <td style="width:42%;text-align:center;vertical-align:top;border:none;padding:2pt 4pt;">
+                                <div style="font-weight:bold;font-size:11pt;text-transform:uppercase;">${escapeHtml(blk.leftOrg || 'TẬP ĐOÀN T&T')}</div>
+                                <div style="font-size:11pt;margin-top:2pt;">-------</div>
+                            </td>
+                            <td style="width:58%;text-align:center;vertical-align:top;border:none;padding:2pt 4pt;">
+                                <div style="font-weight:bold;font-size:11.5pt;text-transform:uppercase;">${escapeHtml(blk.rightNation)}</div>
+                                <div style="font-weight:bold;font-size:12pt;margin-top:1pt;"><u>${escapeHtml(blk.rightMotto)}</u></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>`;
+            } else if (blk.type === 'doc_title') {
+                html += `<p class="doc-title">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'doc_subject') {
+                html += `<p class="doc-subject">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'doc_kinh_gui') {
+                html += `<p class="doc-kinh-gui">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'doc_can_cu') {
+                html += `<p class="doc-can-cu">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'doc_heading') {
+                html += `<p class="doc-heading">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'intro_paragraph') {
+                html += `<p class="doc-intro">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'info_table_3col') {
+                html += `<table class="std-table">
+                    <thead>
+                        <tr class="tbl-header">
+                            <th style="width:8%;text-align:center;">STT</th>
+                            <th style="width:34%;text-align:center;">NỘI DUNG</th>
+                            <th style="width:58%;text-align:center;">CHI TIẾT</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                blk.rows.forEach(r => {
+                    if (r.isSection) {
+                        html += `<tr class="tbl-section">
+                            <td style="text-align:center;font-weight:bold;">${escapeHtml(r.cols[0])}</td>
+                            <td colspan="2" style="font-weight:bold;">${escapeHtml(r.cols[1])}</td>
+                        </tr>`;
+                    } else {
+                        const isCurrency = /^[0-9]{1,3}(\.[0-9]{3})+(,[0-9]+)?$/.test((r.cols[2] || '').trim());
+                        const alignCol3 = isCurrency ? 'text-align:right;font-weight:bold;' : 'text-align:left;';
+                        html += `<tr>
+                            <td style="text-align:center;">${escapeHtml(r.cols[0])}</td>
+                            <td>${escapeHtml(r.cols[1])}</td>
+                            <td style="${alignCol3}">${escapeHtml(r.cols[2])}</td>
+                        </tr>`;
+                    }
+                });
+                html += `</tbody></table>`;
+            } else if (blk.type === 'checklist_table_5col') {
+                html += `<table class="std-table checklist-table">
+                    <thead>
+                        <tr class="tbl-header">
+                            <th style="width:7%;text-align:center;">TT</th>
+                            <th style="width:55%;text-align:center;">NỘI DUNG</th>
+                            <th style="width:8%;text-align:center;">CÓ</th>
+                            <th style="width:9%;text-align:center;">KHÔNG</th>
+                            <th style="width:21%;text-align:center;">GHI CHÚ</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                blk.rows.forEach(r => {
+                    const rowClass = r.isSectionGroup ? ' class="tbl-section"' : '';
+                    const contentStyle = r.isSectionGroup ? 'font-weight:bold;' : '';
+                    html += `<tr${rowClass}>
+                        <td style="text-align:center;${contentStyle}">${escapeHtml(r.cols[0])}</td>
+                        <td style="${contentStyle}">${escapeHtml(r.cols[1])}</td>
+                        <td style="text-align:center;font-weight:bold;color:#0f172a;">${escapeHtml(r.cols[2])}</td>
+                        <td style="text-align:center;font-weight:bold;">${escapeHtml(r.cols[3])}</td>
+                        <td style="font-size:11pt;color:#1e293b;">${escapeHtml(r.cols[4])}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+            } else if (blk.type === 'generic_table') {
+                html += `<table class="std-table"><tbody>`;
+                blk.rows.forEach(cols => {
+                    html += `<tr>` + cols.map(c => {
+                        const isNum = /^[0-9]{1,3}(\.[0-9]{3})+(,[0-9]+)?$/.test(c.trim());
+                        return `<td style="${isNum ? 'text-align:right;' : ''}">${escapeHtml(c)}</td>`;
+                    }).join('') + `</tr>`;
+                });
+                html += `</tbody></table>`;
+            } else if (blk.type === 'date_line') {
+                html += `<p class="doc-date">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'signature_grid') {
+                const colWidth = Math.floor(100 / blk.cols.length);
+                html += `<table class="sig-table"><tbody><tr>`;
+                blk.cols.forEach(sigTitle => {
+                    html += `<td style="width:${colWidth}%;text-align:center;font-weight:bold;vertical-align:top;padding-top:10pt;padding-bottom:50pt;border:none;">${escapeHtml(sigTitle)}</td>`;
+                });
+                html += `</tr></tbody></table>`;
+            } else if (blk.type === 'footer_watermark') {
+                html += `<p class="doc-footer-wm">${escapeHtml(blk.text)}</p>`;
+            } else if (blk.type === 'paragraph') {
+                const tr = blk.text;
+                if (tr.includes('[Ghi chú') || tr.includes('[Chữ ký')) {
+                    html += `<div class="handwriting-box">✍️ ${escapeHtml(tr)}</div>`;
+                } else if (tr.length < 85 && tr === tr.toUpperCase() && /[A-ZÀ-Ỹ]/.test(tr)) {
+                    html += `<p class="doc-title">${escapeHtml(tr)}</p>`;
+                } else {
+                    html += `<p class="doc-para">${escapeHtml(tr)}</p>`;
+                }
+            }
+        });
+
+        return html;
+    }
+
+    // 4. Đóng gói kết quả từ pagesData sang Word (.doc) hoặc Excel (.xlsx) theo đúng mẫu bố cục gốc
+    function buildAndAttachOutputBlob(item, pagesData, isParseNum) {
+        if (qlvbTargetFormat === 'doc') {
+            let docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>${escapeHtml(item.name)}</title>
+<!--[if gte mso 9]>
+<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml>
+<![endif]-->
+<style>
+@page Section1 { size: 210mm 297mm; margin: 18mm 15mm 18mm 25mm; }
+div.Section1 { page: Section1; }
+body { font-family: 'Times New Roman', serif; font-size: 12.5pt; line-height: 1.35; color: #000000; }
+p { margin: 0pt 0pt 5pt 0pt; }
+.doc-title { text-align: center; font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 8pt 0pt 4pt 0pt; text-indent: 0pt; }
+.doc-subject { text-align: center; font-size: 12.5pt; font-weight: bold; font-style: italic; margin: 0pt 0pt 10pt 0pt; text-indent: 0pt; }
+.doc-kinh-gui { text-align: left; font-size: 12.5pt; font-weight: bold; margin: 6pt 0pt 8pt 1.5cm; text-indent: 0pt; }
+.doc-can-cu { text-align: justify; font-size: 12pt; font-style: italic; margin: 0pt 0pt 4pt 0pt; text-indent: 1cm; }
+.doc-heading { text-align: left; font-size: 12.5pt; font-weight: bold; margin: 8pt 0pt 4pt 0pt; text-indent: 0pt; }
+.doc-intro { text-align: justify; font-size: 12.5pt; margin: 0pt 0pt 6pt 0pt; text-indent: 1cm; }
+.doc-para { text-align: justify; font-size: 12.5pt; margin: 0pt 0pt 5pt 0pt; text-indent: 1cm; }
+.doc-date { text-align: right; font-size: 12pt; font-style: italic; margin: 6pt 10pt 4pt 0pt; text-indent: 0pt; }
+.doc-footer-wm { text-align: left; font-size: 9.5pt; font-style: italic; color: #475569; border-top: 1px solid #cbd5e1; padding-top: 4pt; margin-top: 14pt; text-indent: 0pt; }
+.page-break { page-break-before: always; }
+.page-header-tag { text-align: right; font-size: 9pt; color: #64748b; border-bottom: 1px dashed #e2e8f0; margin-bottom: 8pt; padding-bottom: 2pt; }
+.handwriting-box { background: #f8fafc; border-left: 3px solid #0284c7; padding: 5pt 8pt; margin: 5pt 0pt; font-style: italic; }
+table.std-table { border-collapse: collapse; width: 100%; margin: 6pt 0pt 10pt 0pt; font-size: 11.5pt; }
+table.std-table th, table.std-table td { border: 1px solid #1e293b; padding: 4pt 6pt; vertical-align: middle; }
+tr.tbl-header th { background-color: #e2e8f0; font-weight: bold; text-transform: uppercase; font-size: 11pt; }
+tr.tbl-section td { background-color: #f8fafc; font-weight: bold; }
+table.sig-table, table.layout-noborder { border-collapse: collapse; width: 100%; margin: 8pt 0pt; border: none; }
+table.sig-table td, table.layout-noborder td { border: none; }
+</style></head><body><div class="Section1">`;
+
+            pagesData.forEach((pObj, idx) => {
+                if (idx > 0) docHTML += `<div class="page-break"></div>`;
+                const lines = (pObj.text || '').split('\n').filter(l => l.trim().length > 0);
+                docHTML += `<div class="page-header-tag">Trang ${pObj.pageNum} / ${item.totalPages}</div>`;
+
+                const blocks = analyzeAndBuildPageBlocks(lines);
+                docHTML += renderPageBlocksToWordHtml(blocks, pObj, item.totalPages);
+
+                // Nếu trang hoàn toàn là bản vẽ/hình ảnh không có chữ và có ảnh đính kèm
+                if (lines.length === 0 && pObj.fallbackDataUrl) {
+                    docHTML += `<p style="text-align:center;text-indent:0;"><img src="${pObj.fallbackDataUrl}" style="max-width:100%;height:auto;" /></p>`;
+                }
+            });
+
+            docHTML += `</div></body></html>`;
+            item.resultBlob = new Blob(['\ufeff' + docHTML], { type: 'application/msword;charset=utf-8' });
+            item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_ChuanBoCucGoc_NghiDinh30.doc`;
+
+        } else {
+            // MS EXCEL (.XLSX) - TỰ ĐỘNG DỰNG CỘT THEO ĐÚNG MẪU BẢNG GỐC
+            const wb = XLSX.utils.book_new();
+            const allRows = [];
+
+            pagesData.forEach(pObj => {
+                allRows.push([`=== TRANG ${pObj.pageNum} / ${item.totalPages} ===`]);
+                const lines = (pObj.text || '').split('\n').filter(l => l.trim().length > 0);
+                const blocks = analyzeAndBuildPageBlocks(lines);
+
+                blocks.forEach(blk => {
+                    if (blk.type === 'doc_title' || blk.type === 'doc_subject' || blk.type === 'intro_paragraph' || blk.type === 'paragraph') {
+                        allRows.push(['', blk.text]);
+                    } else if (blk.type === 'info_table_3col') {
+                        allRows.push(['STT', 'NỘI DUNG', 'CHI TIẾT']);
+                        blk.rows.forEach(r => {
+                            allRows.push([
+                                r.cols[0],
+                                r.cols[1],
+                                isParseNum ? parseVietnameseNumberCell(r.cols[2]) : r.cols[2]
+                            ]);
+                        });
+                    } else if (blk.type === 'checklist_table_5col') {
+                        allRows.push(['TT', 'NỘI DUNG KIỂM TRA', 'CÓ', 'KHÔNG', 'GHI CHÚ']);
+                        blk.rows.forEach(r => {
+                            allRows.push(r.cols);
+                        });
+                    } else if (blk.type === 'generic_table') {
+                        blk.rows.forEach(cols => {
+                            allRows.push(cols.map(c => isParseNum ? parseVietnameseNumberCell(c) : c));
+                        });
+                    } else if (blk.type === 'signature_grid') {
+                        allRows.push(['', blk.cols[0] || '', '', blk.cols[1] || '']);
+                    } else if (blk.type === 'footer_watermark') {
+                        allRows.push(['', blk.text]);
+                    }
+                });
+                allRows.push([]);
+            });
+
+            const wsMaster = XLSX.utils.aoa_to_sheet(allRows);
+            wsMaster['!cols'] = [{ wch: 10 }, { wch: 62 }, { wch: 16 }, { wch: 14 }, { wch: 32 }];
+            XLSX.utils.book_append_sheet(wb, wsMaster, "Ho_So_Chuan_Bo_Cuc");
+
+            const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            item.resultBlob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_ChuanBangBieuGoc.xlsx`;
+        }
+    }
+
     async function startBatchPDFConversion() {
       if (pmConvertQueue.length === 0) {
         showToast('Vui lòng kéo thả ít nhất 1 tệp PDF hoặc ảnh vào hàng chờ!', 'warning');
@@ -2369,80 +2881,9 @@
             }
           }
 
-          // ĐÓNG GÓI WORD HOẶC EXCEL
-          if (pmTargetConvertFormat === 'doc') {
-            let docHTML = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-<head><meta charset='utf-8'><title>${escapeHtml(item.name)}</title>
-<!--[if gte mso 9]>
-<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml>
-<![endif]-->
-<style>
-@page Section1 { size: 210mm 297mm; margin: 20mm 15mm 20mm 30mm; }
-div.Section1 { page: Section1; }
-body { font-family: 'Times New Roman', serif; font-size: 13pt; line-height: 1.35; color: #000; }
-p { margin: 0 0 6pt 0; text-align: justify; text-indent: 1cm; }
-.page-break { page-break-before: always; }
-.page-header-tag { text-align: center; font-size: 10pt; font-weight: bold; color: #64748b; border-bottom: 1px dashed #cbd5e1; margin-bottom: 12pt; }
-.handwriting-box { background: #f8fafc; border-left: 3px solid #0284c7; padding: 6pt 10pt; margin: 6pt 0; font-style: italic; }
-</style></head><body><div class="Section1">`;
-
-            pagesData.forEach((pObj, idx) => {
-              if (idx > 0) docHTML += `<div class="page-break"></div>`;
-              docHTML += `<div class="page-header-tag">--- TRANG ${pObj.pageNum} / ${item.totalPages} (ĐÃ QUÉT ${pObj.text.split('\n').length} DÒNG) ---</div>`;
-
-              const lines = (pObj.text || '').split('\n');
-              lines.forEach(line => {
-                const tr = line.trim();
-                if (!tr) return;
-                if (tr.includes('[Ghi chú') || tr.includes('[Chữ ký')) {
-                  docHTML += `<div class="handwriting-box">✍️ ${escapeHtml(tr)}</div>`;
-                } else if (tr.length < 80 && tr === tr.toUpperCase() && /[A-ZÀ-Ỹ]/.test(tr)) {
-                  docHTML += `<p style="text-align:center;font-weight:bold;text-indent:0;">${escapeHtml(tr)}</p>`;
-                } else {
-                  docHTML += `<p>${escapeHtml(tr)}</p>`;
-                }
-              });
-            });
-
-            docHTML += `</div></body></html>`;
-            item.resultBlob = new Blob(['\ufeff' + docHTML], { type: 'application/msword;charset=utf-8' });
-            item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_QuetTungDong_NghiDinh30.doc`;
-
-          } else {
-            // EXCEL
-            const wb = XLSX.utils.book_new();
-            pagesData.forEach(pObj => {
-              const wsData = [];
-              wsData.push([`--- TRANG ${pObj.pageNum} / ${item.totalPages} (BẢNG ĐÃ QUÉT TỪNG DÒNG) ---`]);
-              const lines = (pObj.text || '').split('\n');
-              lines.forEach(l => {
-                const tr = l.trim();
-                if (!tr) return;
-                const tokens = tr.split(/\t|\s{3,}/);
-                if (tokens.length > 1) {
-                  wsData.push(tokens.map(t => {
-                    if (isParseNum) {
-                      const clean = t.replace(/\./g, '').replace(',', '.');
-                      const num = parseFloat(clean);
-                      return !isNaN(num) ? num : t;
-                    }
-                    return t;
-                  }));
-                } else {
-                  wsData.push([tr]);
-                }
-              });
-
-              const ws = XLSX.utils.aoa_to_sheet(wsData);
-              ws['!cols'] = [{ wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 }];
-              XLSX.utils.book_append_sheet(wb, ws, `Trang_${pObj.pageNum}`);
-            });
-
-            const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            item.resultBlob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            item.resultName = `${item.name.replace(/\.[^/.]+$/, "")}_QuetTungDong_DuToan.xlsx`;
-          }
-
+          // ĐÓNG GÓI WORD HOẶC EXCEL CHUẨN BỐ CỤC GỐC V4
+          qlvbTargetFormat = pmTargetConvertFormat;
+          buildAndAttachOutputBlob(item, pagesData, isParseNum);
           item.status = 'Hoàn tất';
           renderPmConvertQueue();
 
