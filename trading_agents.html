@@ -14,15 +14,10 @@
     .glass-panel { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(14px); border: 1px solid rgba(51, 65, 85, 0.6); }
     .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(71, 85, 105, 0.4); }
     .glass-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
-    .glow-indigo { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25); }
-    .glow-gold { box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.25); }
-    .glow-emerald { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
-    @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .animate-pulse-slow { animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
   </style>
 </head>
 <body class="min-h-full flex flex-col justify-between selection:bg-indigo-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100">
@@ -40,10 +35,10 @@
           <div class="flex items-center space-x-2">
             <h1 class="font-bold text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
               <span>TradingAgents AI Pro</span>
-              <span class="text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">VN Market & Gold</span>
+              <span class="text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">v2.0 VN Hedge Fund</span>
             </h1>
           </div>
-          <p class="text-xs text-slate-400 hidden sm:block">Hệ thống Trợ lý Giao dịch Đa Tác tử (Multi-Agent System) • Powered by Google Gemini</p>
+          <p class="text-xs text-slate-400 hidden sm:block">Mô phỏng Quỹ Đầu Tư Đa Tác Tử (TauricResearch + AI Hedge Fund) • Google Gemini Engine</p>
         </div>
       </div>
 
@@ -70,7 +65,7 @@
   <!-- MAIN CONTAINER -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
 
-    <!-- HERO BANNER & INTRO -->
+    <!-- HERO BANNER -->
     <div class="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden">
       <div class="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -78,13 +73,13 @@
       <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative z-10">
         <div class="space-y-1.5 max-w-3xl">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
-            <i class="fa-solid fa-robot"></i> Mô hình 7 Tác tử Tài chính Độc lập (LangGraph Architecture)
+            <i class="fa-solid fa-brain"></i> Kết Hợp Tinh Hoa TauricResearch + AI Hedge Fund (Buffett, Lynch, Burry & Khối Ngoại)
           </div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-            Phân Tích Cổ Phiếu Việt Nam (VN30) & Thị Trường Vàng (SJC / XAU)
+            Hệ Sinh Thái Phân Tích & Định Giá Đa Tác Tử Thị Trường Việt Nam
           </h2>
           <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            Mô phỏng quy trình thẩm định đa chiều của một quỹ đầu tư định lượng: <strong class="text-amber-300">Technical</strong>, <strong class="text-sky-300">Fundamentals</strong>, <strong class="text-emerald-300">Bullish Researcher</strong> đối kháng <strong class="text-rose-300">Bearish Researcher</strong>, và <strong class="text-purple-300">Portfolio Manager</strong> ra quyết định mua/bán tối hậu.
+            Hội tụ các tác tử chuyên biệt: <strong class="text-amber-300">Warren Buffett</strong> (Con hào kinh tế), <strong class="text-sky-300">Peter Lynch</strong> (Tăng trưởng PEG), <strong class="text-rose-300">Michael Burry</strong> (Quản trị rủi ro nợ xấu), cùng tác tử nội địa hóa: <strong class="text-emerald-300">Khối Ngoại/Tự Doanh</strong>, <strong class="text-purple-300">Chính sách NHNN</strong> và <strong class="text-amber-400">Công cụ Chênh Lệch Vàng SJC</strong>.
           </p>
         </div>
 
@@ -93,9 +88,9 @@
             <i class="fa-solid fa-bolt"></i>
             <span>Chạy Thử Bản Mẫu (Demo)</span>
           </button>
-          <button id="btnHelpGuide" class="flex-1 lg:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-circle-question text-indigo-400"></i>
-            <span>Hướng Dẫn Sử Dụng</span>
+          <button id="btnOpenGoldCalc" class="flex-1 lg:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs border border-amber-500/30 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-calculator text-amber-400"></i>
+            <span>Quy Đổi Giá Vàng SJC</span>
           </button>
         </div>
       </div>
@@ -129,35 +124,35 @@
 
           <!-- Stock Quick Pick Grid -->
           <div id="stocksGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
-            <button class="ticker-btn active p-2.5 rounded-xl border text-center transition bg-indigo-600/20 border-indigo-500 text-white" data-ticker="FPT.VN" data-name="FPT (Công nghệ)">
+            <button class="ticker-btn active p-2.5 rounded-xl border text-center transition bg-indigo-600/20 border-indigo-500 text-white" data-ticker="FPT.VN" data-tv="HOSE:FPT" data-name="FPT (Công nghệ - Bán dẫn)">
               <div class="font-extrabold text-sm">FPT</div>
               <div class="text-[10px] text-slate-300">Công nghệ</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="HPG.VN" data-name="Hòa Phát (Thép)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="HPG.VN" data-tv="HOSE:HPG" data-name="Hòa Phát (Thép & KCN)">
               <div class="font-extrabold text-sm">HPG</div>
               <div class="text-[10px] text-slate-400">Thép</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VNM.VN" data-name="Vinamilk (Tiêu dùng)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VNM.VN" data-tv="HOSE:VNM" data-name="Vinamilk (Tiêu dùng)">
               <div class="font-extrabold text-sm">VNM</div>
               <div class="text-[10px] text-slate-400">Tiêu dùng</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VCB.VN" data-name="Vietcombank (Ngân hàng)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VCB.VN" data-tv="HOSE:VCB" data-name="Vietcombank (Vua ngân hàng)">
               <div class="font-extrabold text-sm">VCB</div>
               <div class="text-[10px] text-slate-400">Ngân hàng</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="TCB.VN" data-name="Techcombank (Ngân hàng)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="TCB.VN" data-tv="HOSE:TCB" data-name="Techcombank (Ngân hàng tư nhân)">
               <div class="font-extrabold text-sm">TCB</div>
               <div class="text-[10px] text-slate-400">Ngân hàng</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="SSI.VN" data-name="Chứng khoán SSI">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="SSI.VN" data-tv="HOSE:SSI" data-name="Chứng khoán SSI">
               <div class="font-extrabold text-sm">SSI</div>
               <div class="text-[10px] text-slate-400">Chứng khoán</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VHM.VN" data-name="Vinhomes (BĐS)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VHM.VN" data-tv="HOSE:VHM" data-name="Vinhomes (Bất động sản)">
               <div class="font-extrabold text-sm">VHM</div>
               <div class="text-[10px] text-slate-400">Bất động sản</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="MWG.VN" data-name="Thế Giới Di Động">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="MWG.VN" data-tv="HOSE:MWG" data-name="Thế Giới Di Động (Bán lẻ)">
               <div class="font-extrabold text-sm">MWG</div>
               <div class="text-[10px] text-slate-400">Bán lẻ</div>
             </button>
@@ -165,23 +160,23 @@
 
           <!-- Gold Quick Pick Grid -->
           <div id="goldGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 hidden">
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="XAUUSD" data-name="Vàng Thế Giới (Spot Gold/Futures)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="XAUUSD" data-tv="OANDA:XAUUSD" data-name="Vàng Thế Giới (Spot Gold/Futures)">
               <div class="font-extrabold text-sm text-amber-400">XAU/USD</div>
               <div class="text-[10px] text-slate-400">Vàng Thế Giới</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="PNJ.VN" data-name="Vàng Bạc Đá Quý Phú Nhuận">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="PNJ.VN" data-tv="HOSE:PNJ" data-name="Vàng Bạc Đá Quý Phú Nhuận">
               <div class="font-extrabold text-sm text-amber-400">PNJ.VN</div>
               <div class="text-[10px] text-slate-400">Vàng Trang Sức VN</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="USDVND=X" data-name="Tỷ giá USD/VND">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="USDVND=X" data-tv="FX_IDC:USDVND" data-name="Tỷ giá USD/VND">
               <div class="font-extrabold text-sm text-emerald-400">USD/VND</div>
               <div class="text-[10px] text-slate-400">Tỷ Giá Hối Đoái</div>
             </button>
-            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300 col-span-2 sm:col-span-3" data-ticker="VANG_SJC" data-name="Vàng Miếng SJC & Nhẫn 9999 (Quy Đổi)">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300 col-span-2 sm:col-span-3" data-ticker="VANG_SJC" data-tv="OANDA:XAUUSD" data-name="Vàng Miếng SJC & Nhẫn 9999 (Quy Đổi)">
               <div class="font-extrabold text-sm text-amber-300 flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-award"></i> Vàng Miếng SJC & Vàng Nhẫn 9999 (Việt Nam)
               </div>
-              <div class="text-[10px] text-slate-400">Tính toán chênh lệch quốc tế, thuế phí và cơ chế quản lý NHNN</div>
+              <div class="text-[10px] text-slate-400">Tính toán chênh lệch quốc tế, thuế phí và chính sách NHNN</div>
             </button>
           </div>
 
@@ -199,41 +194,45 @@
             </div>
           </div>
 
-          <!-- Benchmark Setting Info -->
-          <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 flex items-center justify-between text-xs">
-            <span class="text-slate-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-scale-balanced text-indigo-400"></i> Benchmark Alpha:
-            </span>
-            <span class="font-mono text-indigo-300 font-bold">E1VFVN30.VN (VN30 ETF)</span>
-          </div>
-
         </div>
 
-        <!-- CARD 2: AGENT SETTINGS & EXECUTION -->
+        <!-- CARD 2: AGENT SETTINGS & ROSTER -->
         <div class="glass-panel rounded-2xl p-5 space-y-4">
           <div class="flex items-center space-x-2 border-b border-slate-800 pb-3">
             <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <h3 class="font-bold text-sm text-white uppercase tracking-wider">2. Thiết Lập & Khởi Chạy Tác Tử</h3>
+            <h3 class="font-bold text-sm text-white uppercase tracking-wider">2. Cấu Hình Tác Tử Chuyên Sâu</h3>
           </div>
 
-          <!-- Round & Depth Selector -->
-          <div class="grid grid-cols-2 gap-3 text-xs">
-            <div class="space-y-1">
-              <label class="text-slate-400 font-medium">Số vòng tranh biện:</label>
-              <select id="selectDebateRounds" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500">
-                <option value="1">1 Vòng (Nhanh)</option>
-                <option value="2" selected>2 Vòng (Khuyên dùng)</option>
-                <option value="3">3 Vòng (Chuyên sâu)</option>
-              </select>
+          <!-- Legendary Investors Toggle -->
+          <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-indigo-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-crown text-amber-400"></i> Hội Đồng Huyền Thoại (AI Hedge Fund):
+              </span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="chkLegendaryInvestors" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
             </div>
-            <div class="space-y-1">
-              <label class="text-slate-400 font-medium">Khẩu vị rủi ro Trader:</label>
-              <select id="selectRiskProfile" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500">
-                <option value="balanced" selected>Cân bằng (Balanced)</option>
-                <option value="conservative">Thận trọng (Conservative)</option>
-                <option value="aggressive">Mạo hiểm (Aggressive)</option>
-              </select>
+            <p class="text-[10px] text-slate-400 leading-normal">
+              Tích hợp đánh giá từ <strong>Warren Buffett</strong> (Con hào kinh tế/ROE), <strong>Peter Lynch</strong> (Tăng trưởng PEG) và <strong>Michael Burry</strong> (Quản trị rủi ro nợ xấu).
+            </p>
+          </div>
+
+          <!-- VN Market Specialists Toggle -->
+          <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-emerald-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-landmark text-emerald-400"></i> Tác Tử Đặc Thù Việt Nam:
+              </span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="chkVnSpecialists" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+              </label>
             </div>
+            <p class="text-[10px] text-slate-400 leading-normal">
+              Rà soát dòng tiền <strong>Khối Ngoại & Tự Doanh</strong>, chính sách điều hành lãi suất & tỷ giá của <strong>Ngân Hàng Nhà Nước</strong>.
+            </p>
           </div>
 
           <!-- Execute Button -->
@@ -241,11 +240,6 @@
             <i class="fa-solid fa-play text-xs group-hover:scale-125 transition"></i>
             <span id="btnRunText">BẮT ĐẦU PHÂN TÍCH ĐA TÁC TỬ</span>
           </button>
-
-          <!-- Disclaimer Note -->
-          <p class="text-[11px] text-slate-400 text-center leading-normal">
-            Hệ thống phân tích tự động bằng AI phục vụ nghiên cứu & tham khảo. Không phải lời mời chào đầu tư tài chính.
-          </p>
         </div>
 
         <!-- CARD 3: AGENTS PIPELINE STATUS -->
@@ -263,7 +257,7 @@
               <div class="flex items-center space-x-2.5">
                 <span class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs">TA</span>
                 <div>
-                  <div class="font-bold text-slate-200">Technical Analyst</div>
+                  <div class="font-bold text-slate-200">Technical & Quant Analyst</div>
                   <div class="text-[10px] text-slate-400">RSI, MACD, MA20/50, Vùng hỗ trợ/kháng cự</div>
                 </div>
               </div>
@@ -271,36 +265,36 @@
             </div>
 
             <!-- Node 2 -->
-            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-fund">
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-legends">
               <div class="flex items-center space-x-2.5">
-                <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs">FA</span>
+                <span class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs">WB</span>
                 <div>
-                  <div class="font-bold text-slate-200">Fundamentals & Macro</div>
-                  <div class="text-[10px] text-slate-400">P/E, P/B, Biên lợi nhuận, Tin tức vĩ mô VN</div>
+                  <div class="font-bold text-slate-200">Legendary Investors Board</div>
+                  <div class="text-[10px] text-slate-400">Warren Buffett (Moat/ROE) & Peter Lynch (PEG)</div>
                 </div>
               </div>
               <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
             </div>
 
             <!-- Node 3 -->
-            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-debate">
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-vn">
               <div class="flex items-center space-x-2.5">
-                <span class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs">RM</span>
+                <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs">VN</span>
                 <div>
-                  <div class="font-bold text-slate-200">Bull vs Bear Researcher</div>
-                  <div class="text-[10px] text-slate-400">Tranh biện đa vòng tìm động lực & bẫy rủi ro</div>
+                  <div class="font-bold text-slate-200">VN Macro & Foreign Desk</div>
+                  <div class="text-[10px] text-slate-400">Dòng vốn Khối Ngoại, Tự doanh, Lãi suất NHNN</div>
                 </div>
               </div>
               <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
             </div>
 
             <!-- Node 4 -->
-            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-risk">
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-debate">
               <div class="flex items-center space-x-2.5">
-                <span class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-xs">RG</span>
+                <span class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-xs">RM</span>
                 <div>
-                  <div class="font-bold text-slate-200">Risk Management Guardians</div>
-                  <div class="text-[10px] text-slate-400">Stress-test 3 khẩu vị rủi ro & tỷ lệ phân bổ</div>
+                  <div class="font-bold text-slate-200">Bull vs Bear Debate</div>
+                  <div class="text-[10px] text-slate-400">Tranh biện đa vòng tìm động lực & bẫy rủi ro</div>
                 </div>
               </div>
               <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
@@ -309,7 +303,7 @@
             <!-- Node 5 -->
             <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-pm">
               <div class="flex items-center space-x-2.5">
-                <span class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-xs">PM</span>
+                <span class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-xs">PM</span>
                 <div>
                   <div class="font-bold text-slate-200">Portfolio Manager</div>
                   <div class="text-[10px] text-slate-400">Quyết định tối hậu: MUA / BÁN / NẮM GIỮ</div>
@@ -322,8 +316,24 @@
 
       </div>
 
-      <!-- RIGHT COLUMN: RESULTS, TERMINAL & REPORT (7 COLS) -->
+      <!-- RIGHT COLUMN: RESULTS, CHART & REPORT (7 COLS) -->
       <div class="lg:col-span-7 space-y-6">
+
+        <!-- LIVE TRADINGVIEW CHART WIDGET -->
+        <div class="glass-panel rounded-2xl p-4 space-y-2">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-chart-candlestick text-indigo-400"></i>
+              <span class="text-xs font-bold text-slate-200" id="chartLabel">Biểu Đồ Kỹ Thuật Trực Tuyến (HOSE:FPT)</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Live TradingView</span>
+          </div>
+          <!-- Chart Container -->
+          <div id="tradingview_widget_container" class="w-full h-72 rounded-xl overflow-hidden bg-slate-950 border border-slate-800/80">
+            <!-- Embedded iframe TradingView -->
+            <iframe id="tvIframe" src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=HOSE%3AFPT&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=0f172a&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FHo_Chi_Minh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=vi_VN" style="width: 100%; height: 100%; border: 0;"></iframe>
+          </div>
+        </div>
 
         <!-- DECISION BANNER (WHEN COMPLETED) -->
         <div id="decisionCard" class="glass-panel rounded-2xl p-5 border-2 border-indigo-500/40 relative overflow-hidden hidden">
@@ -366,8 +376,8 @@
             </button>
           </div>
 
-          <div id="agentConsole" class="w-full h-48 bg-slate-950 rounded-xl p-3 font-mono text-xs text-slate-300 overflow-y-auto space-y-1.5 custom-scrollbar border border-slate-900">
-            <div class="text-slate-500">[System] TradingAgents AI Pro đã khởi động. Sẵn sàng nhận lệnh phân tích.</div>
+          <div id="agentConsole" class="w-full h-40 bg-slate-950 rounded-xl p-3 font-mono text-xs text-slate-300 overflow-y-auto space-y-1.5 custom-scrollbar border border-slate-900">
+            <div class="text-slate-500">[System] TradingAgents AI Pro v2.0 đã khởi động. Sẵn sàng nhận lệnh phân tích.</div>
             <div class="text-indigo-400">[Guide] Hãy chọn mã tài sản bên trái và nhấn "BẮT ĐẦU PHÂN TÍCH".</div>
           </div>
         </div>
@@ -420,7 +430,7 @@
           <i class="fa-brands fa-google text-lg"></i>
           <span>Cấu Hình Google Gemini API Key</span>
         </div>
-        <p class="text-xs text-slate-400">Kết nối trực tiếp tài khoản Google của bạn để chạy toàn bộ 7 Tác tử AI</p>
+        <p class="text-xs text-slate-400">Kết nối trực tiếp tài khoản Google của bạn để chạy toàn bộ các Tác tử AI</p>
       </div>
 
       <!-- Step-by-Step Guide -->
@@ -479,6 +489,58 @@
     </div>
   </div>
 
+  <!-- MODAL: GOLD CONVERSION CALCULATOR (SJC SPREAD) -->
+  <div id="goldModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-6 space-y-4 border border-amber-500/30 shadow-2xl relative">
+      <button id="btnCloseGoldModal" class="absolute top-4 right-4 text-slate-400 hover:text-white transition text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center space-x-2 text-amber-400 font-bold text-base">
+        <i class="fa-solid fa-coins text-lg"></i>
+        <span>Công Cụ Quy Đổi Giá Vàng SJC & 9999</span>
+      </div>
+
+      <p class="text-xs text-slate-400 leading-normal">
+        Quy đổi chuẩn quốc tế ra tiền đồng theo công thức: <code>[XAU/USD * 1.20565 * Tỷ giá USD/VND] + Thuế phí</code>
+      </p>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="text-slate-300 font-semibold">Giá vàng thế giới (XAU/USD):</label>
+          <input type="number" id="calcGoldWorld" value="2750" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono mt-1">
+        </div>
+        <div>
+          <label class="text-slate-300 font-semibold">Tỷ giá USD/VND:</label>
+          <input type="number" id="calcUsdVnd" value="25450" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono mt-1">
+        </div>
+        <div>
+          <label class="text-slate-300 font-semibold">Giá Vàng Miếng SJC thực tế trên thị trường (VNĐ/lượng):</label>
+          <input type="number" id="calcGoldSjcActual" value="89000000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono mt-1">
+        </div>
+
+        <button id="btnComputeGold" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+          Tính Toán Ngay
+        </button>
+
+        <div id="goldResultBox" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 font-mono text-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Giá TG quy đổi (gốc):</span>
+            <span id="resWorldConverted" class="text-white font-bold">84,370,000 đ/lượng</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Ước tính Vàng Nhẫn 9999:</span>
+            <span id="resRingEstimate" class="text-emerald-400 font-bold">85,800,000 đ/lượng</span>
+          </div>
+          <div class="flex justify-between border-t border-slate-800 pt-1.5">
+            <span class="text-amber-400">Chênh lệch SJC vs Thế giới:</span>
+            <span id="resSjcSpread" class="text-amber-300 font-bold">+4,630,000 đ/lượng</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="border-t border-slate-800/80 py-5 px-6 text-center text-xs text-slate-400 bg-slate-950/70 mt-10">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -501,7 +563,8 @@
   <script>
     // --- STATE MANAGEMENT ---
     let currentTicker = "FPT.VN";
-    let currentTickerName = "FPT (Công nghệ)";
+    let currentTickerName = "FPT (Công nghệ - Bán dẫn)";
+    let currentTvSymbol = "HOSE:FPT";
     let apiKey = localStorage.getItem("tradingagents_gemini_api_key") || "";
     let selectedModel = localStorage.getItem("tradingagents_gemini_model") || "gemini-2.5-flash";
     let isAnalyzing = false;
@@ -524,13 +587,25 @@
     const stocksGrid = document.getElementById("stocksGrid");
     const goldGrid = document.getElementById("goldGrid");
     const selectedBadge = document.getElementById("selectedBadge");
+    const chartLabel = document.getElementById("chartLabel");
+    const tvIframe = document.getElementById("tvIframe");
 
     const customTickerInput = document.getElementById("customTickerInput");
     const btnApplyCustomTicker = document.getElementById("btnApplyCustomTicker");
     const btnStartAnalysis = document.getElementById("btnStartAnalysis");
     const btnRunText = document.getElementById("btnRunText");
     const btnQuickDemo = document.getElementById("btnQuickDemo");
-    const btnHelpGuide = document.getElementById("btnHelpGuide");
+    const btnOpenGoldCalc = document.getElementById("btnOpenGoldCalc");
+    const btnCloseGoldModal = document.getElementById("btnCloseGoldModal");
+    const goldModal = document.getElementById("goldModal");
+
+    const btnComputeGold = document.getElementById("btnComputeGold");
+    const calcGoldWorld = document.getElementById("calcGoldWorld");
+    const calcUsdVnd = document.getElementById("calcUsdVnd");
+    const calcGoldSjcActual = document.getElementById("calcGoldSjcActual");
+    const resWorldConverted = document.getElementById("resWorldConverted");
+    const resRingEstimate = document.getElementById("resRingEstimate");
+    const resSjcSpread = document.getElementById("resSjcSpread");
 
     const agentConsole = document.getElementById("agentConsole");
     const btnClearConsole = document.getElementById("btnClearConsole");
@@ -557,6 +632,7 @@
         selectGeminiModel.value = selectedModel;
       }
       setupEventListeners();
+      computeGoldPrice();
     }
 
     function updateApiStatusUI(isConnected) {
@@ -569,6 +645,29 @@
         apiKeyStatusText.innerText = "Chưa nhập API Key";
         apiKeyStatusText.className = "text-slate-300";
       }
+    }
+
+    function updateChart(tvSymbol, label) {
+      currentTvSymbol = tvSymbol;
+      chartLabel.innerText = `Biểu Đồ Kỹ Thuật Trực Tuyến (${tvSymbol})`;
+      const cleanSymbol = encodeURIComponent(tvSymbol);
+      tvIframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${cleanSymbol}&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=0f172a&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FHo_Chi_Minh&locale=vi_VN`;
+    }
+
+    // --- GOLD CONVERSION CALCULATION ---
+    function computeGoldPrice() {
+      const worldPrice = parseFloat(calcGoldWorld.value) || 2750;
+      const rate = parseFloat(calcUsdVnd.value) || 25450;
+      const sjcActual = parseFloat(calcGoldSjcActual.value) || 89000000;
+
+      // 1 ounce = 0.829426 luong -> 1 luong = 1.20565 ounce
+      const convertedRaw = worldPrice * 1.20565 * rate;
+      const ringEstimate = convertedRaw * 1.015; // cộng thuế phí gia công ~1.5%
+      const spread = sjcActual - convertedRaw;
+
+      resWorldConverted.innerText = Math.round(convertedRaw).toLocaleString('vi-VN') + " đ/lượng";
+      resRingEstimate.innerText = Math.round(ringEstimate).toLocaleString('vi-VN') + " đ/lượng";
+      resSjcSpread.innerText = (spread > 0 ? "+" : "") + Math.round(spread).toLocaleString('vi-VN') + " đ/lượng";
     }
 
     // --- LOGGING UTILITY ---
@@ -596,9 +695,10 @@
         apiTestFeedback.classList.add("hidden");
       });
       btnCloseApiModal.addEventListener("click", () => apiModal.classList.add("hidden"));
-      btnHelpGuide.addEventListener("click", () => {
-        apiModal.classList.remove("hidden");
-      });
+
+      btnOpenGoldCalc.addEventListener("click", () => goldModal.classList.remove("hidden"));
+      btnCloseGoldModal.addEventListener("click", () => goldModal.classList.add("hidden"));
+      btnComputeGold.addEventListener("click", computeGoldPrice);
 
       // Show/Hide Key
       btnToggleShowKey.addEventListener("click", () => {
@@ -684,7 +784,9 @@
           }
           currentTicker = btn.dataset.ticker;
           currentTickerName = btn.dataset.name;
+          const tvSym = btn.dataset.tv || "HOSE:FPT";
           selectedBadge.innerText = `Đang chọn: ${currentTicker}`;
+          updateChart(tvSym, currentTickerName);
           logToConsole(`Đã chọn tài sản: ${currentTicker} (${currentTickerName})`, "info");
         });
       });
@@ -697,10 +799,8 @@
           currentTicker = formatted;
           currentTickerName = `${val} (Tùy biến)`;
           selectedBadge.innerText = `Đang chọn: ${currentTicker}`;
+          updateChart(`HOSE:${val.replace('.VN', '')}`, currentTickerName);
           logToConsole(`Đã thiết lập mã tùy biến: ${currentTicker}`, "info");
-          document.querySelectorAll(".ticker-btn").forEach(b => {
-            b.classList.remove("active", "bg-indigo-600/20", "border-indigo-500", "bg-amber-500/20", "border-amber-500");
-          });
         }
       });
 
@@ -760,57 +860,66 @@
 
       logToConsole(`=== BẮT ĐẦU PHIÊN PHÂN TÍCH: ${ticker} (${tickerName}) ===`, "system");
       if (isDemoMode) {
-        logToConsole("💡 Chạy chế độ DEMO dữ liệu mẫu chất lượng cao...", "info");
+        logToConsole("💡 Chế độ DEMO: Mô phỏng hội đồng tác tử chất lượng cao...", "info");
       }
 
-      // Reset Node Badges
       resetPipelineNodes();
 
-      const rounds = document.getElementById("selectDebateRounds").value;
-      const riskProfile = document.getElementById("selectRiskProfile").value;
+      const useLegends = document.getElementById("chkLegendaryInvestors").checked;
+      const useVnDesk = document.getElementById("chkVnSpecialists").checked;
 
       try {
-        // Step 1: Technical Analyst Node
+        // Step 1: Technical & Quant
         setNodeStatus("node-tech", "working", "Đang quét RSI, MACD, MA...");
-        logToConsole(`[TA] Đang thu thập chỉ báo kỹ thuật RSI (14), MACD, Khối lượng Volume cho ${ticker}...`, "agent");
-        await sleep(1500);
+        logToConsole(`[TA] Quét chỉ báo kỹ thuật RSI (14), MACD Histogram, Bollinger Bands và Khối lượng Volume cho ${ticker}...`, "agent");
+        await sleep(1400);
         setNodeStatus("node-tech", "done", "Hoàn thành");
 
-        // Step 2: Fundamentals & News Analyst Node
-        setNodeStatus("node-fund", "working", "Đang phân tích BCTC & Vĩ mô...");
-        logToConsole(`[FA] Quét dữ liệu định giá P/E, P/B, Biên lợi nhuận và tin tức vĩ mô Ngân hàng Nhà nước...`, "agent");
-        await sleep(1800);
-        setNodeStatus("node-fund", "done", "Hoàn thành");
+        // Step 2: Legendary Investors Board (Buffett / Lynch / Burry)
+        if (useLegends) {
+          setNodeStatus("node-legends", "working", "Buffett & Lynch đánh giá...");
+          logToConsole(`[Warren Buffett] Thẩm định Con hào kinh tế (Economic Moat), ROE > 15%, Dòng tiền tự do FCF.`, "agent");
+          await sleep(1200);
+          logToConsole(`[Peter Lynch] Tính toán tỷ số PEG, tăng trưởng doanh số và khả năng mở rộng sản phẩm thực tế.`, "agent");
+          await sleep(1000);
+          logToConsole(`[Michael Burry] Rà soát cấu trúc nợ vay ngắn hạn, đòn bẩy tài chính và bẫy báo cáo tài chính.`, "agent");
+          setNodeStatus("node-legends", "done", "Hoàn thành");
+        } else {
+          setNodeStatus("node-legends", "done", "Bỏ qua");
+        }
 
-        // Step 3: Bull vs Bear Debate Node
-        setNodeStatus("node-debate", "working", `Tranh luận ${rounds} vòng...`);
-        logToConsole(`[Bull] Thiết lập luận điểm tăng giá: Dòng tiền tổ chức, hưởng lợi vĩ mô và chu kỳ ngành.`, "agent");
-        await sleep(1500);
-        logToConsole(`[Bear] Phản biện rủi ro: Áp lực chốt lời tại vùng kháng cự, rủi ro tỷ giá và thanh khoản.`, "agent");
-        await sleep(1800);
-        logToConsole(`[RM] Trưởng phòng Nghiên cứu tổng hợp các luận điểm cốt lõi sau ${rounds} hiệp tranh biện.`, "agent");
+        // Step 3: VN Macro & Foreign Desk
+        if (useVnDesk) {
+          setNodeStatus("node-vn", "working", "Khối ngoại & NHNN...");
+          logToConsole(`[Foreign Desk] Thống kê dòng tiền mua/bán ròng của Khối Ngoại (ETF Fubon, Diamond) và Tự doanh CTCK.`, "agent");
+          await sleep(1200);
+          logToConsole(`[SBV Macro] Đánh giá tỷ giá USD/VND, lãi suất liên ngân hàng OMO và động thái bơm/hút tín phiếu.`, "agent");
+          setNodeStatus("node-vn", "done", "Hoàn thành");
+        } else {
+          setNodeStatus("node-vn", "done", "Bỏ qua");
+        }
+
+        // Step 4: Bull vs Bear Debate Node
+        setNodeStatus("node-debate", "working", "Tranh luận 2 vòng...");
+        logToConsole(`[Bull Researcher] Lập luận: Xu hướng dòng tiền lớn, tăng trưởng EPS và chu kỳ phục hồi của ngành.`, "agent");
+        await sleep(1200);
+        logToConsole(`[Bear Researcher] Phản biện: Kháng cự kỹ thuật, áp lực chốt lời, rủi ro biến động tỷ giá.`, "agent");
+        await sleep(1200);
         setNodeStatus("node-debate", "done", "Hoàn thành");
 
-        // Step 4: Risk Management Guardians
-        setNodeStatus("node-risk", "working", "Stress-test rủi ro...");
-        logToConsole(`[Risk] Đánh giá khẩu vị rủi ro: ${riskProfile.toUpperCase()}. Tính toán Drawdown và tỷ lệ R:R.`, "agent");
-        await sleep(1500);
-        setNodeStatus("node-risk", "done", "Hoàn thành");
-
-        // Step 5: Portfolio Manager (LLM Execution or Synthesized Demo)
-        setNodeStatus("node-pm", "working", "Ký duyệt quyết định...");
-        logToConsole(`[PM] Portfolio Manager đang tổng hợp dữ liệu và đưa ra quyết định giao dịch tối hậu...`, "agent");
+        // Step 5: Portfolio Manager (Final Decision)
+        setNodeStatus("node-pm", "working", "Ký duyệt phán quyết...");
+        logToConsole(`[Portfolio Manager] Tổng hợp khuyến nghị từ toàn bộ Hội đồng tác tử để đưa ra quyết định giải ngân...`, "agent");
 
         let generatedReport = "";
         let decisionData = null;
 
         if (isDemoMode || !apiKey) {
-          await sleep(2000);
+          await sleep(1800);
           decisionData = getMockDecision(ticker);
           generatedReport = getMockReport(ticker, tickerName, decisionData);
         } else {
-          // Call Real Google Gemini API
-          const prompt = buildAgentPrompt(ticker, tickerName, rounds, riskProfile);
+          const prompt = buildEnhancedPrompt(ticker, tickerName, useLegends, useVnDesk);
           const responseText = await callGeminiAPI(prompt, selectedModel, apiKey);
           generatedReport = responseText;
           decisionData = parseDecisionFromText(responseText, ticker);
@@ -838,9 +947,8 @@
       }
     }
 
-    // --- NODE STATUS HELPERS ---
     function resetPipelineNodes() {
-      const nodes = ["node-tech", "node-fund", "node-debate", "node-risk", "node-pm"];
+      const nodes = ["node-tech", "node-legends", "node-vn", "node-debate", "node-pm"];
       nodes.forEach(id => {
         const el = document.getElementById(id);
         const badge = el.querySelector(".status-badge");
@@ -867,9 +975,7 @@
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
       
       const payload = {
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
+        contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 8192
@@ -891,43 +997,39 @@
       return resData.candidates?.[0]?.content?.parts?.[0]?.text || "Không nhận được phản hồi từ mô hình.";
     }
 
-    function buildAgentPrompt(ticker, name, rounds, risk) {
-      return `Bạn là Giám đốc Hệ thống Multi-Agent TradingAgents AI Pro chuyên sâu về Thị trường Tài chính Việt Nam.
-Hãy đóng vai toàn bộ Hội đồng Phân tích Đa Tác tử gồm:
-1. Technical Analyst (Chuyên viên Kỹ thuật - RSI, MACD, MA20, MA50, Kháng cự/Hỗ trợ)
-2. Fundamentals & Macro Analyst (Chuyên viên Cơ bản & Vĩ mô - P/E, P/B, Lợi nhuận, Tỷ giá, Lãi suất NHNN)
-3. Bullish Researcher (Chuyên viên phe Tăng giá)
-4. Bearish Researcher (Chuyên viên phe Giảm giá)
-5. Research Manager (Trưởng phòng Nghiên cứu điều phối tranh luận ${rounds} vòng)
-6. Risk Management Guardians (Hội đồng Quản trị rủi ro khẩu vị: ${risk})
-7. Portfolio Manager (Giám đốc Danh mục ra quyết định tối hậu).
+    function buildEnhancedPrompt(ticker, name, useLegends, useVnDesk) {
+      return `Bạn là Giám đốc Điều hành Quỹ Đầu Tư Đa Tác Tử (Multi-Agent Hedge Fund) chuyên trách Thị trường Tài chính Việt Nam.
+Hãy tích hợp kiến trúc của TauricResearch TradingAgents và AI Hedge Fund (virattt) để phân tích tài sản: "${ticker}" (${name}).
+Chỉ số Benchmark so sánh: E1VFVN30.VN (VN30 Index ETF).
 
-Tài sản phân tích: "${ticker}" (${name}).
-Chỉ số Benchmark so sánh: E1VFVN30.VN (VN30 ETF).
+Hãy đóng vai các Tác tử chuyên biệt sau:
+1. Technical Analyst (RSI 14, MACD, MA20/MA50, Kháng cự/Hỗ trợ, Động lượng Volume)
+${useLegends ? '2. Hội đồng Huyền thoại Đầu tư:\n   - Warren Buffett Agent: Con hào kinh tế (Moat), ROE > 15%, Dòng tiền tự do FCF, Ban lãnh đạo liêm chính.\n   - Peter Lynch Agent: Tỷ số PEG < 1, Tiềm năng mở rộng sản phẩm thực tế.\n   - Michael Burry Agent: Thẩm định rủi ro nợ xấu, đòn bẩy tài chính, kịch bản suy thoái.' : ''}
+${useVnDesk ? '3. Tác tử Đặc thù Việt Nam:\n   - Foreign & Proprietary Desk: Động thái mua/bán ròng của Khối ngoại và Tự doanh CTCK.\n   - SBV Monetary Agent: Tác động của tỷ giá USD/VND, lãi suất điều hành NHNN và thanh khoản hệ thống OMO.' : ''}
+4. Bullish Researcher vs Bearish Researcher (Tranh biện đối kháng tìm động lực tăng vs bẫy điều chỉnh)
+5. Portfolio Manager (Ký duyệt quyết định cuối cùng).
 
-Hãy viết bản Báo cáo Phân tích Tài chính Toàn diện bằng TIẾNG VIỆT, cấu trúc Markdown rõ ràng, chuyên nghiệp như báo cáo của SSI, Bản Việt (VCSC), HSC hoặc VNDIRECT:
-
-BẮT BUỘC có khối thông tin quyết định tối hậu ở đầu báo cáo theo đúng định dạng sau:
+BẮT BUỘC định dạng khối thông tin quyết định tối hậu ở đầu báo cáo:
 \`\`\`
 **RATING**: [MUA MẠNH / MUA / NẮM GIỮ / BÁN / BÁN MẠNH]
 **TICKER**: ${ticker}
 **TỶ TRỌNG PHÂN BỔ**: [Ví dụ: 15% - 25% NAV]
-**VÙNG GIÁ MUA**: [Giá cụ thể]
-**MỤC TIÊU (TARGET PRICE)**: [Giá cụ thể]
-**CẮT LỖ (STOP-LOSS)**: [Giá cụ thể]
-**TỶ LỆ RISK/REWARD**: [Ví dụ: 1 : 2.5]
+**VÙNG GIÁ MUA TÍCH LŨY**: [Mức giá cụ thể]
+**MỤC TIÊU (TARGET PRICE)**: [Mức giá cụ thể]
+**CẮT LỖ (STOP-LOSS)**: [Mức giá cụ thể]
+**TỶ LỆ RISK/REWARD**: [Ví dụ: 1 : 2.8]
 **KHUNG THỜI GIAN**: [Ví dụ: T+15 đến T+45 ngày]
 \`\`\`
 
 Sau đó là các phần chi tiết:
-# I. TỔNG QUAN TÀI SẢN & BỐI CẢNH THỊ TRƯỜNG VIỆT NAM
-# II. PHÂN TÍCH KỸ THUẬT (TECHNICAL ANALYSIS)
-# III. PHÂN TÍCH CƠ BẢN & VĨ MÔ (FUNDAMENTALS & MACRO)
-# IV. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
-# V. THẨM ĐỊNH QUẢN TRỊ RỦI RO & BẢO VỆ DANH MỤC
+# I. TỔNG QUAN TÀI SẢN & ĐỊNH VỊ THỊ TRƯỜNG
+# II. PHÂN TÍCH KỸ THUẬT & DÒNG TIỀN (TECHNICAL & VOLUME)
+${useLegends ? '# III. GÓC NHÌN TỪ CÁC HUYỀN THOẠI ĐẦU TƯ (BUFFETT - LYNCH - BURRY)' : ''}
+${useVnDesk ? '# IV. DÒNG VỐN KHỐI NGOẠI & BỐI CẢNH VĨ MÔ NGÂN HÀNG NHÀ NƯỚC' : ''}
+# V. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
 # VI. KẾT LUẬN & CHIẾN LƯỢC ĐI TIỀN CỦA PORTFOLIO MANAGER
 
-Lưu ý: Nếu tài sản là Vàng (XAUUSD hoặc VANG_SJC hoặc PNJ.VN), hãy phân tích kỹ tác động của giá vàng thế giới, tỷ giá USD/VND, nghị định quản lý thị trường vàng của Ngân hàng Nhà nước và chênh lệch vàng SJC trong nước.`;
+(Nếu tài sản là Vàng XAUUSD, VANG_SJC hoặc PNJ.VN: Bắt buộc phân tích công thức quy đổi giá vàng thế giới, tỷ giá USD/VND và chênh lệch vàng miếng SJC trong nước).`;
     }
 
     function parseDecisionFromText(text, ticker) {
@@ -974,76 +1076,45 @@ Lưu ý: Nếu tài sản là Vàng (XAUUSD hoặc VANG_SJC hoặc PNJ.VN), hãy
     }
 
     function getMockReport(ticker, name, dec) {
-      if (ticker.includes("XAU") || ticker.includes("VANG") || ticker === "PNJ.VN") {
-        return `\`\`\`
-**RATING**: ${dec.rating}
-**TICKER**: ${ticker}
-**TỶ TRỌNG PHÂN BỔ**: ${dec.weight}
-**VÙNG GIÁ MUA**: Vùng hỗ trợ kỹ thuật và mua gom từng phần
-**MỤC TIÊU (TARGET PRICE)**: Kỳ vọng tăng trưởng 12% - 18%
-**CẮT LỖ (STOP-LOSS)**: Cắt khi vi phạm MA50 hoặc giảm quá 5%
-**TỶ LỆ RISK/REWARD**: 1 : 2.8
-**KHUNG THỜI GIAN**: ${dec.horizon}
-\`\`\`
-
-# BÁO CÁO PHÂN TÍCH TOÀN DIỆN THỊ TRƯỜNG VÀNG & TÀI SẢN LIÊN QUAN
-
-### I. TỔNG QUAN TÀI SẢN & BỐI CẢNH THỊ TRƯỜNG
-- **Tài sản nghiên cứu:** **${ticker}** (${name}).
-- **Đặc thù thị trường:** Thị trường vàng Việt Nam chịu sự chi phối mạnh mẽ từ ba nhân tố cốt lõi:
-  1. *Xu hướng Vàng quốc tế (XAU/USD)* neo theo chính sách lãi suất của Cục Dự trữ Liên bang Mỹ (Fed) và căng thẳng địa chính trị toàn cầu.
-  2. *Biến động Tỷ giá USD/VND* tác động trực tiếp đến chi phí nhập khẩu và giá vàng quy đổi trong nước.
-  3. *Chính sách điều hành của Ngân hàng Nhà nước (NHNN)* nhằm thu hẹp chênh lệch giữa vàng miếng SJC và vàng thế giới.
-
-### II. PHÂN TÍCH KỸ THUẬT (TECHNICAL ANALYST)
-- **Chỉ báo RSI (14):** Đang dao động ở vùng **54.2**, trạng thái trung tính tích lũy, không rơi vào vùng quá mua hay quá bán.
-- **Xu hướng Đường Trung Bình (Moving Averages):** Giá duy trì vững chắc trên đường **MA20** và **MA50**, củng cố xu hướng tăng trung hạn (Bullish).
-- **Hỗ trợ & Kháng cự:** Vùng hỗ trợ then chốt gần nhất được bảo vệ vững chắc; áp lực bán chốt lời chỉ xuất hiện khi giá chạm các mốc đỉnh lịch sử.
-
-### III. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
-- 🐂 **Phe Bò (Bullish Researcher):** Nhu cầu tích trữ tài sản phòng vệ lạm phát tăng cao trong bối cảnh địa chính trị biến động. Vàng nhẫn 9999 và cổ phiếu PNJ tiếp tục ghi nhận lực cầu tiêu thụ kỷ lục.
-- 🐻 **Phe Gấu (Bearish Researcher):** Chênh lệch giá vàng miếng SJC trong nước và thế giới có thời điểm neo cao; can thiệp của cơ quan quản lý có thể kích hoạt các nhịp điều chỉnh ngắn hạn bất ngờ.
-- ⚖️ **Kết luận Research Manager:** Lực cầu cơ bản dài hạn vượt trội áp lực ngắn hạn. Chiến lược phù hợp là mua tích lũy theo từng đợt giải ngân, không mua đuổi khi giá tăng nóng.
-
-### IV. QUYẾT ĐỊNH TỐI HẬU CỦA PORTFOLIO MANAGER
-- **Khuyến nghị:** **${dec.rating}**.
-- **Tỷ trọng phân bổ:** Giải ngân từng phần từ **${dec.weight}**, thiết lập kỷ luật cắt lỗ nghiêm ngặt.`;
-      }
-
       return `\`\`\`
 **RATING**: ${dec.rating}
 **TICKER**: ${ticker}
 **TỶ TRỌNG PHÂN BỔ**: ${dec.weight}
-**VÙNG GIÁ MUA**: Vùng tích lũy nền giá vững chắc quanh MA20
+**VÙNG GIÁ MUA TÍCH LŨY**: Vùng nền giá vững chắc quanh MA20
 **MỤC TIÊU (TARGET PRICE)**: Kỳ vọng tỷ suất sinh lời 15% - 22%
 **CẮT LỖ (STOP-LOSS)**: Cắt lỗ khi thủng đường xu hướng MA50 (-5.5%)
 **TỶ LỆ RISK/REWARD**: 1 : 3.0
 **KHUNG THỜI GIAN**: ${dec.horizon}
 \`\`\`
 
-# BÁO CÁO PHÂN TÍCH TOÀN DIỆN CỔ PHIẾU ${ticker}
+# BÁO CÁO PHÂN TÍCH TOÀN DIỆN CỔ PHIẾU ${ticker} (HỆ THỐNG ĐA TÁC TỬ)
 
-### I. TỔNG QUAN DOANH NGHIỆP & BỐI CẢNH THỊ TRƯỜNG CHỨNG KHOÁN VIỆT NAM
-- **Mã cổ phiếu:** **${ticker}** (${name}).
+### I. TỔNG QUAN TÀI SẢN & BỐI CẢNH THỊ TRƯỜNG
+- **Tài sản nghiên cứu:** **${ticker}** (${name}).
 - **Benchmark so sánh:** **E1VFVN30.VN** (Quỹ ETF chỉ số VN30).
-- **Vị thế ngành:** Doanh nghiệp đầu ngành với bảng cân đối kế toán lành mạnh, dòng tiền kinh doanh dồi dào và tỷ lệ đòn bẩy tài chính ở mức an toàn.
+- **Vị thế:** Doanh nghiệp đầu ngành với thị phần áp đảo, dòng tiền mặt hoạt động kinh doanh thặng dư đều đặn.
 
 ### II. PHÂN TÍCH KỸ THUẬT (TECHNICAL ANALYST)
-- **Động lượng Giá & Khối lượng:** Cổ phiếu vừa thoát khỏi kênh tích lũy với thanh khoản bùng nổ, xác nhận dòng tiền lớn của các tổ chức và khối ngoại tham gia.
-- **Chỉ báo MACD & RSI:** MACD cắt lên trên đường tín hiệu (Signal Line) phát tín hiệu mua; RSI duy trì ở mức **58.6**, còn dư địa tăng trưởng mạnh mẽ trước khi vào vùng quá mua.
+- **Động lượng Giá & Khối lượng:** Cổ phiếu vừa thoát khỏi kênh tích lũy với thanh khoản vượt 135% trung bình 20 phiên (Vol > MA20).
+- **Chỉ báo RSI & MACD:** RSI duy trì ở mức **58.6** (vùng tăng giá lành mạnh, chưa chạm quá mua); MACD histogram mở rộng dương xác nhận đà tăng bền vững.
 
-### III. PHÂN TÍCH CƠ BẢN & ĐỊNH GIÁ (FUNDAMENTALS & VALUATION)
-- **Định giá P/E & P/B:** P/E dự phóng ở mức hấp dẫn so với tiềm năng tăng trưởng EPS trong 12 tháng tới.
-- **Lợi thế cạnh tranh (Moat):** Sở hữu rào cản gia nhập ngành cao, biên lợi nhuận gộp ổn định và thị phần chi phối.
+### III. GÓC NHÌN TỪ CÁC HUYỀN THOẠI ĐẦU TƯ
+- 👑 **Warren Buffett Agent:** Đánh giá cao con hào kinh tế (Economic Moat) độc quyền, tỷ suất sinh lời trên vốn chủ sở hữu **ROE đạt trên 22%**, ban lãnh đạo liêm chính và định hướng dài hạn.
+- 📈 **Peter Lynch Agent:** Tỷ số **PEG xấp xỉ 0.85** (dưới 1.0) cho thấy mức giá hiện tại đang bị định giá thấp hơn đáng kể so với tốc độ tăng trưởng lợi nhuận EPS dự kiến 20-25%/năm.
+- 🛡️ **Michael Burry Agent:** Tỷ lệ nợ vay trên vốn chủ sở hữu (D/E) ở mức cực kỳ an toàn (< 0.4), không có rủi ro thanh khoản nợ ngắn hạn hay rủi ro trái phiếu doanh nghiệp.
 
-### IV. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
-- 🐂 **Phe Bò (Bullish):** Doanh thu tăng trưởng 2 con số; hưởng lợi từ xu hướng vĩ mô và làn sóng dòng vốn FDI/chuyển đổi số.
-- 🐻 **Phe Gấu (Bearish):** Rủi ro điều chỉnh chung của chỉ số VN-Index khi tiệm cận vùng kháng cự tâm lý.
-- ⚖️ **Trưởng phòng Nghiên cứu (Research Manager):** Khẳng định cơ hội tăng trưởng trung và dài hạn vượt trội rủi ro rung lắc ngắn hạn.
+### IV. DÒNG VỐN KHỐI NGOẠI & BỐI CẢNH VĨ MÔ NGÂN HÀNG NHÀ NƯỚC
+- **Khối Ngoại & Tự Doanh:** Ghi nhận chuỗi mua ròng liên tục 4 phiên qua các quỹ ETF ngoại (Fubon, Diamond) sau giai đoạn cơ cấu danh mục.
+- **Vĩ mô NHNN:** Chính sách duy trì mặt bằng lãi suất cho vay thấp hỗ trợ doanh nghiệp sản xuất và tỷ giá USD/VND hạ nhiệt giảm thiểu áp lực chi phí tài chính.
 
-### V. KẾT LUẬN CỦA PORTFOLIO MANAGER
+### V. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
+- 🐂 **Phe Bò (Bullish):** Lợi nhuận quý tới dự kiến bứt phá mạnh mẽ; hưởng lợi trực tiếp từ làn sóng đầu tư công và chuyển đổi số quốc gia.
+- 🐻 **Phe Gấu (Bearish):** Rủi ro rung lắc kỹ thuật khi VN-Index tiệm cận vùng cản tâm lý quan trọng.
+- ⚖️ **Trưởng phòng Nghiên cứu (Research Manager):** Cơ hội trung - dài hạn hoàn toàn lấn át các biến động ngắn hạn. Khuyến nghị tích lũy cổ phiếu trong các phiên điều chỉnh.
+
+### VI. KẾT LUẬN & CHIẾN LƯỢC ĐI TIỀN CỦA PORTFOLIO MANAGER
 - **Quyết định:** **${dec.rating}**.
-- **Chiến lược:** Mua tích lũy trong các nhịp điều chỉnh; tuân thủ nghiêm ngặt nguyên tắc cắt lỗ khi thủng hỗ trợ.`;
+- **Kế hoạch giải ngân:** Chia vốn thành 3 đợt mua gom quanh vùng MA20; tuân thủ kỷ luật cắt lỗ nếu giá đóng cửa dưới MA50.`;
     }
 
     function sleep(ms) {
