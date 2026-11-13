@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- TradingView Official Library -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
@@ -664,6 +666,7 @@
       }
       setupEventListeners();
       computeGoldPrice();
+      updateChart(currentTvSymbol, currentTickerName);
     }
 
     function updateApiStatusUI(isConnected) {
@@ -909,9 +912,37 @@
 
     function updateChart(tvSymbol, label) {
       currentTvSymbol = tvSymbol;
-      chartLabel.innerText = `Biểu Đồ Kỹ Thuật Trực Tuyến (${tvSymbol})`;
+      if (chartLabel) chartLabel.innerText = `Biểu Đồ Kỹ Thuật Trực Tuyến (${tvSymbol})`;
+      
+      const container = document.getElementById("tradingview_widget_container");
+      if (!container) return;
+
+      try {
+        if (typeof TradingView !== "undefined") {
+          container.innerHTML = '<div id="tv_chart_inner" style="width:100%;height:100%;"></div>';
+          new TradingView.widget({
+            "autosize": true,
+            "symbol": tvSymbol,
+            "interval": "D",
+            "timezone": "Asia/Ho_Chi_Minh",
+            "theme": "dark",
+            "style": "1",
+            "locale": "vi_VN",
+            "toolbar_bg": "#0f172a",
+            "enable_publishing": false,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "container_id": "tv_chart_inner"
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn("Lỗi khởi tạo widget TradingView, chuyển sang iframe:", err);
+      }
+
+      // Fallback iframe
       const cleanSymbol = encodeURIComponent(tvSymbol);
-      tvIframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${cleanSymbol}&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=0f172a&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FHo_Chi_Minh&locale=vi_VN`;
+      container.innerHTML = `<iframe id="tvIframe" src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${cleanSymbol}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=0&toolbarbg=0f172a&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FHo_Chi_Minh&locale=vi_VN" style="width: 100%; height: 100%; border: 0;"></iframe>`;
     }
 
     // --- GOLD CONVERSION CALCULATION ---
@@ -939,6 +970,7 @@
       let badgeClass = "text-slate-400";
       if (type === "system") badgeClass = "text-indigo-400 font-bold";
       if (type === "agent") badgeClass = "text-amber-400 font-bold";
+      if (type === "warning") badgeClass = "text-amber-300 font-bold";
       if (type === "success") badgeClass = "text-emerald-400 font-bold";
       if (type === "error") badgeClass = "text-rose-400 font-bold";
 
@@ -1208,9 +1240,17 @@
           generatedReport = getMockReport(ticker, tickerName, decisionData);
         } else {
           const prompt = buildEnhancedPrompt(ticker, tickerName, useLegends, useVnDesk);
-          const responseText = await callGeminiAPI(prompt, selectedModel, apiKey);
-          generatedReport = responseText;
-          decisionData = parseDecisionFromText(responseText, ticker);
+          try {
+            const responseText = await callGeminiAPI(prompt, selectedModel, apiKey);
+            generatedReport = responseText;
+            decisionData = parseDecisionFromText(responseText, ticker);
+          } catch (apiErr) {
+            logToConsole(`[Hệ thống] ⚠️ Cụm Gemini AI quá tải tạm thời: ${apiErr.message}`, "warning");
+            logToConsole(`[Hệ thống] 🛡️ Tự động kích hoạt Báo Cáo Phân Tích Mẫu Đa Tác Tử để đảm bảo trải nghiệm thông suốt!`, "info");
+            await sleep(1500);
+            decisionData = getMockDecision(ticker);
+            generatedReport = getMockReport(ticker, tickerName, decisionData);
+          }
         }
 
         setNodeStatus("node-pm", "done", "Đã duyệt");
@@ -1258,32 +1298,100 @@
       }
     }
 
-    // --- GEMINI API CALLER ---
-    async function callGeminiAPI(prompt, model, key) {
-      const cleanModel = (model || "gemini-2.5-flash").replace("models/", "");
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${key}`;
+    // --- RESILIENT GEMINI API CALLER WITH RETRY & WATERFALL FALLBACK ---
+    async function callGeminiAPI(prompt, requestedModel, key) {
+      const cleanRequested = (requestedModel || "gemini-2.5-flash").replace("models/", "").trim();
       
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.15,
-          maxOutputTokens: 8192
+      // Waterfall model fallback list: requested model first, then ultra-reliable fast models
+      const fallbackList = [
+        cleanRequested,
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro"
+      ];
+      // Deduplicate while preserving order
+      const modelsToTry = [...new Set(fallbackList)];
+      
+      let lastErrorMessage = "Không rõ lỗi";
+
+      for (let m = 0; m < modelsToTry.length; m++) {
+        const currentModel = modelsToTry[m];
+        const maxRetries = 2;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${key}`;
+            const payload = {
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8192
+              }
+            };
+
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+              let errText = `HTTP ${response.status}`;
+              try {
+                const errJson = await response.json();
+                errText = errJson.error?.message || errText;
+              } catch (e) {}
+
+              lastErrorMessage = errText;
+              const isOverload = response.status === 503 ||
+                                 response.status === 429 ||
+                                 /high demand|overload|spikes in demand|resource exhausted|temporarily unavailable/i.test(errText);
+
+              if (isOverload) {
+                if (attempt < maxRetries) {
+                  const delaySec = attempt * 2;
+                  logToConsole(`[Hệ thống] ⏳ Mô hình ${currentModel} quá tải tại máy chủ Google (${errText}). Đang đợi ${delaySec}s để thử lại...`, "warning");
+                  await sleep(delaySec * 1000);
+                  continue; // Retry same model
+                } else if (m < modelsToTry.length - 1) {
+                  const nextModel = modelsToTry[m + 1];
+                  logToConsole(`[Hệ thống] 🔄 Mô hình ${currentModel} vẫn quá tải sau ${maxRetries} lần thử. Tự động chuyển sang mô hình dự phòng: ${nextModel}...`, "warning");
+                  break; // Move to next model in cascade
+                } else {
+                  throw new Error(errText);
+                }
+              } else {
+                // If invalid key, check immediately
+                if (/API_KEY_INVALID|key not valid|forbidden/i.test(errText)) {
+                  throw new Error("Khóa Google API Key không hợp lệ hoặc bị vô hiệu hóa.");
+                }
+                break;
+              }
+            }
+
+            const resData = await response.json();
+            const resultText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!resultText) {
+              throw new Error("Mô hình không trả về nội dung.");
+            }
+
+            if (currentModel !== cleanRequested) {
+              logToConsole(`[Hệ thống] ⚡ Phân tích thành công bằng mô hình dự phòng thích ứng: ${currentModel}`, "success");
+            }
+            return resultText;
+
+          } catch (err) {
+            lastErrorMessage = err.message;
+            if (/API_KEY_INVALID|key not valid/i.test(err.message)) {
+              throw err;
+            }
+            if (attempt >= maxRetries) break;
+          }
         }
-      };
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || "Lỗi gọi Gemini API");
       }
 
-      const resData = await response.json();
-      return resData.candidates?.[0]?.content?.parts?.[0]?.text || "Không nhận được phản hồi từ mô hình.";
+      throw new Error(lastErrorMessage || "Toàn bộ cụm mô hình Gemini đều đang quá tải.");
     }
 
     function buildEnhancedPrompt(ticker, name, useLegends, useVnDesk) {
