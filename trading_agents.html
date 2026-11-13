@@ -476,20 +476,20 @@
           </div>
 
           <!-- Dynamic Cards Container -->
-          <div id="dynamicModelsContainer" class="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar p-1">
-            <!-- Default Placeholder / Loading cards -->
+          <div id="dynamicModelsContainer" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar p-1">
             <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
               Nhập API Key ở trên để tải danh sách các phiên bản Gemini mới nhất có sẵn trong tài khoản của bạn.
             </div>
           </div>
 
-          <!-- Fallback hidden select -->
-          <select id="selectGeminiModel" class="hidden">
-            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
-            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-          </select>
+          <!-- Selected Model Live Indicator Banner -->
+          <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+            <span class="text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-400"></i>
+              <span>Phiên bản sẽ kích hoạt:</span>
+            </span>
+            <span id="currentSelectedModelText" class="font-mono text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">gemini-2.5-flash</span>
+          </div>
         </div>
       </div>
 
@@ -599,7 +599,7 @@
     const btnCloseApiModal = document.getElementById("btnCloseApiModal");
     const apiModal = document.getElementById("apiModal");
     const inputApiKey = document.getElementById("inputApiKey");
-    const selectGeminiModel = document.getElementById("selectGeminiModel");
+    const currentSelectedModelText = document.getElementById("currentSelectedModelText");
     const btnSaveApiKey = document.getElementById("btnSaveApiKey");
     const btnTestApiKey = document.getElementById("btnTestApiKey");
     const apiTestFeedback = document.getElementById("apiTestFeedback");
@@ -651,6 +651,9 @@
     const btnAutoFetchModels = document.getElementById("btnAutoFetchModels");
 
     function init() {
+      if (currentSelectedModelText) {
+        currentSelectedModelText.innerText = (selectedModel || "gemini-2.5-flash").replace("models/", "");
+      }
       if (apiKey) {
         inputApiKey.value = apiKey;
         updateApiStatusUI(true);
@@ -748,11 +751,17 @@
 
     function renderDynamicModelsList(models) {
       dynamicModelsContainer.innerHTML = "";
+      const cleanSaved = (selectedModel || "gemini-2.5-flash").replace("models/", "").trim();
+      let hasMatch = false;
       
       models.forEach((m, idx) => {
-        const rawId = m.name.replace("models/", "");
-        const isCurrent = (rawId === selectedModel || m.name === selectedModel || (idx === 0 && !selectedModel));
-        if (isCurrent && !selectedModel) selectedModel = rawId;
+        const rawId = m.name.replace("models/", "").trim();
+        const isCurrent = (rawId === cleanSaved || (!hasMatch && idx === 0 && !selectedModel));
+        if (isCurrent) {
+          hasMatch = true;
+          selectedModel = rawId;
+          if (currentSelectedModelText) currentSelectedModelText.innerText = selectedModel;
+        }
 
         let badgeHtml = "";
         let badgeColor = "text-slate-400 bg-slate-800";
@@ -829,8 +838,14 @@
       modelCountBadge.innerText = "Chế độ chuẩn";
       modelCountBadge.className = "text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full font-mono";
 
+      const cleanSaved = (selectedModel || "gemini-2.5-flash").replace("models/", "").trim();
+
       presets.forEach(p => {
-        const isCurrent = (p.id === selectedModel);
+        const isCurrent = (p.id === cleanSaved);
+        if (isCurrent && currentSelectedModelText) {
+          currentSelectedModelText.innerText = p.id;
+        }
+
         const card = document.createElement("div");
         card.className = `model-card p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between text-xs ${
           isCurrent ? "bg-indigo-600/20 border-indigo-500 shadow-md" : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
@@ -859,13 +874,17 @@
     }
 
     function selectModel(modelId) {
-      selectedModel = modelId;
-      selectGeminiModel.value = modelId;
+      if (!modelId) return;
+      selectedModel = modelId.replace("models/", "").trim();
       localStorage.setItem("tradingagents_gemini_model", selectedModel);
+
+      if (currentSelectedModelText) {
+        currentSelectedModelText.innerText = selectedModel;
+      }
 
       // Update UI cards
       document.querySelectorAll(".model-card").forEach(c => {
-        const isSelected = (c.dataset.modelId === modelId);
+        const isSelected = (c.dataset.modelId === selectedModel);
         c.className = `model-card p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between text-xs ${
           isSelected ? "bg-indigo-600/20 border-indigo-500 shadow-md shadow-indigo-500/10" : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
         }`;
@@ -885,7 +904,7 @@
       });
 
       updateApiStatusUI(Boolean(apiKey));
-      logToConsole(`Đã chuyển đổi mô hình Gemini sang: ${modelId}`, "info");
+      logToConsole(`Đã chuyển đổi mô hình Gemini sang: ${selectedModel}`, "info");
     }
 
     function updateChart(tvSymbol, label) {
@@ -993,16 +1012,34 @@
       btnSaveApiKey.addEventListener("click", () => {
         const key = inputApiKey.value.trim();
         if (!key) {
+          showFeedback("Vui lòng điền Google Gemini API Key trước khi lưu!", "error");
           alert("Vui lòng điền API Key.");
           return;
         }
         apiKey = key;
-        selectedModel = selectGeminiModel.value;
+
+        // Ensure selectedModel has a valid value
+        if (!selectedModel) {
+          selectedModel = "gemini-2.5-flash";
+        }
+        selectedModel = selectedModel.replace("models/", "").trim();
+
+        // Persist both API Key and Selected Model to localStorage
         localStorage.setItem("tradingagents_gemini_api_key", apiKey);
         localStorage.setItem("tradingagents_gemini_model", selectedModel);
+
+        // Update UI
         updateApiStatusUI(true);
-        apiModal.classList.add("hidden");
-        logToConsole(`Đã lưu cấu hình Google Gemini (${selectedModel}). Sẵn sàng thực thi.`, "success");
+        if (currentSelectedModelText) {
+          currentSelectedModelText.innerText = selectedModel;
+        }
+
+        showFeedback(`✅ Đã lưu cấu hình & áp dụng thành công phiên bản: <strong>${selectedModel}</strong>!`, "success");
+        logToConsole(`Đã lưu cấu hình Google Gemini (Phiên bản: ${selectedModel}). Sẵn sàng thực thi.`, "success");
+
+        setTimeout(() => {
+          apiModal.classList.add("hidden");
+        }, 500);
       });
 
       // Tab Switching
