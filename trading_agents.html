@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingAgents AI Pro - Trợ Lý Giao Dịch Đa Tác Tử (Chứng Khoán & Vàng Việt Nam)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .glass-panel { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(14px); border: 1px solid rgba(51, 65, 85, 0.6); }
+    .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(71, 85, 105, 0.4); }
+    .glass-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
+    .glow-indigo { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25); }
+    .glow-gold { box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.25); }
+    .glow-emerald { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
+    @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .animate-pulse-slow { animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col justify-between selection:bg-indigo-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100">
+
+  <!-- TOP HEADER -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 sm:px-6 py-3.5 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <a href="index.html" title="Trở về Portal Suite" class="bg-gradient-to-tr from-amber-500 via-indigo-600 to-emerald-500 p-2.5 rounded-xl text-white font-black shadow-lg shadow-indigo-500/20 hover:scale-105 transition flex items-center justify-center">
+          <i class="fa-solid fa-chart-line text-lg"></i>
+        </a>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
+              <span>TradingAgents AI Pro</span>
+              <span class="text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">VN Market & Gold</span>
+            </h1>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Hệ thống Trợ lý Giao dịch Đa Tác tử (Multi-Agent System) • Powered by Google Gemini</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons & API Config -->
+      <div class="flex items-center space-x-2.5">
+        
+        <!-- API Key Status Button -->
+        <button id="btnOpenApiModal" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition duration-200 shadow-sm glass-card hover:bg-slate-800">
+          <span id="apiKeyDot" class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+          <span id="apiKeyStatusText" class="text-slate-300">Chưa nhập Google API</span>
+          <i class="fa-solid fa-key text-[11px] text-amber-400"></i>
+        </button>
+
+        <!-- Back to Hub -->
+        <a href="index.html" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-800 transition flex items-center space-x-1.5" title="Về trang chủ TT GROUP">
+          <i class="fa-solid fa-house text-xs"></i>
+          <span class="hidden md:inline">Portal Hub</span>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
+
+    <!-- HERO BANNER & INTRO -->
+    <div class="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative z-10">
+        <div class="space-y-1.5 max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
+            <i class="fa-solid fa-robot"></i> Mô hình 7 Tác tử Tài chính Độc lập (LangGraph Architecture)
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            Phân Tích Cổ Phiếu Việt Nam (VN30) & Thị Trường Vàng (SJC / XAU)
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Mô phỏng quy trình thẩm định đa chiều của một quỹ đầu tư định lượng: <strong class="text-amber-300">Technical</strong>, <strong class="text-sky-300">Fundamentals</strong>, <strong class="text-emerald-300">Bullish Researcher</strong> đối kháng <strong class="text-rose-300">Bearish Researcher</strong>, và <strong class="text-purple-300">Portfolio Manager</strong> ra quyết định mua/bán tối hậu.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          <button id="btnQuickDemo" class="flex-1 lg:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Chạy Thử Bản Mẫu (Demo)</span>
+          </button>
+          <button id="btnHelpGuide" class="flex-1 lg:flex-none px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-question text-indigo-400"></i>
+            <span>Hướng Dẫn Sử Dụng</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN DASHBOARD GRID (2 COLUMNS) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: CONTROLS & TICKER SELECTION (5 COLS) -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- CARD 1: TICKER SELECTION -->
+        <div class="glass-panel rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              <h3 class="font-bold text-sm text-white uppercase tracking-wider">1. Chọn Tài Sản Phân Tích</h3>
+            </div>
+            <span class="text-xs text-slate-400" id="selectedBadge">Đang chọn: FPT.VN</span>
+          </div>
+
+          <!-- Market Tabs -->
+          <div class="flex rounded-xl bg-slate-900/90 p-1 border border-slate-800">
+            <button id="tabStocks" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition duration-200 bg-indigo-600 text-white shadow">
+              <i class="fa-solid fa-chart-pie mr-1.5"></i> Cổ Phiếu Việt Nam
+            </button>
+            <button id="tabGold" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition duration-200 text-slate-400 hover:text-slate-200">
+              <i class="fa-solid fa-coins mr-1.5 text-amber-400"></i> Vàng & Tỷ Giá
+            </button>
+          </div>
+
+          <!-- Stock Quick Pick Grid -->
+          <div id="stocksGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
+            <button class="ticker-btn active p-2.5 rounded-xl border text-center transition bg-indigo-600/20 border-indigo-500 text-white" data-ticker="FPT.VN" data-name="FPT (Công nghệ)">
+              <div class="font-extrabold text-sm">FPT</div>
+              <div class="text-[10px] text-slate-300">Công nghệ</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="HPG.VN" data-name="Hòa Phát (Thép)">
+              <div class="font-extrabold text-sm">HPG</div>
+              <div class="text-[10px] text-slate-400">Thép</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VNM.VN" data-name="Vinamilk (Tiêu dùng)">
+              <div class="font-extrabold text-sm">VNM</div>
+              <div class="text-[10px] text-slate-400">Tiêu dùng</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VCB.VN" data-name="Vietcombank (Ngân hàng)">
+              <div class="font-extrabold text-sm">VCB</div>
+              <div class="text-[10px] text-slate-400">Ngân hàng</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="TCB.VN" data-name="Techcombank (Ngân hàng)">
+              <div class="font-extrabold text-sm">TCB</div>
+              <div class="text-[10px] text-slate-400">Ngân hàng</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="SSI.VN" data-name="Chứng khoán SSI">
+              <div class="font-extrabold text-sm">SSI</div>
+              <div class="text-[10px] text-slate-400">Chứng khoán</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="VHM.VN" data-name="Vinhomes (BĐS)">
+              <div class="font-extrabold text-sm">VHM</div>
+              <div class="text-[10px] text-slate-400">Bất động sản</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="MWG.VN" data-name="Thế Giới Di Động">
+              <div class="font-extrabold text-sm">MWG</div>
+              <div class="text-[10px] text-slate-400">Bán lẻ</div>
+            </button>
+          </div>
+
+          <!-- Gold Quick Pick Grid -->
+          <div id="goldGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 hidden">
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="XAUUSD" data-name="Vàng Thế Giới (Spot Gold/Futures)">
+              <div class="font-extrabold text-sm text-amber-400">XAU/USD</div>
+              <div class="text-[10px] text-slate-400">Vàng Thế Giới</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="PNJ.VN" data-name="Vàng Bạc Đá Quý Phú Nhuận">
+              <div class="font-extrabold text-sm text-amber-400">PNJ.VN</div>
+              <div class="text-[10px] text-slate-400">Vàng Trang Sức VN</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300" data-ticker="USDVND=X" data-name="Tỷ giá USD/VND">
+              <div class="font-extrabold text-sm text-emerald-400">USD/VND</div>
+              <div class="text-[10px] text-slate-400">Tỷ Giá Hối Đoái</div>
+            </button>
+            <button class="ticker-btn p-2.5 rounded-xl border border-slate-800 text-center transition hover:border-slate-700 bg-slate-900/60 text-slate-300 col-span-2 sm:col-span-3" data-ticker="VANG_SJC" data-name="Vàng Miếng SJC & Nhẫn 9999 (Quy Đổi)">
+              <div class="font-extrabold text-sm text-amber-300 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-award"></i> Vàng Miếng SJC & Vàng Nhẫn 9999 (Việt Nam)
+              </div>
+              <div class="text-[10px] text-slate-400">Tính toán chênh lệch quốc tế, thuế phí và cơ chế quản lý NHNN</div>
+            </button>
+          </div>
+
+          <!-- Custom Ticker Input -->
+          <div class="space-y-1.5 pt-2">
+            <label class="text-[11px] font-semibold text-slate-400">Hoặc gõ mã cổ phiếu tùy chọn (Ví dụ: GAS, DGC, VRE, KBC):</label>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input type="text" id="customTickerInput" placeholder="Nhập mã (VD: DGC)..." class="w-full bg-slate-900/90 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-xs font-mono uppercase text-white placeholder-slate-500 outline-none transition">
+                <span class="absolute right-3 top-2 text-[10px] text-slate-500 font-bold">.VN</span>
+              </div>
+              <button id="btnApplyCustomTicker" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
+                Áp dụng
+              </button>
+            </div>
+          </div>
+
+          <!-- Benchmark Setting Info -->
+          <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 flex items-center justify-between text-xs">
+            <span class="text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-scale-balanced text-indigo-400"></i> Benchmark Alpha:
+            </span>
+            <span class="font-mono text-indigo-300 font-bold">E1VFVN30.VN (VN30 ETF)</span>
+          </div>
+
+        </div>
+
+        <!-- CARD 2: AGENT SETTINGS & EXECUTION -->
+        <div class="glass-panel rounded-2xl p-5 space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-800 pb-3">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <h3 class="font-bold text-sm text-white uppercase tracking-wider">2. Thiết Lập & Khởi Chạy Tác Tử</h3>
+          </div>
+
+          <!-- Round & Depth Selector -->
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="space-y-1">
+              <label class="text-slate-400 font-medium">Số vòng tranh biện:</label>
+              <select id="selectDebateRounds" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500">
+                <option value="1">1 Vòng (Nhanh)</option>
+                <option value="2" selected>2 Vòng (Khuyên dùng)</option>
+                <option value="3">3 Vòng (Chuyên sâu)</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-400 font-medium">Khẩu vị rủi ro Trader:</label>
+              <select id="selectRiskProfile" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500">
+                <option value="balanced" selected>Cân bằng (Balanced)</option>
+                <option value="conservative">Thận trọng (Conservative)</option>
+                <option value="aggressive">Mạo hiểm (Aggressive)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Execute Button -->
+          <button id="btnStartAnalysis" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm shadow-xl shadow-indigo-600/30 transition duration-200 flex items-center justify-center gap-2 group">
+            <i class="fa-solid fa-play text-xs group-hover:scale-125 transition"></i>
+            <span id="btnRunText">BẮT ĐẦU PHÂN TÍCH ĐA TÁC TỬ</span>
+          </button>
+
+          <!-- Disclaimer Note -->
+          <p class="text-[11px] text-slate-400 text-center leading-normal">
+            Hệ thống phân tích tự động bằng AI phục vụ nghiên cứu & tham khảo. Không phải lời mời chào đầu tư tài chính.
+          </p>
+        </div>
+
+        <!-- CARD 3: AGENTS PIPELINE STATUS -->
+        <div class="glass-panel rounded-2xl p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h4 class="font-bold text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-network-wired text-indigo-400"></i> Tiến Trình Tác Tử (Agent Mesh)
+            </h4>
+            <span id="pipelineOverallStatus" class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">Sẵn sàng</span>
+          </div>
+
+          <div class="space-y-2 text-xs" id="agentPipelineList">
+            <!-- Node 1 -->
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-tech">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs">TA</span>
+                <div>
+                  <div class="font-bold text-slate-200">Technical Analyst</div>
+                  <div class="text-[10px] text-slate-400">RSI, MACD, MA20/50, Vùng hỗ trợ/kháng cự</div>
+                </div>
+              </div>
+              <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
+            </div>
+
+            <!-- Node 2 -->
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-fund">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs">FA</span>
+                <div>
+                  <div class="font-bold text-slate-200">Fundamentals & Macro</div>
+                  <div class="text-[10px] text-slate-400">P/E, P/B, Biên lợi nhuận, Tin tức vĩ mô VN</div>
+                </div>
+              </div>
+              <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
+            </div>
+
+            <!-- Node 3 -->
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-debate">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xs">RM</span>
+                <div>
+                  <div class="font-bold text-slate-200">Bull vs Bear Researcher</div>
+                  <div class="text-[10px] text-slate-400">Tranh biện đa vòng tìm động lực & bẫy rủi ro</div>
+                </div>
+              </div>
+              <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
+            </div>
+
+            <!-- Node 4 -->
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-risk">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold text-xs">RG</span>
+                <div>
+                  <div class="font-bold text-slate-200">Risk Management Guardians</div>
+                  <div class="text-[10px] text-slate-400">Stress-test 3 khẩu vị rủi ro & tỷ lệ phân bổ</div>
+                </div>
+              </div>
+              <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
+            </div>
+
+            <!-- Node 5 -->
+            <div class="agent-node flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800" id="node-pm">
+              <div class="flex items-center space-x-2.5">
+                <span class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-xs">PM</span>
+                <div>
+                  <div class="font-bold text-slate-200">Portfolio Manager</div>
+                  <div class="text-[10px] text-slate-400">Quyết định tối hậu: MUA / BÁN / NẮM GIỮ</div>
+                </div>
+              </div>
+              <span class="status-badge text-[10px] text-slate-400 font-mono">Đang chờ</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: RESULTS, TERMINAL & REPORT (7 COLS) -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- DECISION BANNER (WHEN COMPLETED) -->
+        <div id="decisionCard" class="glass-panel rounded-2xl p-5 border-2 border-indigo-500/40 relative overflow-hidden hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phán quyết tối hậu từ Portfolio Manager</span>
+              <div class="flex items-center gap-3 mt-1">
+                <span id="finalDecisionBadge" class="px-4 py-1.5 rounded-xl font-black text-base uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20">
+                  MUA MẠNH (BUY)
+                </span>
+                <span id="finalTickerLabel" class="font-extrabold text-lg text-white">FPT.VN</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-mono">
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="text-slate-400 text-[10px]">Tỷ trọng đề xuất</div>
+                <div id="decisionWeight" class="text-emerald-400 font-bold text-sm">20% NAV</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="text-slate-400 text-[10px]">Khung thời gian</div>
+                <div id="decisionHorizon" class="text-indigo-300 font-bold text-sm">T+15 đến T+45</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE STREAM TERMINAL VIEW -->
+        <div class="glass-panel rounded-2xl p-4 space-y-2.5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div class="flex items-center space-x-2">
+              <div class="flex space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              </div>
+              <span class="text-xs font-mono font-bold text-slate-300 ml-2">AGENT CONSOLE STREAM</span>
+            </div>
+            <button id="btnClearConsole" class="text-[11px] text-slate-400 hover:text-slate-200 transition">
+              <i class="fa-solid fa-trash-can mr-1"></i> Xóa
+            </button>
+          </div>
+
+          <div id="agentConsole" class="w-full h-48 bg-slate-950 rounded-xl p-3 font-mono text-xs text-slate-300 overflow-y-auto space-y-1.5 custom-scrollbar border border-slate-900">
+            <div class="text-slate-500">[System] TradingAgents AI Pro đã khởi động. Sẵn sàng nhận lệnh phân tích.</div>
+            <div class="text-indigo-400">[Guide] Hãy chọn mã tài sản bên trái và nhấn "BẮT ĐẦU PHÂN TÍCH".</div>
+          </div>
+        </div>
+
+        <!-- REPORT VIEWER CONTAINER -->
+        <div class="glass-panel rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <h3 class="font-bold text-sm text-white uppercase tracking-wider">3. Báo Cáo Phân Tích Chuyên Sâu</h3>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+              <button id="btnCopyReport" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition" title="Sao chép toàn bộ văn bản">
+                <i class="fa-regular fa-copy mr-1"></i> Copy
+              </button>
+              <button id="btnPrintReport" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition" title="In hoặc lưu PDF">
+                <i class="fa-solid fa-print mr-1"></i> In/PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Report Content Container -->
+          <div id="reportContainer" class="prose prose-invert max-w-none text-xs sm:text-sm text-slate-300 leading-relaxed space-y-4 custom-scrollbar max-h-[600px] overflow-y-auto pr-2">
+            <div class="text-center py-12 space-y-3 text-slate-500">
+              <i class="fa-solid fa-file-invoice text-4xl text-slate-700"></i>
+              <p>Chưa có báo cáo nào được tạo. Chọn mã và nhấn phân tích để xem báo cáo chi tiết.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: GOOGLE GEMINI API KEY SETUP & INSTRUCTIONS -->
+  <div id="apiModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-6 space-y-5 border border-slate-700 shadow-2xl relative">
+      
+      <!-- Close Button -->
+      <button id="btnCloseApiModal" class="absolute top-4 right-4 text-slate-400 hover:text-white transition text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Modal Title -->
+      <div class="space-y-1">
+        <div class="flex items-center space-x-2.5 text-amber-400 font-bold text-base">
+          <i class="fa-brands fa-google text-lg"></i>
+          <span>Cấu Hình Google Gemini API Key</span>
+        </div>
+        <p class="text-xs text-slate-400">Kết nối trực tiếp tài khoản Google của bạn để chạy toàn bộ 7 Tác tử AI</p>
+      </div>
+
+      <!-- Step-by-Step Guide -->
+      <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs text-slate-300">
+        <div class="font-bold text-indigo-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-lightbulb"></i> 3 Bước Lấy Google API Key Miễn Phí:
+        </div>
+        <ol class="list-decimal list-inside space-y-1 text-slate-400 leading-normal pl-1">
+          <li>Truy cập cổng Google AI Studio: <a href="https://aistudio.google.com/apikey" target="_blank" class="text-indigo-400 hover:underline font-semibold">aistudio.google.com/apikey <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a></li>
+          <li>Đăng nhập tài khoản Google & bấm nút <strong>"Create API key"</strong>.</li>
+          <li>Sao chép mã khóa (bắt đầu bằng <code class="text-amber-400">AIzaSy...</code>) và dán vào ô bên dưới.</li>
+        </ol>
+      </div>
+
+      <!-- API Key Input Form -->
+      <div class="space-y-3">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Google Gemini API Key:</label>
+          <div class="relative">
+            <input type="password" id="inputApiKey" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs font-mono text-white placeholder-slate-600 outline-none transition">
+            <button id="btnToggleShowKey" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 text-xs">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Chọn Mô hình Gemini:</label>
+          <select id="selectGeminiModel" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500">
+            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Khuyên dùng - Siêu nhanh, miễn phí)</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Suy luận sâu, báo cáo phức tạp)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ổn định, hạn mức cao)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Tiêu chuẩn chất lượng cao)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Test Connection Feedback Message -->
+      <div id="apiTestFeedback" class="text-xs font-medium hidden p-2.5 rounded-xl"></div>
+
+      <!-- Modal Actions -->
+      <div class="flex items-center justify-end space-x-2.5 pt-2">
+        <button id="btnTestApiKey" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition">
+          <i class="fa-solid fa-vial mr-1.5"></i> Thử Kết Nối
+        </button>
+        <button id="btnSaveApiKey" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition">
+          <i class="fa-solid fa-floppy-disk mr-1.5"></i> Lưu & Áp Dụng
+        </button>
+      </div>
+
+      <div class="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1.5 pt-1">
+        <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+        <span>Bảo mật tuyệt đối: Khóa lưu trong trình duyệt của bạn (Local Storage), không lưu qua server trung gian.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 py-5 px-6 text-center text-xs text-slate-400 bg-slate-950/70 mt-10">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>&copy; 2026 TT GROUP. Tác giả & Phát triển: <strong class="text-slate-300">Mai Văn Vinh</strong>.</p>
+      <div class="flex items-center space-x-3 text-slate-400 text-xs">
+        <a href="https://github.com/maivinh1302/chanh-dien-ai-pro" target="_blank" class="hover:text-indigo-400 transition flex items-center gap-1">
+          <i class="fa-brands fa-github"></i> GitHub Source
+        </a>
+        <span>•</span>
+        <a href="https://github.com/TauricResearch/TradingAgents" target="_blank" class="hover:text-indigo-400 transition flex items-center gap-1">
+          <i class="fa-solid fa-code-fork"></i> TradingAgents Core
+        </a>
+        <span>•</span>
+        <span>Client-Side 100% Secure</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // --- STATE MANAGEMENT ---
+    let currentTicker = "FPT.VN";
+    let currentTickerName = "FPT (Công nghệ)";
+    let apiKey = localStorage.getItem("tradingagents_gemini_api_key") || "";
+    let selectedModel = localStorage.getItem("tradingagents_gemini_model") || "gemini-2.5-flash";
+    let isAnalyzing = false;
+
+    // --- DOM REFERENCES ---
+    const btnOpenApiModal = document.getElementById("btnOpenApiModal");
+    const btnCloseApiModal = document.getElementById("btnCloseApiModal");
+    const apiModal = document.getElementById("apiModal");
+    const inputApiKey = document.getElementById("inputApiKey");
+    const selectGeminiModel = document.getElementById("selectGeminiModel");
+    const btnSaveApiKey = document.getElementById("btnSaveApiKey");
+    const btnTestApiKey = document.getElementById("btnTestApiKey");
+    const apiTestFeedback = document.getElementById("apiTestFeedback");
+    const apiKeyDot = document.getElementById("apiKeyDot");
+    const apiKeyStatusText = document.getElementById("apiKeyStatusText");
+    const btnToggleShowKey = document.getElementById("btnToggleShowKey");
+
+    const tabStocks = document.getElementById("tabStocks");
+    const tabGold = document.getElementById("tabGold");
+    const stocksGrid = document.getElementById("stocksGrid");
+    const goldGrid = document.getElementById("goldGrid");
+    const selectedBadge = document.getElementById("selectedBadge");
+
+    const customTickerInput = document.getElementById("customTickerInput");
+    const btnApplyCustomTicker = document.getElementById("btnApplyCustomTicker");
+    const btnStartAnalysis = document.getElementById("btnStartAnalysis");
+    const btnRunText = document.getElementById("btnRunText");
+    const btnQuickDemo = document.getElementById("btnQuickDemo");
+    const btnHelpGuide = document.getElementById("btnHelpGuide");
+
+    const agentConsole = document.getElementById("agentConsole");
+    const btnClearConsole = document.getElementById("btnClearConsole");
+    const reportContainer = document.getElementById("reportContainer");
+    const decisionCard = document.getElementById("decisionCard");
+    const finalDecisionBadge = document.getElementById("finalDecisionBadge");
+    const finalTickerLabel = document.getElementById("finalTickerLabel");
+    const decisionWeight = document.getElementById("decisionWeight");
+    const decisionHorizon = document.getElementById("decisionHorizon");
+    const pipelineOverallStatus = document.getElementById("pipelineOverallStatus");
+
+    const btnCopyReport = document.getElementById("btnCopyReport");
+    const btnPrintReport = document.getElementById("btnPrintReport");
+
+    // --- INITIALIZATION ---
+    function init() {
+      if (apiKey) {
+        inputApiKey.value = apiKey;
+        updateApiStatusUI(true);
+      } else {
+        updateApiStatusUI(false);
+      }
+      if (selectedModel) {
+        selectGeminiModel.value = selectedModel;
+      }
+      setupEventListeners();
+    }
+
+    function updateApiStatusUI(isConnected) {
+      if (isConnected) {
+        apiKeyDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+        apiKeyStatusText.innerText = "Gemini: Sẵn sàng";
+        apiKeyStatusText.className = "text-emerald-300 font-semibold";
+      } else {
+        apiKeyDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
+        apiKeyStatusText.innerText = "Chưa nhập API Key";
+        apiKeyStatusText.className = "text-slate-300";
+      }
+    }
+
+    // --- LOGGING UTILITY ---
+    function logToConsole(message, type = "info") {
+      const time = new Date().toLocaleTimeString('vi-VN');
+      const div = document.createElement("div");
+      div.className = "flex items-start space-x-1.5";
+      
+      let badgeClass = "text-slate-400";
+      if (type === "system") badgeClass = "text-indigo-400 font-bold";
+      if (type === "agent") badgeClass = "text-amber-400 font-bold";
+      if (type === "success") badgeClass = "text-emerald-400 font-bold";
+      if (type === "error") badgeClass = "text-rose-400 font-bold";
+
+      div.innerHTML = `<span class="text-slate-500 select-none">[${time}]</span> <span class="${badgeClass}">[${type.toUpperCase()}]</span> <span class="text-slate-200">${message}</span>`;
+      agentConsole.appendChild(div);
+      agentConsole.scrollTop = agentConsole.scrollHeight;
+    }
+
+    // --- EVENT LISTENERS ---
+    function setupEventListeners() {
+      // Modal controls
+      btnOpenApiModal.addEventListener("click", () => {
+        apiModal.classList.remove("hidden");
+        apiTestFeedback.classList.add("hidden");
+      });
+      btnCloseApiModal.addEventListener("click", () => apiModal.classList.add("hidden"));
+      btnHelpGuide.addEventListener("click", () => {
+        apiModal.classList.remove("hidden");
+      });
+
+      // Show/Hide Key
+      btnToggleShowKey.addEventListener("click", () => {
+        if (inputApiKey.type === "password") {
+          inputApiKey.type = "text";
+          btnToggleShowKey.innerHTML = '<i class="fa-regular fa-eye-slash"></i>';
+        } else {
+          inputApiKey.type = "password";
+          btnToggleShowKey.innerHTML = '<i class="fa-regular fa-eye"></i>';
+        }
+      });
+
+      // Test Key Connection
+      btnTestApiKey.addEventListener("click", async () => {
+        const testKey = inputApiKey.value.trim();
+        if (!testKey) {
+          showFeedback("Vui lòng dán Google API Key trước khi thử kết nối!", "error");
+          return;
+        }
+        btnTestApiKey.disabled = true;
+        btnTestApiKey.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang thử...';
+        
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${testKey}`);
+          const data = await res.json();
+          if (res.ok && data.models) {
+            showFeedback("✅ Kết nối thành công tới Google AI Studio! Khóa API hợp lệ.", "success");
+          } else {
+            const err = data.error?.message || "Khóa API không hợp lệ hoặc bị từ chối.";
+            showFeedback("❌ Lỗi kết nối: " + err, "error");
+          }
+        } catch (e) {
+          showFeedback("❌ Không thể kết nối tới Google API: " + e.message, "error");
+        } finally {
+          btnTestApiKey.disabled = false;
+          btnTestApiKey.innerHTML = '<i class="fa-solid fa-vial mr-1.5"></i> Thử Kết Nối';
+        }
+      });
+
+      // Save Key
+      btnSaveApiKey.addEventListener("click", () => {
+        const key = inputApiKey.value.trim();
+        if (!key) {
+          alert("Vui lòng điền API Key.");
+          return;
+        }
+        apiKey = key;
+        selectedModel = selectGeminiModel.value;
+        localStorage.setItem("tradingagents_gemini_api_key", apiKey);
+        localStorage.setItem("tradingagents_gemini_model", selectedModel);
+        updateApiStatusUI(true);
+        apiModal.classList.add("hidden");
+        logToConsole(`Đã lưu cấu hình Google Gemini (${selectedModel}). Sẵn sàng thực thi.`, "success");
+      });
+
+      // Tab Switching
+      tabStocks.addEventListener("click", () => {
+        tabStocks.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition duration-200 bg-indigo-600 text-white shadow";
+        tabGold.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition duration-200 text-slate-400 hover:text-slate-200";
+        stocksGrid.classList.remove("hidden");
+        goldGrid.classList.add("hidden");
+      });
+
+      tabGold.addEventListener("click", () => {
+        tabGold.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition duration-200 bg-amber-500 text-slate-950 shadow";
+        tabStocks.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition duration-200 text-slate-400 hover:text-slate-200";
+        goldGrid.classList.remove("hidden");
+        stocksGrid.classList.add("hidden");
+      });
+
+      // Ticker Button Selection
+      document.querySelectorAll(".ticker-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".ticker-btn").forEach(b => {
+            b.classList.remove("active", "bg-indigo-600/20", "border-indigo-500", "bg-amber-500/20", "border-amber-500");
+            b.classList.add("border-slate-800", "bg-slate-900/60");
+          });
+          btn.classList.add("active");
+          if (btn.dataset.ticker.includes("XAU") || btn.dataset.ticker.includes("VANG") || btn.dataset.ticker.includes("PNJ")) {
+            btn.classList.add("bg-amber-500/20", "border-amber-500");
+          } else {
+            btn.classList.add("bg-indigo-600/20", "border-indigo-500");
+          }
+          currentTicker = btn.dataset.ticker;
+          currentTickerName = btn.dataset.name;
+          selectedBadge.innerText = `Đang chọn: ${currentTicker}`;
+          logToConsole(`Đã chọn tài sản: ${currentTicker} (${currentTickerName})`, "info");
+        });
+      });
+
+      // Custom Ticker
+      btnApplyCustomTicker.addEventListener("click", () => {
+        const val = customTickerInput.value.trim().toUpperCase();
+        if (val) {
+          const formatted = val.endsWith(".VN") ? val : `${val}.VN`;
+          currentTicker = formatted;
+          currentTickerName = `${val} (Tùy biến)`;
+          selectedBadge.innerText = `Đang chọn: ${currentTicker}`;
+          logToConsole(`Đã thiết lập mã tùy biến: ${currentTicker}`, "info");
+          document.querySelectorAll(".ticker-btn").forEach(b => {
+            b.classList.remove("active", "bg-indigo-600/20", "border-indigo-500", "bg-amber-500/20", "border-amber-500");
+          });
+        }
+      });
+
+      // Start Analysis
+      btnStartAnalysis.addEventListener("click", () => {
+        if (!apiKey) {
+          apiModal.classList.remove("hidden");
+          showFeedback("Vui lòng cấu hình Google API Key trước khi bắt đầu!", "error");
+          return;
+        }
+        executeMultiAgentAnalysis(currentTicker, currentTickerName, false);
+      });
+
+      // Quick Demo
+      btnQuickDemo.addEventListener("click", () => {
+        executeMultiAgentAnalysis(currentTicker, currentTickerName, true);
+      });
+
+      // Clear Console
+      btnClearConsole.addEventListener("click", () => {
+        agentConsole.innerHTML = "";
+        logToConsole("Đã dọn sạch nhật ký giao diện.", "system");
+      });
+
+      // Copy & Print
+      btnCopyReport.addEventListener("click", () => {
+        const text = reportContainer.innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Đã sao chép nội dung báo cáo vào bộ nhớ tạm!");
+        });
+      });
+
+      btnPrintReport.addEventListener("click", () => {
+        window.print();
+      });
+    }
+
+    function showFeedback(msg, type) {
+      apiTestFeedback.classList.remove("hidden", "bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400", "bg-rose-500/10", "border-rose-500/30", "text-rose-400");
+      if (type === "success") {
+        apiTestFeedback.classList.add("bg-emerald-500/10", "border", "border-emerald-500/30", "text-emerald-400");
+      } else {
+        apiTestFeedback.classList.add("bg-rose-500/10", "border", "border-rose-500/30", "text-rose-400");
+      }
+      apiTestFeedback.innerHTML = msg;
+    }
+
+    // --- MULTI-AGENT EXECUTION ENGINE ---
+    async function executeMultiAgentAnalysis(ticker, tickerName, isDemoMode = false) {
+      if (isAnalyzing) return;
+      isAnalyzing = true;
+      btnStartAnalysis.disabled = true;
+      btnRunText.innerText = "ĐANG SUY LUẬN ĐA TÁC TỬ...";
+      pipelineOverallStatus.innerText = "Đang chạy...";
+      pipelineOverallStatus.className = "text-[10px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full animate-pulse";
+      decisionCard.classList.add("hidden");
+
+      logToConsole(`=== BẮT ĐẦU PHIÊN PHÂN TÍCH: ${ticker} (${tickerName}) ===`, "system");
+      if (isDemoMode) {
+        logToConsole("💡 Chạy chế độ DEMO dữ liệu mẫu chất lượng cao...", "info");
+      }
+
+      // Reset Node Badges
+      resetPipelineNodes();
+
+      const rounds = document.getElementById("selectDebateRounds").value;
+      const riskProfile = document.getElementById("selectRiskProfile").value;
+
+      try {
+        // Step 1: Technical Analyst Node
+        setNodeStatus("node-tech", "working", "Đang quét RSI, MACD, MA...");
+        logToConsole(`[TA] Đang thu thập chỉ báo kỹ thuật RSI (14), MACD, Khối lượng Volume cho ${ticker}...`, "agent");
+        await sleep(1500);
+        setNodeStatus("node-tech", "done", "Hoàn thành");
+
+        // Step 2: Fundamentals & News Analyst Node
+        setNodeStatus("node-fund", "working", "Đang phân tích BCTC & Vĩ mô...");
+        logToConsole(`[FA] Quét dữ liệu định giá P/E, P/B, Biên lợi nhuận và tin tức vĩ mô Ngân hàng Nhà nước...`, "agent");
+        await sleep(1800);
+        setNodeStatus("node-fund", "done", "Hoàn thành");
+
+        // Step 3: Bull vs Bear Debate Node
+        setNodeStatus("node-debate", "working", `Tranh luận ${rounds} vòng...`);
+        logToConsole(`[Bull] Thiết lập luận điểm tăng giá: Dòng tiền tổ chức, hưởng lợi vĩ mô và chu kỳ ngành.`, "agent");
+        await sleep(1500);
+        logToConsole(`[Bear] Phản biện rủi ro: Áp lực chốt lời tại vùng kháng cự, rủi ro tỷ giá và thanh khoản.`, "agent");
+        await sleep(1800);
+        logToConsole(`[RM] Trưởng phòng Nghiên cứu tổng hợp các luận điểm cốt lõi sau ${rounds} hiệp tranh biện.`, "agent");
+        setNodeStatus("node-debate", "done", "Hoàn thành");
+
+        // Step 4: Risk Management Guardians
+        setNodeStatus("node-risk", "working", "Stress-test rủi ro...");
+        logToConsole(`[Risk] Đánh giá khẩu vị rủi ro: ${riskProfile.toUpperCase()}. Tính toán Drawdown và tỷ lệ R:R.`, "agent");
+        await sleep(1500);
+        setNodeStatus("node-risk", "done", "Hoàn thành");
+
+        // Step 5: Portfolio Manager (LLM Execution or Synthesized Demo)
+        setNodeStatus("node-pm", "working", "Ký duyệt quyết định...");
+        logToConsole(`[PM] Portfolio Manager đang tổng hợp dữ liệu và đưa ra quyết định giao dịch tối hậu...`, "agent");
+
+        let generatedReport = "";
+        let decisionData = null;
+
+        if (isDemoMode || !apiKey) {
+          await sleep(2000);
+          decisionData = getMockDecision(ticker);
+          generatedReport = getMockReport(ticker, tickerName, decisionData);
+        } else {
+          // Call Real Google Gemini API
+          const prompt = buildAgentPrompt(ticker, tickerName, rounds, riskProfile);
+          const responseText = await callGeminiAPI(prompt, selectedModel, apiKey);
+          generatedReport = responseText;
+          decisionData = parseDecisionFromText(responseText, ticker);
+        }
+
+        setNodeStatus("node-pm", "done", "Đã duyệt");
+        pipelineOverallStatus.innerText = "Hoàn tất";
+        pipelineOverallStatus.className = "text-[10px] text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full";
+
+        // Display Decision
+        renderDecision(decisionData, ticker);
+
+        // Render Markdown Report
+        reportContainer.innerHTML = marked.parse(generatedReport);
+        logToConsole(`🎉 Báo cáo phân tích toàn diện đã xuất bản thành công!`, "success");
+
+      } catch (err) {
+        logToConsole(`❌ Lỗi thực thi tác tử: ${err.message}`, "error");
+        pipelineOverallStatus.innerText = "Lỗi";
+        pipelineOverallStatus.className = "text-[10px] text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full";
+      } finally {
+        isAnalyzing = false;
+        btnStartAnalysis.disabled = false;
+        btnRunText.innerText = "BẮT ĐẦU PHÂN TÍCH ĐA TÁC TỬ";
+      }
+    }
+
+    // --- NODE STATUS HELPERS ---
+    function resetPipelineNodes() {
+      const nodes = ["node-tech", "node-fund", "node-debate", "node-risk", "node-pm"];
+      nodes.forEach(id => {
+        const el = document.getElementById(id);
+        const badge = el.querySelector(".status-badge");
+        badge.innerText = "Đang chờ";
+        badge.className = "status-badge text-[10px] text-slate-400 font-mono";
+      });
+    }
+
+    function setNodeStatus(nodeId, status, text) {
+      const el = document.getElementById(nodeId);
+      const badge = el.querySelector(".status-badge");
+      badge.innerText = text;
+      if (status === "working") {
+        badge.className = "status-badge text-[10px] text-amber-300 font-mono font-bold animate-pulse";
+      } else if (status === "done") {
+        badge.className = "status-badge text-[10px] text-emerald-400 font-mono font-bold";
+      } else if (status === "error") {
+        badge.className = "status-badge text-[10px] text-rose-400 font-mono font-bold";
+      }
+    }
+
+    // --- GEMINI API CALLER ---
+    async function callGeminiAPI(prompt, model, key) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      
+      const payload = {
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.15,
+          maxOutputTokens: 8192
+        }
+      };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || "Lỗi gọi Gemini API");
+      }
+
+      const resData = await response.json();
+      return resData.candidates?.[0]?.content?.parts?.[0]?.text || "Không nhận được phản hồi từ mô hình.";
+    }
+
+    function buildAgentPrompt(ticker, name, rounds, risk) {
+      return `Bạn là Giám đốc Hệ thống Multi-Agent TradingAgents AI Pro chuyên sâu về Thị trường Tài chính Việt Nam.
+Hãy đóng vai toàn bộ Hội đồng Phân tích Đa Tác tử gồm:
+1. Technical Analyst (Chuyên viên Kỹ thuật - RSI, MACD, MA20, MA50, Kháng cự/Hỗ trợ)
+2. Fundamentals & Macro Analyst (Chuyên viên Cơ bản & Vĩ mô - P/E, P/B, Lợi nhuận, Tỷ giá, Lãi suất NHNN)
+3. Bullish Researcher (Chuyên viên phe Tăng giá)
+4. Bearish Researcher (Chuyên viên phe Giảm giá)
+5. Research Manager (Trưởng phòng Nghiên cứu điều phối tranh luận ${rounds} vòng)
+6. Risk Management Guardians (Hội đồng Quản trị rủi ro khẩu vị: ${risk})
+7. Portfolio Manager (Giám đốc Danh mục ra quyết định tối hậu).
+
+Tài sản phân tích: "${ticker}" (${name}).
+Chỉ số Benchmark so sánh: E1VFVN30.VN (VN30 ETF).
+
+Hãy viết bản Báo cáo Phân tích Tài chính Toàn diện bằng TIẾNG VIỆT, cấu trúc Markdown rõ ràng, chuyên nghiệp như báo cáo của SSI, Bản Việt (VCSC), HSC hoặc VNDIRECT:
+
+BẮT BUỘC có khối thông tin quyết định tối hậu ở đầu báo cáo theo đúng định dạng sau:
+\`\`\`
+**RATING**: [MUA MẠNH / MUA / NẮM GIỮ / BÁN / BÁN MẠNH]
+**TICKER**: ${ticker}
+**TỶ TRỌNG PHÂN BỔ**: [Ví dụ: 15% - 25% NAV]
+**VÙNG GIÁ MUA**: [Giá cụ thể]
+**MỤC TIÊU (TARGET PRICE)**: [Giá cụ thể]
+**CẮT LỖ (STOP-LOSS)**: [Giá cụ thể]
+**TỶ LỆ RISK/REWARD**: [Ví dụ: 1 : 2.5]
+**KHUNG THỜI GIAN**: [Ví dụ: T+15 đến T+45 ngày]
+\`\`\`
+
+Sau đó là các phần chi tiết:
+# I. TỔNG QUAN TÀI SẢN & BỐI CẢNH THỊ TRƯỜNG VIỆT NAM
+# II. PHÂN TÍCH KỸ THUẬT (TECHNICAL ANALYSIS)
+# III. PHÂN TÍCH CƠ BẢN & VĨ MÔ (FUNDAMENTALS & MACRO)
+# IV. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
+# V. THẨM ĐỊNH QUẢN TRỊ RỦI RO & BẢO VỆ DANH MỤC
+# VI. KẾT LUẬN & CHIẾN LƯỢC ĐI TIỀN CỦA PORTFOLIO MANAGER
+
+Lưu ý: Nếu tài sản là Vàng (XAUUSD hoặc VANG_SJC hoặc PNJ.VN), hãy phân tích kỹ tác động của giá vàng thế giới, tỷ giá USD/VND, nghị định quản lý thị trường vàng của Ngân hàng Nhà nước và chênh lệch vàng SJC trong nước.`;
+    }
+
+    function parseDecisionFromText(text, ticker) {
+      let rating = "MUA (BUY)";
+      let weight = "15% - 20% NAV";
+      let horizon = "T+20 đến T+45";
+
+      if (text.includes("MUA MẠNH") || text.includes("STRONG BUY")) rating = "MUA MẠNH (BUY)";
+      else if (text.includes("BÁN MẠNH") || text.includes("STRONG SELL")) rating = "BÁN MẠNH (SELL)";
+      else if (text.includes("BÁN") || text.includes("SELL")) rating = "BÁN (SELL)";
+      else if (text.includes("NẮM GIỮ") || text.includes("HOLD")) rating = "NẮM GIỮ (HOLD)";
+
+      const weightMatch = text.match(/TỶ TRỌNG PHÂN BỔ\*\*:\s*([^\n\r]+)/i);
+      if (weightMatch) weight = weightMatch[1].trim();
+
+      const horizonMatch = text.match(/KHUNG THỜI GIAN\*\*:\s*([^\n\r]+)/i);
+      if (horizonMatch) horizon = horizonMatch[1].trim();
+
+      return { rating, weight, horizon };
+    }
+
+    function renderDecision(data, ticker) {
+      decisionCard.classList.remove("hidden");
+      finalTickerLabel.innerText = ticker;
+      decisionWeight.innerText = data.weight;
+      decisionHorizon.innerText = data.horizon;
+      finalDecisionBadge.innerText = data.rating;
+
+      if (data.rating.includes("MUA")) {
+        finalDecisionBadge.className = "px-4 py-1.5 rounded-xl font-black text-sm uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/25";
+      } else if (data.rating.includes("BÁN")) {
+        finalDecisionBadge.className = "px-4 py-1.5 rounded-xl font-black text-sm uppercase tracking-wider bg-rose-500 text-white shadow-lg shadow-rose-500/25";
+      } else {
+        finalDecisionBadge.className = "px-4 py-1.5 rounded-xl font-black text-sm uppercase tracking-wider bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/25";
+      }
+    }
+
+    // --- MOCK DATA FOR DEMO MODE ---
+    function getMockDecision(ticker) {
+      if (ticker === "HPG.VN" || ticker === "FPT.VN" || ticker.includes("XAU") || ticker.includes("VANG") || ticker === "PNJ.VN") {
+        return { rating: "MUA TÍCH LŨY (BUY)", weight: "20% - 25% NAV", horizon: "T+30 đến T+60 ngày" };
+      }
+      return { rating: "NẮM GIỮ (HOLD)", weight: "10% NAV", horizon: "Theo dõi thêm" };
+    }
+
+    function getMockReport(ticker, name, dec) {
+      if (ticker.includes("XAU") || ticker.includes("VANG") || ticker === "PNJ.VN") {
+        return `\`\`\`
+**RATING**: ${dec.rating}
+**TICKER**: ${ticker}
+**TỶ TRỌNG PHÂN BỔ**: ${dec.weight}
+**VÙNG GIÁ MUA**: Vùng hỗ trợ kỹ thuật và mua gom từng phần
+**MỤC TIÊU (TARGET PRICE)**: Kỳ vọng tăng trưởng 12% - 18%
+**CẮT LỖ (STOP-LOSS)**: Cắt khi vi phạm MA50 hoặc giảm quá 5%
+**TỶ LỆ RISK/REWARD**: 1 : 2.8
+**KHUNG THỜI GIAN**: ${dec.horizon}
+\`\`\`
+
+# BÁO CÁO PHÂN TÍCH TOÀN DIỆN THỊ TRƯỜNG VÀNG & TÀI SẢN LIÊN QUAN
+
+### I. TỔNG QUAN TÀI SẢN & BỐI CẢNH THỊ TRƯỜNG
+- **Tài sản nghiên cứu:** **${ticker}** (${name}).
+- **Đặc thù thị trường:** Thị trường vàng Việt Nam chịu sự chi phối mạnh mẽ từ ba nhân tố cốt lõi:
+  1. *Xu hướng Vàng quốc tế (XAU/USD)* neo theo chính sách lãi suất của Cục Dự trữ Liên bang Mỹ (Fed) và căng thẳng địa chính trị toàn cầu.
+  2. *Biến động Tỷ giá USD/VND* tác động trực tiếp đến chi phí nhập khẩu và giá vàng quy đổi trong nước.
+  3. *Chính sách điều hành của Ngân hàng Nhà nước (NHNN)* nhằm thu hẹp chênh lệch giữa vàng miếng SJC và vàng thế giới.
+
+### II. PHÂN TÍCH KỸ THUẬT (TECHNICAL ANALYST)
+- **Chỉ báo RSI (14):** Đang dao động ở vùng **54.2**, trạng thái trung tính tích lũy, không rơi vào vùng quá mua hay quá bán.
+- **Xu hướng Đường Trung Bình (Moving Averages):** Giá duy trì vững chắc trên đường **MA20** và **MA50**, củng cố xu hướng tăng trung hạn (Bullish).
+- **Hỗ trợ & Kháng cự:** Vùng hỗ trợ then chốt gần nhất được bảo vệ vững chắc; áp lực bán chốt lời chỉ xuất hiện khi giá chạm các mốc đỉnh lịch sử.
+
+### III. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
+- 🐂 **Phe Bò (Bullish Researcher):** Nhu cầu tích trữ tài sản phòng vệ lạm phát tăng cao trong bối cảnh địa chính trị biến động. Vàng nhẫn 9999 và cổ phiếu PNJ tiếp tục ghi nhận lực cầu tiêu thụ kỷ lục.
+- 🐻 **Phe Gấu (Bearish Researcher):** Chênh lệch giá vàng miếng SJC trong nước và thế giới có thời điểm neo cao; can thiệp của cơ quan quản lý có thể kích hoạt các nhịp điều chỉnh ngắn hạn bất ngờ.
+- ⚖️ **Kết luận Research Manager:** Lực cầu cơ bản dài hạn vượt trội áp lực ngắn hạn. Chiến lược phù hợp là mua tích lũy theo từng đợt giải ngân, không mua đuổi khi giá tăng nóng.
+
+### IV. QUYẾT ĐỊNH TỐI HẬU CỦA PORTFOLIO MANAGER
+- **Khuyến nghị:** **${dec.rating}**.
+- **Tỷ trọng phân bổ:** Giải ngân từng phần từ **${dec.weight}**, thiết lập kỷ luật cắt lỗ nghiêm ngặt.`;
+      }
+
+      return `\`\`\`
+**RATING**: ${dec.rating}
+**TICKER**: ${ticker}
+**TỶ TRỌNG PHÂN BỔ**: ${dec.weight}
+**VÙNG GIÁ MUA**: Vùng tích lũy nền giá vững chắc quanh MA20
+**MỤC TIÊU (TARGET PRICE)**: Kỳ vọng tỷ suất sinh lời 15% - 22%
+**CẮT LỖ (STOP-LOSS)**: Cắt lỗ khi thủng đường xu hướng MA50 (-5.5%)
+**TỶ LỆ RISK/REWARD**: 1 : 3.0
+**KHUNG THỜI GIAN**: ${dec.horizon}
+\`\`\`
+
+# BÁO CÁO PHÂN TÍCH TOÀN DIỆN CỔ PHIẾU ${ticker}
+
+### I. TỔNG QUAN DOANH NGHIỆP & BỐI CẢNH THỊ TRƯỜNG CHỨNG KHOÁN VIỆT NAM
+- **Mã cổ phiếu:** **${ticker}** (${name}).
+- **Benchmark so sánh:** **E1VFVN30.VN** (Quỹ ETF chỉ số VN30).
+- **Vị thế ngành:** Doanh nghiệp đầu ngành với bảng cân đối kế toán lành mạnh, dòng tiền kinh doanh dồi dào và tỷ lệ đòn bẩy tài chính ở mức an toàn.
+
+### II. PHÂN TÍCH KỸ THUẬT (TECHNICAL ANALYST)
+- **Động lượng Giá & Khối lượng:** Cổ phiếu vừa thoát khỏi kênh tích lũy với thanh khoản bùng nổ, xác nhận dòng tiền lớn của các tổ chức và khối ngoại tham gia.
+- **Chỉ báo MACD & RSI:** MACD cắt lên trên đường tín hiệu (Signal Line) phát tín hiệu mua; RSI duy trì ở mức **58.6**, còn dư địa tăng trưởng mạnh mẽ trước khi vào vùng quá mua.
+
+### III. PHÂN TÍCH CƠ BẢN & ĐỊNH GIÁ (FUNDAMENTALS & VALUATION)
+- **Định giá P/E & P/B:** P/E dự phóng ở mức hấp dẫn so với tiềm năng tăng trưởng EPS trong 12 tháng tới.
+- **Lợi thế cạnh tranh (Moat):** Sở hữu rào cản gia nhập ngành cao, biên lợi nhuận gộp ổn định và thị phần chi phối.
+
+### IV. TRANH BIỆN ĐỐI KHÁNG (BULL VS BEAR DEBATE)
+- 🐂 **Phe Bò (Bullish):** Doanh thu tăng trưởng 2 con số; hưởng lợi từ xu hướng vĩ mô và làn sóng dòng vốn FDI/chuyển đổi số.
+- 🐻 **Phe Gấu (Bearish):** Rủi ro điều chỉnh chung của chỉ số VN-Index khi tiệm cận vùng kháng cự tâm lý.
+- ⚖️ **Trưởng phòng Nghiên cứu (Research Manager):** Khẳng định cơ hội tăng trưởng trung và dài hạn vượt trội rủi ro rung lắc ngắn hạn.
+
+### V. KẾT LUẬN CỦA PORTFOLIO MANAGER
+- **Quyết định:** **${dec.rating}**.
+- **Chiến lược:** Mua tích lũy trong các nhịp điều chỉnh; tuân thủ nghiêm ngặt nguyên tắc cắt lỗ khi thủng hỗ trợ.`;
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Run Init
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
