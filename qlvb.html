@@ -7081,21 +7081,229 @@ table.sig-table td, table.layout-noborder td { border: none; }
         return { downloads: [{ label: ext, blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
     }
 
+    function dtXmlEscape(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+
+    async function dtBuildDocxBlobFromGeoPages(geoPages) {
+        const zip = new JSZip();
+        zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+        zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+
+        let bodyXml = '';
+        geoPages.forEach((page, pIdx) => {
+            if (pIdx > 0) {
+                bodyXml += `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+            }
+            page.blocks.forEach(blk => {
+                if (blk.type === 'table') {
+                    const colCount = Math.max(1, ...blk.rows.map(r => r.length));
+                    const colW = Math.floor(9000 / colCount);
+                    bodyXml += `<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/><w:tblBorders>
+                        <w:top w:val="single" w:sz="4" w:space="0" w:color="334155"/>
+                        <w:left w:val="single" w:sz="4" w:space="0" w:color="334155"/>
+                        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="334155"/>
+                        <w:right w:val="single" w:sz="4" w:space="0" w:color="334155"/>
+                        <w:insideH w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/>
+                        <w:insideV w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/>
+                    </w:tblBorders></w:tblPr>`;
+                    blk.rows.forEach(row => {
+                        bodyXml += `<w:tr>`;
+                        for (let c = 0; c < colCount; c++) {
+                            const cellText = row[c] || '';
+                            const lines = cellText.split('\n');
+                            bodyXml += `<w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/></w:tcPr>`;
+                            lines.forEach(ln => {
+                                bodyXml += `<w:p><w:pPr><w:spacing w:after="40"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">${dtXmlEscape(ln)}</w:t></w:r></w:p>`;
+                            });
+                            bodyXml += `</w:tc>`;
+                        }
+                        bodyXml += `</w:tr>`;
+                    });
+                    bodyXml += `</w:tbl><w:p><w:pPr><w:spacing w:after="80"/></w:pPr></w:p>`;
+                } else {
+                    const jc = blk.align === 'center' ? 'center' : blk.align === 'right' ? 'right' : 'both';
+                    const szHalfPt = Math.max(20, Math.min(36, Math.round((blk.fontSize || 12) * 2)));
+                    const boldXml = blk.isBold ? '<w:b/>' : '';
+                    const lines = (blk.finalText || '').split('\n');
+                    lines.forEach(ln => {
+                        bodyXml += `<w:p><w:pPr><w:jc w:val="${jc}"/><w:spacing w:after="100"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>${boldXml}<w:sz w:val="${szHalfPt}"/></w:rPr><w:t xml:space="preserve">${dtXmlEscape(ln)}</w:t></w:r></w:p>`;
+                    });
+                }
+            });
+        });
+
+        zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    ${bodyXml}
+    <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="850" w:bottom="1134" w:left="1417"/></w:sectPr>
+  </w:body>
+</w:document>`);
+        return zip.generateAsync({ type: 'blob' });
+    }
+
+    // ONLYOFFICE DocxRenderer-inspired 3-Stage Geometric Layout Reconstruction for PDF
     async function dtTranslatePdfBrowser(file, cfg) {
         const buf = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-        const pageTexts = [];
+        const geoPages = [];
+        const textsToTranslate = [];
+        const targets = [];
+
         for (let p = 1; p <= pdf.numPages; p++) {
-            dtSetProgress(Math.round((p / pdf.numPages) * 15), `Đang đọc trang PDF ${p}/${pdf.numPages}...`);
+            dtSetProgress(Math.round((p / pdf.numPages) * 15), `Đang phân tích hình học trang PDF ${p}/${pdf.numPages}...`);
             const page = await pdf.getPage(p);
+            const viewport = page.getViewport({ scale: 1.0 });
+            const pageWidth = viewport.width || 595;
             const tc = await page.getTextContent();
-            const str = tc.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
-            pageTexts.push(str || `[Trang ${p} không có lớp chữ — hãy dùng tab Chuyển PDF sang Word/OCR hoặc chế độ Server MinerU]`);
+
+            // Stage I: Collect text primitives with (x, y, w, h, fontSize)
+            const items = [];
+            for (const it of tc.items) {
+                if (!it.str || !it.str.trim()) continue;
+                const tr = it.transform || [1, 0, 0, 12, 0, 0];
+                const fontSize = Math.hypot(tr[2], tr[3]) || it.height || 12;
+                const x = tr[4];
+                const y = viewport.height - tr[5];
+                const w = it.width || (it.str.length * fontSize * 0.5);
+                const fontName = (tc.styles?.[it.fontName]?.fontFamily || it.fontName || '').toLowerCase();
+                const isBold = fontName.includes('bold') || fontName.includes('black');
+                items.push({ str: it.str, x, y, w, fontSize, isBold });
+            }
+
+            // Stage II: BuildLines (group by Y tolerance)
+            items.sort((a, b) => a.y - b.y || a.x - b.x);
+            const lines = [];
+            for (const it of items) {
+                const tol = Math.max(4, it.fontSize * 0.45);
+                let line = lines.find(ln => Math.abs(ln.y - it.y) <= tol);
+                if (!line) {
+                    line = { y: it.y, items: [], fontSize: it.fontSize, isBold: it.isBold };
+                    lines.push(line);
+                }
+                line.items.push(it);
+                if (it.fontSize > line.fontSize) line.fontSize = it.fontSize;
+                if (it.isBold) line.isBold = true;
+            }
+
+            // Split each line into horizontal cells if large X-gap exists (tabular detection)
+            lines.forEach(ln => {
+                ln.items.sort((a, b) => a.x - b.x);
+                ln.cells = [];
+                let cur = null;
+                for (const it of ln.items) {
+                    if (!cur) {
+                        cur = { x: it.x, xEnd: it.x + it.w, text: it.str };
+                    } else {
+                        const gap = it.x - cur.xEnd;
+                        if (gap > Math.max(18, ln.fontSize * 1.8)) {
+                            ln.cells.push(cur);
+                            cur = { x: it.x, xEnd: it.x + it.w, text: it.str };
+                        } else {
+                            cur.text += (gap > 2 ? ' ' : '') + it.str;
+                            cur.xEnd = Math.max(cur.xEnd, it.x + it.w);
+                        }
+                    }
+                }
+                if (cur) ln.cells.push(cur);
+                ln.xMin = ln.cells[0]?.x ?? 0;
+                ln.xMax = ln.cells[ln.cells.length - 1]?.xEnd ?? 0;
+                ln.fullText = ln.cells.map(c => c.text).join(' ').replace(/\s+/g, ' ').trim();
+            });
+
+            // BuildTables & BuildParagraphs
+            const blocks = [];
+            let i = 0;
+            while (i < lines.length) {
+                const ln = lines[i];
+                if (ln.cells.length >= 2) {
+                    // Collect consecutive multi-cell lines as a table
+                    const tableRows = [];
+                    while (i < lines.length && lines[i].cells.length >= 2) {
+                        tableRows.push(lines[i].cells.map(c => c.text.trim()));
+                        i++;
+                    }
+                    if (tableRows.length >= 2) {
+                        const blk = { type: 'table', rows: tableRows };
+                        blocks.push(blk);
+                        tableRows.forEach((row, rIdx) => {
+                            row.forEach((cellTxt, cIdx) => {
+                                if (cellTxt.trim()) {
+                                    targets.push({ kind: 'cell', blk, rIdx, cIdx, orig: cellTxt });
+                                    textsToTranslate.push(cellTxt);
+                                }
+                            });
+                        });
+                    } else {
+                        const txt = tableRows[0].join('   ');
+                        const blk = { type: 'para', orig: txt, finalText: txt, align: 'left', fontSize: ln.fontSize, isBold: ln.isBold };
+                        blocks.push(blk);
+                        targets.push({ kind: 'para', blk, orig: txt });
+                        textsToTranslate.push(txt);
+                    }
+                } else {
+                    const mid = (ln.xMin + ln.xMax) / 2;
+                    let align = 'left';
+                    if (Math.abs(mid - pageWidth / 2) < 30 && (ln.xMax - ln.xMin) < pageWidth * 0.78) align = 'center';
+                    else if (ln.xMin > pageWidth * 0.45 && ln.xMax > pageWidth * 0.8) align = 'right';
+
+                    const blk = { type: 'para', orig: ln.fullText, finalText: ln.fullText, align, fontSize: ln.fontSize, isBold: ln.isBold };
+                    blocks.push(blk);
+                    targets.push({ kind: 'para', blk, orig: ln.fullText });
+                    textsToTranslate.push(ln.fullText);
+                    i++;
+                }
+            }
+
+            if (blocks.length === 0) {
+                blocks.push({ type: 'para', orig: `[Trang ${p} không có lớp chữ — hãy dùng chế độ Server MinerU hoặc tab OCR]`, finalText: `[Trang ${p} không có lớp chữ — hãy dùng chế độ Server MinerU hoặc tab OCR]`, align: 'left', fontSize: 11, isBold: false });
+            }
+            geoPages.push({ pageNum: p, blocks });
         }
-        const { results, stats } = await dtTranslateSegmentsInBatches(pageTexts, cfg);
-        const mdOut = results.map((t, i) => `## Trang ${i + 1}\n\n${cfg.insertMode === 'append' ? pageTexts[i] + '\n\n' + t : cfg.insertMode === 'prepend' ? t + '\n\n' + pageTexts[i] : t}`).join('\n\n---\n\n');
-        const outBlob = new Blob([mdOut], { type: 'text/markdown;charset=utf-8' });
-        return { downloads: [{ label: 'MARKDOWN', blob: outBlob, filename: file.name.replace(/\.pdf$/i, '_translated.md') }], stats };
+
+        const { results, stats } = await dtTranslateSegmentsInBatches(textsToTranslate, cfg);
+        targets.forEach((tgt, idx) => {
+            const trans = results[idx];
+            const finalStr = cfg.insertMode === 'append' ? `${tgt.orig}\n${trans}`
+                : cfg.insertMode === 'prepend' ? `${trans}\n${tgt.orig}` : trans;
+            if (tgt.kind === 'cell') {
+                tgt.blk.rows[tgt.rIdx][tgt.cIdx] = finalStr;
+            } else {
+                tgt.blk.finalText = finalStr;
+            }
+        });
+
+        // Stage III: Generate native OOXML .docx + Markdown
+        const docxBlob = await dtBuildDocxBlobFromGeoPages(geoPages);
+        const mdOut = geoPages.map(gp => {
+            const body = gp.blocks.map(b => b.type === 'table'
+                ? b.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n')
+                : b.finalText).join('\n\n');
+            return `## Trang ${gp.pageNum}\n\n${body}`;
+        }).join('\n\n---\n\n');
+        const mdBlob = new Blob([mdOut], { type: 'text/markdown;charset=utf-8' });
+
+        return {
+            downloads: [
+                { label: 'DOCX (Giữ bảng & bố cục)', blob: docxBlob, filename: file.name.replace(/\.pdf$/i, '_translated.docx') },
+                { label: 'MARKDOWN', blob: mdBlob, filename: file.name.replace(/\.pdf$/i, '_translated.md') }
+            ],
+            stats
+        };
     }
 
     async function dtRunBrowserTranslation() {
