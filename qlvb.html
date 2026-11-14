@@ -1185,6 +1185,10 @@ Next k
                                     <input type="radio" name="transInputMode" value="excel" checked onchange="switchTransMode('excel')" class="w-4 h-4 text-sky-600 focus:ring-sky-500">
                                     <span>📊 Từ Excel (File / Ô)</span>
                                 </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer bg-cyan-50 border border-cyan-300 px-2 py-0.5 rounded-md">
+                                    <input type="radio" name="transInputMode" value="docutranslate" onchange="switchTransMode('docutranslate')" class="w-4 h-4 text-cyan-600 focus:ring-cyan-500">
+                                    <span class="text-cyan-800 font-bold">🚀 DocuTranslate Pro (Giữ bố cục File)</span>
+                                </label>
                             </div>
                         </div>
 
@@ -1325,6 +1329,124 @@ Next k
                                 </div>
                                 <textarea id="transWordTgtText" oninput="autoResizeTextarea(this)" rows="8" placeholder="Kết quả dịch văn bản sẽ xuất hiện tại đây..." class="w-full border border-slate-300 rounded p-2.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[220px] transition-all overflow-y-hidden"></textarea>
                             </div>
+                        </div>
+                    </div>
+
+                    <div id="transDocuTranslatePanel" class="hidden space-y-3 border border-cyan-200 rounded-lg p-3 bg-gradient-to-br from-slate-50 to-cyan-50/40">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-200 pb-2.5">
+                            <div>
+                                <div class="font-bold text-cyan-900 text-sm flex items-center gap-2">
+                                    <i class="fa-solid fa-rocket text-cyan-600"></i> DocuTranslate AI Engine (Giữ nguyên bố cục DOCX / XLSX / PPTX / PDF / EPUB / SRT)
+                                </div>
+                                <div class="text-[11px] text-slate-600 mt-0.5">
+                                    Kết nối trực tiếp tới hệ thống <code class="bg-slate-200 px-1 rounded text-slate-800">docutranslate</code> trên máy (chạy lệnh <code class="bg-slate-800 text-emerald-300 px-1.5 py-0.5 rounded select-all">docutranslate -i -p 8010 --cors</code>) hoặc server riêng.
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="dtServerStatusBadge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700">Chưa kiểm tra</span>
+                                <button onclick="checkDocuTranslateHealth()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-1.5 rounded shadow-sm text-xs flex items-center gap-1.5">
+                                    <i class="fa-solid fa-plug-circle-check"></i> Kiểm tra kết nối
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">DocuTranslate Server URL:</label>
+                                <input type="text" id="dtServerUrl" value="http://127.0.0.1:8010" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Nhà cung cấp LLM:</label>
+                                <select id="dtProviderPreset" onchange="dtOnPresetChange()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                                    <option value="openai">OpenAI (api.openai.com)</option>
+                                    <option value="deepseek">DeepSeek (api.deepseek.com)</option>
+                                    <option value="gemini">Google Gemini (OpenAI-compat)</option>
+                                    <option value="openrouter">OpenRouter (openrouter.ai)</option>
+                                    <option value="ollama">Ollama Local (127.0.0.1:11434)</option>
+                                    <option value="custom">Tùy chỉnh (Custom Base URL)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Base URL (OpenAI-compatible):</label>
+                                <input type="text" id="dtBaseUrl" value="https://api.openai.com/v1" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Model ID:</label>
+                                <input type="text" id="dtModelId" value="gpt-4o-mini" onchange="dtSaveConfig()" placeholder="gpt-4o-mini, deepseek-chat, gemini-2.5-flash..." class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">API Key LLM:</label>
+                                <input type="password" id="dtApiKey" onchange="dtSaveConfig()" placeholder="sk-..." class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Chế độ chèn (Office/HTML/SRT):</label>
+                                <select id="dtInsertMode" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                                    <option value="replace">Thay thế nguyên bản (Replace)</option>
+                                    <option value="append">Song ngữ: Gốc trước + Dịch sau (Append)</option>
+                                    <option value="prepend">Song ngữ: Dịch trước + Gốc sau (Prepend)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Xuất Word cho PDF/MD (md2docx_engine):</label>
+                                <select id="dtMd2DocxEngine" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                                    <option value="auto">Tự động (Auto: Pandoc / Python)</option>
+                                    <option value="python">Thuần Python (python-docx)</option>
+                                    <option value="pandoc">Pandoc</option>
+                                    <option value="">Chỉ xuất Markdown / HTML</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">MinerU Token (nếu dịch PDF/Ảnh):</label>
+                                <input type="password" id="dtMineruToken" onchange="dtSaveConfig()" placeholder="Tùy chọn cho PDF/Ảnh..." class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs items-end">
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-slate-700 mb-1">Custom Prompt (Tùy chọn ngữ cảnh chuyên ngành xây dựng / pháp lý):</label>
+                                <input type="text" id="dtCustomPrompt" onchange="dtSaveConfig()" placeholder="Ví dụ: Dịch chuẩn thuật ngữ xây dựng, hợp đồng FIDIC và pháp luật Việt Nam..." class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                            </div>
+                            <div class="flex items-center gap-4 pb-1.5">
+                                <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700">
+                                    <input type="checkbox" id="dtGlossaryEnable" onchange="dtSaveConfig()" class="w-4 h-4 text-cyan-600 rounded">
+                                    <span>Tự tạo Glossary</span>
+                                </label>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-slate-700">Luồng:</span>
+                                    <input type="number" id="dtConcurrent" value="10" min="1" max="50" onchange="dtSaveConfig()" class="w-16 border border-slate-300 rounded px-2 py-1 bg-white">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-cyan-200">
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="dtFileInput" accept=".pdf,.docx,.xlsx,.csv,.pptx,.md,.markdown,.txt,.html,.htm,.json,.srt,.ass,.epub,.png,.jpg,.jpeg,.webp" class="hidden" onchange="handleDtFileSelect(event)">
+                                <button onclick="document.getElementById('dtFileInput').click()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-3.5 py-2 rounded shadow-sm flex items-center gap-1.5 text-xs">
+                                    <i class="fa-solid fa-file-arrow-up text-amber-300"></i> Chọn Tài Liệu (PDF, DOCX, XLSX, PPTX, SRT...)
+                                </button>
+                                <span id="dtSelectedFileName" class="font-semibold text-slate-700 text-xs">Chưa chọn tệp...</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="runDocuTranslateTask()" id="dtBtnRun" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow flex items-center gap-1.5 text-xs">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Dịch Bằng DocuTranslate
+                                </button>
+                                <button onclick="cancelDocuTranslateTask()" id="dtBtnCancel" class="hidden bg-rose-600 hover:bg-rose-700 text-white font-bold px-3.5 py-2 rounded shadow flex items-center gap-1.5 text-xs">
+                                    <i class="fa-solid fa-stop"></i> Hủy
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="dtProgressArea" class="hidden space-y-2 bg-white p-2.5 rounded border border-cyan-200">
+                            <div class="flex items-center justify-between text-xs font-bold">
+                                <span id="dtStatusTxt" class="text-cyan-800">Đang khởi tạo...</span>
+                                <span id="dtProgressTxt" class="text-cyan-700">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                <div id="dtProgressBar" class="bg-cyan-600 h-2.5 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <div id="dtStatsBox" class="hidden text-[11px] text-slate-600 font-medium bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200"></div>
+                            <div id="dtDownloadButtons" class="hidden flex flex-wrap items-center gap-2 pt-1"></div>
+                            <pre id="dtLogsBox" class="bg-slate-900 text-emerald-300 text-[11px] p-2.5 rounded max-h-48 overflow-y-auto font-mono whitespace-pre-wrap"></pre>
                         </div>
                     </div>
 
@@ -3957,6 +4079,8 @@ function uploadFileToDrive(fileName, mimeType, base64Data) {
             document.getElementById('transManualPanel').classList.toggle('hidden', mode !== 'manual');
             document.getElementById('transExcelPanel').classList.toggle('hidden', mode !== 'excel');
             document.getElementById('transDocPanel').classList.toggle('hidden', mode !== 'docFile');
+            const dtPanel = document.getElementById('transDocuTranslatePanel');
+            if (dtPanel) dtPanel.classList.toggle('hidden', mode !== 'docutranslate');
         }
 
         function toggleGeminiApiKeyInput() {
@@ -6115,6 +6239,267 @@ table.sig-table td, table.layout-noborder td { border: none; }
         if (progressLabel) progressLabel.innerText = `Hoàn tất bóc tách tổng cộng ${totalLinesScannedSession} dòng văn bản!`;
         showToast(`Đã hoàn tất quét và trích xuất ${totalLinesScannedSession} dòng văn bản!`, 'success');
     }
+
+    // ==================== DOCUTRANSLATE PRO INTEGRATION ====================
+    let dtSelectedFile = null;
+    let dtCurrentTaskId = null;
+    let dtPollTimer = null;
+
+    const DT_PRESETS = {
+        openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+        deepseek: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
+        gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-flash' },
+        openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.5-flash' },
+        ollama: { baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen2.5:7b' }
+    };
+
+    function dtGetBaseServerUrl() {
+        const raw = (document.getElementById('dtServerUrl')?.value || 'http://127.0.0.1:8010').trim();
+        return raw.replace(/\/+$/, '');
+    }
+
+    function dtSaveConfig() {
+        try {
+            const cfg = {
+                serverUrl: document.getElementById('dtServerUrl')?.value || '',
+                preset: document.getElementById('dtProviderPreset')?.value || 'openai',
+                baseUrl: document.getElementById('dtBaseUrl')?.value || '',
+                modelId: document.getElementById('dtModelId')?.value || '',
+                apiKey: document.getElementById('dtApiKey')?.value || '',
+                insertMode: document.getElementById('dtInsertMode')?.value || 'replace',
+                md2docxEngine: document.getElementById('dtMd2DocxEngine')?.value ?? 'auto',
+                mineruToken: document.getElementById('dtMineruToken')?.value || '',
+                customPrompt: document.getElementById('dtCustomPrompt')?.value || '',
+                glossaryEnable: !!document.getElementById('dtGlossaryEnable')?.checked,
+                concurrent: document.getElementById('dtConcurrent')?.value || '10'
+            };
+            localStorage.setItem('qlvb_docutranslate_cfg', JSON.stringify(cfg));
+        } catch (e) { console.warn('Không lưu được cấu hình DocuTranslate:', e); }
+    }
+
+    function dtLoadConfig() {
+        try {
+            const raw = localStorage.getItem('qlvb_docutranslate_cfg');
+            if (!raw) return;
+            const cfg = JSON.parse(raw);
+            if (cfg.serverUrl && document.getElementById('dtServerUrl')) document.getElementById('dtServerUrl').value = cfg.serverUrl;
+            if (cfg.preset && document.getElementById('dtProviderPreset')) document.getElementById('dtProviderPreset').value = cfg.preset;
+            if (cfg.baseUrl && document.getElementById('dtBaseUrl')) document.getElementById('dtBaseUrl').value = cfg.baseUrl;
+            if (cfg.modelId && document.getElementById('dtModelId')) document.getElementById('dtModelId').value = cfg.modelId;
+            if (cfg.apiKey && document.getElementById('dtApiKey')) document.getElementById('dtApiKey').value = cfg.apiKey;
+            if (cfg.insertMode && document.getElementById('dtInsertMode')) document.getElementById('dtInsertMode').value = cfg.insertMode;
+            if (cfg.md2docxEngine !== undefined && document.getElementById('dtMd2DocxEngine')) document.getElementById('dtMd2DocxEngine').value = cfg.md2docxEngine;
+            if (cfg.mineruToken && document.getElementById('dtMineruToken')) document.getElementById('dtMineruToken').value = cfg.mineruToken;
+            if (cfg.customPrompt && document.getElementById('dtCustomPrompt')) document.getElementById('dtCustomPrompt').value = cfg.customPrompt;
+            if (document.getElementById('dtGlossaryEnable')) document.getElementById('dtGlossaryEnable').checked = !!cfg.glossaryEnable;
+            if (cfg.concurrent && document.getElementById('dtConcurrent')) document.getElementById('dtConcurrent').value = cfg.concurrent;
+        } catch (e) { console.warn('Không đọc được cấu hình DocuTranslate:', e); }
+    }
+
+    function dtOnPresetChange() {
+        const preset = document.getElementById('dtProviderPreset')?.value;
+        if (DT_PRESETS[preset]) {
+            document.getElementById('dtBaseUrl').value = DT_PRESETS[preset].baseUrl;
+            document.getElementById('dtModelId').value = DT_PRESETS[preset].model;
+        }
+        dtSaveConfig();
+    }
+
+    async function checkDocuTranslateHealth() {
+        const badge = document.getElementById('dtServerStatusBadge');
+        const base = dtGetBaseServerUrl();
+        if (badge) {
+            badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800';
+            badge.innerText = 'Đang kiểm tra...';
+        }
+        try {
+            const res = await fetch(`${base}/service/capabilities`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (badge) {
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800';
+                badge.innerText = `Đã kết nối (${(data.input_formats || []).length} định dạng)`;
+            }
+            showToast('Kết nối DocuTranslate Engine thành công!', 'success');
+        } catch (err) {
+            if (badge) {
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800';
+                badge.innerText = 'Chưa chạy / Bị chặn CORS';
+            }
+            showToast('Không kết nối được DocuTranslate. Hãy chạy: docutranslate -i -p 8010 --cors', 'error');
+        }
+    }
+
+    function handleDtFileSelect(event) {
+        const file = event.target?.files?.[0];
+        if (!file) return;
+        dtSelectedFile = file;
+        const label = document.getElementById('dtSelectedFileName');
+        if (label) label.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    }
+
+    function dtMapTargetLanguage() {
+        const val = document.getElementById('transTgtLang')?.value || 'vi';
+        const map = { 'vi': 'Vietnamese', 'en': 'English', 'zh-CN': 'Simplified Chinese', 'ja': 'Japanese', 'ko': 'Korean' };
+        return map[val] || val;
+    }
+
+    async function runDocuTranslateTask() {
+        if (!dtSelectedFile) {
+            showToast('Vui lòng chọn tài liệu cần dịch trước!', 'warning');
+            return;
+        }
+        const base = dtGetBaseServerUrl();
+        const baseUrl = (document.getElementById('dtBaseUrl')?.value || '').trim();
+        const modelId = (document.getElementById('dtModelId')?.value || '').trim();
+        const apiKey = (document.getElementById('dtApiKey')?.value || '').trim() || 'xx';
+        if (!baseUrl || !modelId) {
+            showToast('Vui lòng nhập Base URL và Model ID!', 'warning');
+            return;
+        }
+        dtSaveConfig();
+
+        const md2docxRaw = document.getElementById('dtMd2DocxEngine')?.value;
+        const payload = {
+            workflow_type: 'auto',
+            base_url: baseUrl,
+            api_key: apiKey,
+            model_id: modelId,
+            to_lang: dtMapTargetLanguage(),
+            insert_mode: document.getElementById('dtInsertMode')?.value || 'replace',
+            concurrent: parseInt(document.getElementById('dtConcurrent')?.value || '10', 10) || 10,
+            glossary_generate_enable: !!document.getElementById('dtGlossaryEnable')?.checked,
+            md2docx_engine: md2docxRaw === '' ? null : (md2docxRaw || 'auto')
+        };
+        const customPrompt = (document.getElementById('dtCustomPrompt')?.value || '').trim();
+        if (customPrompt) payload.custom_prompt = customPrompt;
+        const mineruToken = (document.getElementById('dtMineruToken')?.value || '').trim();
+        if (mineruToken) payload.mineru_token = mineruToken;
+
+        const formData = new FormData();
+        formData.append('file', dtSelectedFile);
+        formData.append('payload', JSON.stringify(payload));
+
+        const progressArea = document.getElementById('dtProgressArea');
+        const logsBox = document.getElementById('dtLogsBox');
+        const dlBox = document.getElementById('dtDownloadButtons');
+        const statsBox = document.getElementById('dtStatsBox');
+        if (progressArea) progressArea.classList.remove('hidden');
+        if (logsBox) logsBox.textContent = `[DocuTranslate] Đang tải lên ${dtSelectedFile.name} tới ${base}...\n`;
+        if (dlBox) { dlBox.innerHTML = ''; dlBox.classList.add('hidden'); }
+        if (statsBox) { statsBox.innerHTML = ''; statsBox.classList.add('hidden'); }
+        document.getElementById('dtBtnRun')?.classList.add('hidden');
+        document.getElementById('dtBtnCancel')?.classList.remove('hidden');
+
+        try {
+            const res = await fetch(`${base}/service/translate/file`, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!res.ok || !data.task_started) {
+                throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+            }
+            dtCurrentTaskId = data.task_id;
+            if (logsBox) logsBox.textContent += `[DocuTranslate] Đã tạo tác vụ #${dtCurrentTaskId}\n`;
+            pollDocuTranslateTask();
+        } catch (err) {
+            document.getElementById('dtBtnRun')?.classList.remove('hidden');
+            document.getElementById('dtBtnCancel')?.classList.add('hidden');
+            if (logsBox) logsBox.textContent += `[LỖI] ${err.message}\n`;
+            showToast(`Lỗi gửi tác vụ DocuTranslate: ${err.message}`, 'error');
+        }
+    }
+
+    async function pollDocuTranslateTask() {
+        if (!dtCurrentTaskId) return;
+        const base = dtGetBaseServerUrl();
+        const taskId = dtCurrentTaskId;
+
+        const tick = async () => {
+            if (dtCurrentTaskId !== taskId) return;
+            try {
+                const [statusRes, logsRes] = await Promise.all([
+                    fetch(`${base}/service/status/${taskId}`),
+                    fetch(`${base}/service/logs/${taskId}`)
+                ]);
+                if (logsRes.ok) {
+                    const logsData = await logsRes.json();
+                    if (Array.isArray(logsData.logs) && logsData.logs.length > 0) {
+                        const logsBox = document.getElementById('dtLogsBox');
+                        if (logsBox) {
+                            logsBox.textContent += logsData.logs.join('\n') + '\n';
+                            logsBox.scrollTop = logsBox.scrollHeight;
+                        }
+                    }
+                }
+                if (statusRes.ok) {
+                    const st = await statusRes.json();
+                    const pct = st.progress_percent ?? 0;
+                    const pBar = document.getElementById('dtProgressBar');
+                    const pTxt = document.getElementById('dtProgressTxt');
+                    const sTxt = document.getElementById('dtStatusTxt');
+                    if (pBar) pBar.style.width = `${pct}%`;
+                    if (pTxt) pTxt.innerText = `${pct}%`;
+                    if (sTxt) sTxt.innerText = st.status_message || 'Đang xử lý...';
+
+                    if (!st.is_processing) {
+                        document.getElementById('dtBtnRun')?.classList.remove('hidden');
+                        document.getElementById('dtBtnCancel')?.classList.add('hidden');
+                        if (st.statistics?.total) {
+                            const t = st.statistics.total;
+                            const statsBox = document.getElementById('dtStatsBox');
+                            if (statsBox) {
+                                statsBox.classList.remove('hidden');
+                                statsBox.innerText = `Thống kê Token: Input ${t.input_tokens} | Output ${t.output_tokens} | Tổng ${t.total_tokens} | Requests: ${t.request_count}`;
+                            }
+                        }
+                        if (st.download_ready && st.downloads) {
+                            const dlBox = document.getElementById('dtDownloadButtons');
+                            if (dlBox) {
+                                dlBox.classList.remove('hidden');
+                                dlBox.innerHTML = '<span class="font-bold text-emerald-800 text-xs">Tải kết quả:</span>';
+                                Object.entries(st.downloads).forEach(([fmt, url]) => {
+                                    const a = document.createElement('a');
+                                    a.href = url.startsWith('http') ? url : `${base}${url}`;
+                                    a.target = '_blank';
+                                    a.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded text-xs inline-flex items-center gap-1';
+                                    a.innerHTML = `<i class="fa-solid fa-download"></i> ${fmt.toUpperCase()}`;
+                                    dlBox.appendChild(a);
+                                });
+                                if (st.attachment) {
+                                    Object.entries(st.attachment).forEach(([id, url]) => {
+                                        const a = document.createElement('a');
+                                        a.href = url.startsWith('http') ? url : `${base}${url}`;
+                                        a.target = '_blank';
+                                        a.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded text-xs inline-flex items-center gap-1';
+                                        a.innerHTML = `<i class="fa-solid fa-paperclip"></i> ${id}`;
+                                        dlBox.appendChild(a);
+                                    });
+                                }
+                            }
+                            showToast('DocuTranslate đã dịch hoàn tất!', 'success');
+                        } else if (st.error_flag) {
+                            showToast(`DocuTranslate báo lỗi: ${st.status_message}`, 'error');
+                        }
+                        return;
+                    }
+                }
+                dtPollTimer = setTimeout(tick, 1500);
+            } catch (err) {
+                dtPollTimer = setTimeout(tick, 2500);
+            }
+        };
+        tick();
+    }
+
+    async function cancelDocuTranslateTask() {
+        if (!dtCurrentTaskId) return;
+        const base = dtGetBaseServerUrl();
+        try {
+            await fetch(`${base}/service/cancel/${dtCurrentTaskId}`, { method: 'POST' });
+            showToast('Đã gửi yêu cầu hủy tác vụ DocuTranslate.', 'info');
+        } catch (e) { console.warn(e); }
+    }
+
+    window.addEventListener('DOMContentLoaded', dtLoadConfig);
 
 </script>
 </body>
