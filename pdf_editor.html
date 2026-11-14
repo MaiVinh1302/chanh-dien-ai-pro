@@ -658,6 +658,17 @@
         </div>
         <span class="text-[10px] font-bold leading-tight text-center">Dịch Ngôn Ngữ AI</span>
       </button>
+      <button onclick="openDocuTranslateProModal()" class="ribbon-btn p-1.5 rounded-lg flex flex-col items-center justify-center w-32 h-14 border-2 border-cyan-500 bg-gradient-to-b from-cyan-50 to-sky-50 hover:from-cyan-100 hover:to-sky-100 text-cyan-950 font-bold shadow-xs transition" title="Dịch PDF/DOCX/XLSX/PPTX giữ nguyên bố cục (Đa AI + Tích chọn Model, 100% Trình duyệt)">
+        <div class="flex items-center gap-1 text-cyan-600 mb-0.5">
+          <i class="fa-solid fa-rocket text-base"></i>
+          <i class="fa-solid fa-layer-group text-xs text-amber-500"></i>
+        </div>
+        <span class="text-[10px] font-extrabold leading-tight text-center">DocuTranslate Pro</span>
+      </button>
+      <button onclick="quickExportPdfToDocxGeo()" class="ribbon-btn p-1.5 rounded-lg flex flex-col items-center justify-center w-32 h-14 border border-teal-400 bg-teal-50 hover:bg-teal-100 text-teal-950 font-bold shadow-xs transition" title="Chuyển PDF đang mở sang Word (.docx) tức thì bằng thuật toán hình học ONLYOFFICE DocxRenderer (Offline, 0 token)">
+        <i class="fa-solid fa-table-cells text-base mb-1 text-teal-600"></i>
+        <span class="text-[10px] font-bold leading-tight text-center">PDF ➔ DOCX (Offline)</span>
+      </button>
       <button onclick="triggerAiComparisonAnalysis()" class="ribbon-btn p-1.5 rounded flex flex-col items-center justify-center w-32 h-14 border border-purple-300 bg-white hover:bg-purple-50 text-purple-900 font-bold shadow-xs transition" title="Phát hiện sự khác biệt về số liệu, ngân sách, điều khoản giữa 2 tài liệu">
         <i class="fa-solid fa-code-compare text-base mb-1 text-purple-600"></i>
         <span class="text-[10px]">AI So Sánh (Diff)</span>
@@ -1311,6 +1322,144 @@
 
         <div class="flex items-center space-x-2">
           <button onclick="closeAiTranslateModal()" class="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold transition">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DOCUTRANSLATE PRO (DỊCH GIỮ BỐ CỤC + ĐA AI + TÍCH CHỌN MODEL) -->
+  <div id="docutranslate-pro-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full overflow-hidden flex flex-col text-xs max-h-[92vh]">
+      <div class="px-5 py-3 bg-gradient-to-r from-cyan-700 via-sky-700 to-indigo-800 text-white flex items-center justify-between font-bold text-sm">
+        <span class="flex items-center gap-2">
+          <i class="fa-solid fa-rocket text-amber-300"></i>
+          <span>DocuTranslate Pro — Dịch Giữ Nguyên Bố Cục (ONLYOFFICE DocxRenderer + OOXML)</span>
+        </span>
+        <button onclick="closeDocuTranslateProModal()" class="hover:opacity-80 p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-3 bg-slate-50">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-lg border border-cyan-200">
+          <div class="text-[11px] text-slate-600" id="dtPdfModeSubtitle">
+            Chạy trực tiếp 100% trên trình duyệt bằng JSZip + PDF.js + AI API của bạn — <b>không cần cài Server</b>, chia sẻ dùng ngay!
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="dtPdfExecMode" onchange="dtPdfOnExecModeChange()" class="border border-cyan-400 bg-white text-cyan-900 font-bold rounded px-2.5 py-1 text-xs">
+              <option value="browser">🌐 Trực tiếp Trình duyệt (Không cần Server)</option>
+              <option value="server">🖥️ Qua DocuTranslate Server (MinerU PDF)</option>
+            </select>
+            <span id="dtPdfServerBadge" class="dt-pdf-server-only hidden px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700">Chưa kiểm tra</span>
+            <button onclick="dtPdfCheckServerHealth()" class="dt-pdf-server-only hidden bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-2.5 py-1 rounded text-xs">Kiểm tra</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 bg-white p-3 rounded-lg border border-slate-200">
+          <div class="dt-pdf-server-only hidden">
+            <label class="block font-bold text-slate-700 mb-1">DocuTranslate Server URL:</label>
+            <input type="text" id="dtPdfServerUrl" value="http://127.0.0.1:8011" onchange="dtPdfSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nhà cung cấp LLM:</label>
+            <select id="dtPdfProviderPreset" onchange="dtPdfOnPresetChange()" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI (api.openai.com)</option>
+              <option value="deepseek">DeepSeek (api.deepseek.com)</option>
+              <option value="openrouter">OpenRouter (openrouter.ai)</option>
+              <option value="ollama">Ollama Local (127.0.0.1:11434)</option>
+              <option value="custom">Tùy chỉnh (Custom Base URL)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Base URL:</label>
+            <input type="text" id="dtPdfBaseUrl" value="https://generativelanguage.googleapis.com/v1beta/openai/" onchange="dtPdfSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Model ID đang chọn:</label>
+            <input type="text" id="dtPdfModelId" value="gemini-2.5-flash" onchange="dtPdfSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 font-semibold text-cyan-800">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">API Key LLM:</label>
+            <div class="flex items-center gap-1">
+              <input type="password" id="dtPdfApiKey" oninput="dtPdfOnApiKeyInput()" onchange="dtPdfSaveConfig()" placeholder="Nhập API Key để tự tải danh sách Model..." class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <button type="button" onclick="dtPdfFetchModels(false)" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-2.5 py-1.5 rounded whitespace-nowrap">Tải Model</button>
+            </div>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Ngôn ngữ đích:</label>
+            <select id="dtPdfTargetLang" onchange="dtPdfSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="Vietnamese">Tiếng Việt (Vietnamese)</option>
+              <option value="English">Tiếng Anh (English)</option>
+              <option value="Simplified Chinese">Tiếng Trung (Simplified Chinese)</option>
+              <option value="Japanese">Tiếng Nhật (Japanese)</option>
+              <option value="Korean">Tiếng Hàn (Korean)</option>
+              <option value="French">Tiếng Pháp (French)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Chế độ chèn:</label>
+            <select id="dtPdfInsertMode" onchange="dtPdfSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="replace">Thay thế nguyên bản (Replace)</option>
+              <option value="append">Song ngữ: Gốc trước + Dịch sau (Append)</option>
+              <option value="prepend">Song ngữ: Dịch trước + Gốc sau (Prepend)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số luồng song song:</label>
+            <input type="number" id="dtPdfConcurrent" value="4" min="1" max="20" onchange="dtPdfSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div class="dt-pdf-server-only hidden">
+            <label class="block font-bold text-slate-700 mb-1">MinerU Token (Server PDF/Ảnh):</label>
+            <input type="password" id="dtPdfMineruToken" onchange="dtPdfSaveConfig()" placeholder="Tùy chọn..." class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div id="dtPdfModelPickerBox" class="hidden bg-white border border-cyan-200 rounded-lg p-2.5 space-y-2 shadow-inner">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="dtPdfModelPickerTitle" class="font-bold text-cyan-900">Danh sách phiên bản AI khả dụng:</span>
+            <div class="flex items-center gap-2">
+              <input type="text" id="dtPdfModelFilter" oninput="dtPdfRenderModelList()" placeholder="Lọc nhanh (vd: flash, pro, gpt-4o)..." class="border border-slate-300 rounded px-2.5 py-1 text-xs w-56">
+              <button type="button" onclick="document.getElementById('dtPdfModelPickerBox').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <div id="dtPdfModelListGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1"></div>
+        </div>
+
+        <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Custom Prompt (Ngữ cảnh chuyên ngành):</label>
+            <input type="text" id="dtPdfCustomPrompt" onchange="dtPdfSaveConfig()" placeholder="Ví dụ: Dịch chuẩn thuật ngữ xây dựng, hợp đồng, văn bản hành chính..." class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="dtPdfUseActiveEditorDoc()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded shadow-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-file-pdf"></i> Dùng PDF đang mở
+              </button>
+              <input type="file" id="dtPdfFileInput" accept=".pdf,.docx,.xlsx,.pptx,.srt,.html,.htm,.md,.txt,.csv" class="hidden" onchange="dtPdfHandleFileSelect(event)">
+              <button type="button" onclick="document.getElementById('dtPdfFileInput').click()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-3 py-1.5 rounded shadow-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-folder-open"></i> Hoặc chọn tệp khác...
+              </button>
+              <span id="dtPdfSelectedFileName" class="font-semibold text-slate-700">Chưa chọn tệp...</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="dtPdfRunTranslation()" id="dtPdfBtnRun" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-4 py-1.5 rounded shadow flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Bắt Đầu Dịch
+              </button>
+              <button type="button" onclick="dtPdfCancelTranslation()" id="dtPdfBtnCancel" class="hidden bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded shadow">Hủy</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="dtPdfProgressArea" class="hidden bg-white p-3 rounded-lg border border-cyan-200 space-y-2">
+          <div class="flex items-center justify-between font-bold text-cyan-900">
+            <span id="dtPdfStatusTxt">Đang khởi tạo...</span>
+            <span id="dtPdfProgressTxt">0%</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div id="dtPdfProgressBar" class="bg-cyan-600 h-2.5 transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div id="dtPdfStatsBox" class="hidden text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1 rounded border border-slate-200"></div>
+          <div id="dtPdfDownloadButtons" class="hidden flex flex-wrap items-center gap-2"></div>
+          <pre id="dtPdfLogsBox" class="bg-slate-900 text-emerald-300 text-[11px] p-2.5 rounded max-h-40 overflow-y-auto font-mono whitespace-pre-wrap"></pre>
         </div>
       </div>
     </div>
@@ -6125,6 +6274,615 @@ Hãy lập báo cáo so sánh ngắn gọn, đanh thép:
         event.target.value = '';
       };
       reader.readAsText(file, 'utf-8');
+    }
+
+    // ==================== DOCUTRANSLATE PRO + ONLYOFFICE DOCXRENDERER ENGINE ====================
+    let dtPdfSelectedFile = null;
+    let dtPdfAvailableModels = [];
+    let dtPdfApiDebounce = null;
+    let dtPdfBrowserCancelled = false;
+    let dtPdfServerTaskId = null;
+
+    const DT_PDF_PRESETS = {
+      gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-flash' },
+      openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+      deepseek: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
+      openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.5-flash' },
+      ollama: { baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen2.5:7b' }
+    };
+
+    function openDocuTranslateProModal() {
+      document.getElementById('docutranslate-pro-modal')?.classList.remove('hidden');
+      dtPdfLoadConfig();
+      if (!dtPdfSelectedFile) dtPdfUseActiveEditorDoc(true);
+    }
+
+    function closeDocuTranslateProModal() {
+      document.getElementById('docutranslate-pro-modal')?.classList.add('hidden');
+    }
+
+    function dtPdfOnExecModeChange() {
+      const mode = document.getElementById('dtPdfExecMode')?.value || 'browser';
+      const isServer = mode === 'server';
+      document.querySelectorAll('.dt-pdf-server-only').forEach(el => el.classList.toggle('hidden', !isServer));
+      const sub = document.getElementById('dtPdfModeSubtitle');
+      if (sub) {
+        sub.innerHTML = isServer
+          ? 'Kết nối tới DocuTranslate Server (<code class="bg-slate-200 px-1 rounded">docutranslate -i -p 8011 --cors</code>) để dùng MinerU PDF / EPUB.'
+          : 'Chạy trực tiếp 100% trên trình duyệt bằng JSZip + PDF.js + AI API của bạn — <b>không cần cài Server</b>, chia sẻ dùng ngay!';
+      }
+      dtPdfSaveConfig();
+    }
+
+    function dtPdfSaveConfig() {
+      try {
+        const cfg = {
+          execMode: document.getElementById('dtPdfExecMode')?.value || 'browser',
+          serverUrl: document.getElementById('dtPdfServerUrl')?.value || '',
+          preset: document.getElementById('dtPdfProviderPreset')?.value || 'gemini',
+          baseUrl: document.getElementById('dtPdfBaseUrl')?.value || '',
+          modelId: document.getElementById('dtPdfModelId')?.value || '',
+          apiKey: document.getElementById('dtPdfApiKey')?.value || '',
+          targetLang: document.getElementById('dtPdfTargetLang')?.value || 'Vietnamese',
+          insertMode: document.getElementById('dtPdfInsertMode')?.value || 'replace',
+          concurrent: document.getElementById('dtPdfConcurrent')?.value || '4',
+          mineruToken: document.getElementById('dtPdfMineruToken')?.value || '',
+          customPrompt: document.getElementById('dtPdfCustomPrompt')?.value || ''
+        };
+        localStorage.setItem('foxit_docutranslate_cfg', JSON.stringify(cfg));
+      } catch (e) {}
+    }
+
+    function dtPdfLoadConfig() {
+      try {
+        const raw = localStorage.getItem('foxit_docutranslate_cfg');
+        if (!raw) { dtPdfOnExecModeChange(); return; }
+        const cfg = JSON.parse(raw);
+        if (cfg.execMode && document.getElementById('dtPdfExecMode')) document.getElementById('dtPdfExecMode').value = cfg.execMode;
+        dtPdfOnExecModeChange();
+        if (cfg.serverUrl && document.getElementById('dtPdfServerUrl')) document.getElementById('dtPdfServerUrl').value = cfg.serverUrl;
+        if (cfg.preset && document.getElementById('dtPdfProviderPreset')) document.getElementById('dtPdfProviderPreset').value = cfg.preset;
+        if (cfg.baseUrl && document.getElementById('dtPdfBaseUrl')) document.getElementById('dtPdfBaseUrl').value = cfg.baseUrl;
+        if (cfg.modelId && document.getElementById('dtPdfModelId')) document.getElementById('dtPdfModelId').value = cfg.modelId;
+        if (cfg.apiKey && document.getElementById('dtPdfApiKey')) document.getElementById('dtPdfApiKey').value = cfg.apiKey;
+        if (cfg.targetLang && document.getElementById('dtPdfTargetLang')) document.getElementById('dtPdfTargetLang').value = cfg.targetLang;
+        if (cfg.insertMode && document.getElementById('dtPdfInsertMode')) document.getElementById('dtPdfInsertMode').value = cfg.insertMode;
+        if (cfg.concurrent && document.getElementById('dtPdfConcurrent')) document.getElementById('dtPdfConcurrent').value = cfg.concurrent;
+        if (cfg.mineruToken && document.getElementById('dtPdfMineruToken')) document.getElementById('dtPdfMineruToken').value = cfg.mineruToken;
+        if (cfg.customPrompt && document.getElementById('dtPdfCustomPrompt')) document.getElementById('dtPdfCustomPrompt').value = cfg.customPrompt;
+        if (cfg.apiKey || cfg.preset === 'ollama') setTimeout(() => dtPdfFetchModels(true), 250);
+      } catch (e) {}
+    }
+
+    function dtPdfOnPresetChange() {
+      const preset = document.getElementById('dtPdfProviderPreset')?.value;
+      if (DT_PDF_PRESETS[preset]) {
+        document.getElementById('dtPdfBaseUrl').value = DT_PDF_PRESETS[preset].baseUrl;
+        document.getElementById('dtPdfModelId').value = DT_PDF_PRESETS[preset].model;
+      }
+      dtPdfSaveConfig();
+      const key = (document.getElementById('dtPdfApiKey')?.value || '').trim();
+      if (key || preset === 'ollama') dtPdfFetchModels(true);
+    }
+
+    function dtPdfOnApiKeyInput() {
+      dtPdfSaveConfig();
+      clearTimeout(dtPdfApiDebounce);
+      const key = (document.getElementById('dtPdfApiKey')?.value || '').trim();
+      const preset = document.getElementById('dtPdfProviderPreset')?.value;
+      if (key.length >= 10 || preset === 'ollama') {
+        dtPdfApiDebounce = setTimeout(() => dtPdfFetchModels(true), 600);
+      }
+    }
+
+    async function dtPdfFetchModels(silent = false) {
+      const preset = document.getElementById('dtPdfProviderPreset')?.value || 'gemini';
+      const baseUrl = (document.getElementById('dtPdfBaseUrl')?.value || '').trim().replace(/\/+$/, '');
+      const apiKey = (document.getElementById('dtPdfApiKey')?.value || '').trim();
+      const box = document.getElementById('dtPdfModelPickerBox');
+      const titleEl = document.getElementById('dtPdfModelPickerTitle');
+      const gridEl = document.getElementById('dtPdfModelListGrid');
+      if (!apiKey && preset !== 'ollama') {
+        if (!silent) showToast('Vui lòng nhập API Key trước!', 'warning');
+        return;
+      }
+      if (box) box.classList.remove('hidden');
+      if (titleEl) titleEl.innerText = 'Đang tải danh sách phiên bản AI...';
+      if (gridEl) gridEl.innerHTML = '<div class="col-span-full text-slate-500 italic py-1">Đang lấy danh sách model...</div>';
+      try {
+        let models = [];
+        if (preset === 'gemini' || baseUrl.includes('generativelanguage.googleapis.com')) {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+          models = (data.models || [])
+            .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => ({ id: (m.name || '').replace(/^models\//, ''), label: m.displayName || m.name }));
+        } else {
+          const headers = apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {};
+          const res = await fetch(`${baseUrl}/models`, { headers });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+          models = (data.data || []).map(m => ({ id: m.id, label: m.name || m.id }));
+        }
+        models.sort((a, b) => a.id.localeCompare(b.id));
+        dtPdfAvailableModels = models;
+        if (titleEl) titleEl.innerText = `Tìm thấy ${models.length} phiên bản AI — tích chọn để dùng:`;
+        dtPdfRenderModelList();
+        if (!silent) showToast(`Đã tải ${models.length} phiên bản model!`, 'success');
+      } catch (err) {
+        dtPdfAvailableModels = [];
+        if (titleEl) titleEl.innerText = 'Không tải được danh sách tự động';
+        if (gridEl) gridEl.innerHTML = `<div class="col-span-full text-rose-600 text-xs">${err.message}</div>`;
+      }
+    }
+
+    function dtPdfRenderModelList() {
+      const gridEl = document.getElementById('dtPdfModelListGrid');
+      if (!gridEl) return;
+      const filter = (document.getElementById('dtPdfModelFilter')?.value || '').trim().toLowerCase();
+      const cur = (document.getElementById('dtPdfModelId')?.value || '').trim();
+      const list = dtPdfAvailableModels.filter(m => !filter || m.id.toLowerCase().includes(filter));
+      if (!list.length) {
+        gridEl.innerHTML = '<div class="col-span-full text-slate-400 italic py-1">Không có model khớp bộ lọc.</div>';
+        return;
+      }
+      gridEl.innerHTML = '';
+      list.forEach(m => {
+        const checked = m.id === cur;
+        const lbl = document.createElement('label');
+        lbl.className = `flex items-center gap-2 px-2 py-1 rounded border cursor-pointer text-xs ${checked ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-slate-50 border-slate-200 hover:bg-sky-50'}`;
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = checked;
+        cb.className = 'w-3.5 h-3.5 text-cyan-600 rounded shrink-0';
+        cb.onchange = () => {
+          document.getElementById('dtPdfModelId').value = m.id;
+          dtPdfSaveConfig();
+          dtPdfRenderModelList();
+        };
+        const sp = document.createElement('span');
+        sp.className = 'truncate';
+        sp.innerText = m.id;
+        lbl.appendChild(cb);
+        lbl.appendChild(sp);
+        gridEl.appendChild(lbl);
+      });
+    }
+
+    function dtPdfUseActiveEditorDoc(silent = false) {
+      const doc = typeof getActiveDoc === 'function' ? getActiveDoc() : null;
+      if (!doc || !doc.pdfBytes) {
+        if (!silent) showToast('Hiện chưa có tệp PDF nào đang mở trong Editor!', 'warning');
+        return;
+      }
+      const name = doc.fileName || doc.name || 'document.pdf';
+      dtPdfSelectedFile = new File([doc.pdfBytes], name.endsWith('.pdf') ? name : `${name}.pdf`, { type: 'application/pdf' });
+      const lbl = document.getElementById('dtPdfSelectedFileName');
+      if (lbl) lbl.innerText = `${dtPdfSelectedFile.name} (Từ Editor — ${(dtPdfSelectedFile.size / 1024).toFixed(1)} KB)`;
+    }
+
+    function dtPdfHandleFileSelect(event) {
+      const file = event.target?.files?.[0];
+      if (!file) return;
+      dtPdfSelectedFile = file;
+      const lbl = document.getElementById('dtPdfSelectedFileName');
+      if (lbl) lbl.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    }
+
+    async function dtPdfAnalyzePdfGeometry(pdfBytes, progressCb) {
+      const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+      const geoPages = [];
+      const textsToTranslate = [];
+      const targets = [];
+
+      for (let p = 1; p <= pdf.numPages; p++) {
+        if (progressCb) progressCb(Math.round((p / pdf.numPages) * 20), `Phân tích hình học ONLYOFFICE DocxRenderer trang ${p}/${pdf.numPages}...`);
+        const page = await pdf.getPage(p);
+        const viewport = page.getViewport({ scale: 1.0 });
+        const pageWidth = viewport.width || 595;
+        const tc = await page.getTextContent();
+
+        const items = [];
+        for (const it of tc.items) {
+          if (!it.str || !it.str.trim()) continue;
+          const tr = it.transform || [1, 0, 0, 12, 0, 0];
+          const fontSize = Math.hypot(tr[2], tr[3]) || it.height || 12;
+          const x = tr[4];
+          const y = viewport.height - tr[5];
+          const w = it.width || (it.str.length * fontSize * 0.5);
+          const fontName = (tc.styles?.[it.fontName]?.fontFamily || it.fontName || '').toLowerCase();
+          items.push({ str: it.str, x, y, w, fontSize, isBold: fontName.includes('bold') || fontName.includes('black') });
+        }
+
+        items.sort((a, b) => a.y - b.y || a.x - b.x);
+        const lines = [];
+        for (const it of items) {
+          const tol = Math.max(4, it.fontSize * 0.45);
+          let line = lines.find(ln => Math.abs(ln.y - it.y) <= tol);
+          if (!line) {
+            line = { y: it.y, items: [], fontSize: it.fontSize, isBold: it.isBold };
+            lines.push(line);
+          }
+          line.items.push(it);
+          if (it.fontSize > line.fontSize) line.fontSize = it.fontSize;
+          if (it.isBold) line.isBold = true;
+        }
+
+        lines.forEach(ln => {
+          ln.items.sort((a, b) => a.x - b.x);
+          ln.cells = [];
+          let cur = null;
+          for (const it of ln.items) {
+            if (!cur) {
+              cur = { x: it.x, xEnd: it.x + it.w, text: it.str };
+            } else {
+              const gap = it.x - cur.xEnd;
+              if (gap > Math.max(18, ln.fontSize * 1.8)) {
+                ln.cells.push(cur);
+                cur = { x: it.x, xEnd: it.x + it.w, text: it.str };
+              } else {
+                cur.text += (gap > 2 ? ' ' : '') + it.str;
+                cur.xEnd = Math.max(cur.xEnd, it.x + it.w);
+              }
+            }
+          }
+          if (cur) ln.cells.push(cur);
+          ln.xMin = ln.cells[0]?.x ?? 0;
+          ln.xMax = ln.cells[ln.cells.length - 1]?.xEnd ?? 0;
+          ln.fullText = ln.cells.map(c => c.text).join(' ').replace(/\s+/g, ' ').trim();
+        });
+
+        const blocks = [];
+        let i = 0;
+        while (i < lines.length) {
+          const ln = lines[i];
+          if (ln.cells.length >= 2) {
+            const tableRows = [];
+            while (i < lines.length && lines[i].cells.length >= 2) {
+              tableRows.push(lines[i].cells.map(c => c.text.trim()));
+              i++;
+            }
+            if (tableRows.length >= 2) {
+              const blk = { type: 'table', rows: tableRows };
+              blocks.push(blk);
+              tableRows.forEach((row, rIdx) => row.forEach((cellTxt, cIdx) => {
+                if (cellTxt.trim()) {
+                  targets.push({ kind: 'cell', blk, rIdx, cIdx, orig: cellTxt });
+                  textsToTranslate.push(cellTxt);
+                }
+              }));
+            } else {
+              const txt = tableRows[0].join('   ');
+              const blk = { type: 'para', orig: txt, finalText: txt, align: 'left', fontSize: ln.fontSize, isBold: ln.isBold };
+              blocks.push(blk);
+              targets.push({ kind: 'para', blk, orig: txt });
+              textsToTranslate.push(txt);
+            }
+          } else {
+            const mid = (ln.xMin + ln.xMax) / 2;
+            let align = 'left';
+            if (Math.abs(mid - pageWidth / 2) < 30 && (ln.xMax - ln.xMin) < pageWidth * 0.78) align = 'center';
+            else if (ln.xMin > pageWidth * 0.45 && ln.xMax > pageWidth * 0.8) align = 'right';
+            const blk = { type: 'para', orig: ln.fullText, finalText: ln.fullText, align, fontSize: ln.fontSize, isBold: ln.isBold };
+            blocks.push(blk);
+            targets.push({ kind: 'para', blk, orig: ln.fullText });
+            textsToTranslate.push(ln.fullText);
+            i++;
+          }
+        }
+        geoPages.push({ pageNum: p, blocks });
+      }
+      return { geoPages, textsToTranslate, targets };
+    }
+
+    async function dtPdfBuildDocxFromGeo(geoPages) {
+      const zip = new JSZip();
+      zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+      zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+      let bodyXml = '';
+      geoPages.forEach((page, pIdx) => {
+        if (pIdx > 0) bodyXml += `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+        page.blocks.forEach(blk => {
+          if (blk.type === 'table') {
+            const colCount = Math.max(1, ...blk.rows.map(r => r.length));
+            const colW = Math.floor(9000 / colCount);
+            bodyXml += `<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="334155"/><w:left w:val="single" w:sz="4" w:space="0" w:color="334155"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="334155"/><w:right w:val="single" w:sz="4" w:space="0" w:color="334155"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/></w:tblBorders></w:tblPr>`;
+            blk.rows.forEach(row => {
+              bodyXml += `<w:tr>`;
+              for (let c = 0; c < colCount; c++) {
+                const lines = (row[c] || '').split('\n');
+                bodyXml += `<w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/></w:tcPr>`;
+                lines.forEach(ln => {
+                  bodyXml += `<w:p><w:pPr><w:spacing w:after="40"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">${escapeXml(ln)}</w:t></w:r></w:p>`;
+                });
+                bodyXml += `</w:tc>`;
+              }
+              bodyXml += `</w:tr>`;
+            });
+            bodyXml += `</w:tbl><w:p><w:pPr><w:spacing w:after="80"/></w:pPr></w:p>`;
+          } else {
+            const jc = blk.align === 'center' ? 'center' : blk.align === 'right' ? 'right' : 'both';
+            const szHalfPt = Math.max(20, Math.min(36, Math.round((blk.fontSize || 12) * 2)));
+            const boldXml = blk.isBold ? '<w:b/>' : '';
+            (blk.finalText || '').split('\n').forEach(ln => {
+              bodyXml += `<w:p><w:pPr><w:jc w:val="${jc}"/><w:spacing w:after="100"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>${boldXml}<w:sz w:val="${szHalfPt}"/></w:rPr><w:t xml:space="preserve">${escapeXml(ln)}</w:t></w:r></w:p>`;
+            });
+          }
+        });
+      });
+      zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="850" w:bottom="1134" w:left="1417"/></w:sectPr></w:body></w:document>`);
+      return zip.generateAsync({ type: 'blob' });
+    }
+
+    async function quickExportPdfToDocxGeo() {
+      const doc = typeof getActiveDoc === 'function' ? getActiveDoc() : null;
+      if (!doc || !doc.pdfBytes) {
+        showToast('Vui lòng mở một tệp PDF trước!', 'warning');
+        return;
+      }
+      showToast('Đang tái tạo PDF sang DOCX bằng thuật toán ONLYOFFICE DocxRenderer...', 'info');
+      try {
+        const { geoPages } = await dtPdfAnalyzePdfGeometry(doc.pdfBytes.slice(0));
+        const blob = await dtPdfBuildDocxFromGeoPages(geoPages);
+        const outName = (doc.fileName || 'document.pdf').replace(/\.pdf$/i, '') + '_GeoLayout.docx';
+        downloadFileBlob(blob, outName, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        showToast(`Đã xuất ${outName} thành công!`, 'success');
+      } catch (err) {
+        showToast(`Lỗi xuất DOCX: ${err.message}`, 'error');
+      }
+    }
+
+    async function dtPdfCallLlmBatch(batchObj, cfg) {
+      const sys = `Translate every value in the input JSON object into ${cfg.toLang}. Preserve numbers, tags, and line breaks. Return ONLY a valid JSON object with the exact same keys.${cfg.customPrompt ? '\n' + cfg.customPrompt : ''}`;
+      const endpoint = `${cfg.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+      const headers = { 'Content-Type': 'application/json' };
+      if (cfg.apiKey && cfg.apiKey !== 'xx') headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+      const body = { model: cfg.modelId, temperature: 0.2, messages: [{ role: 'system', content: sys }, { role: 'user', content: JSON.stringify(batchObj) }] };
+      if (cfg.preset === 'openai' || cfg.preset === 'deepseek') body.response_format = { type: 'json_object' };
+      const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+      let raw = (data.choices?.[0]?.message?.content || '{}').trim();
+      const fm = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fm) raw = fm[1].trim();
+      const first = raw.indexOf('{'), last = raw.lastIndexOf('}');
+      const parsed = JSON.parse(first !== -1 && last > first ? raw.slice(first, last + 1) : raw);
+      const usage = data.usage || {};
+      return { parsed, usage: { input_tokens: usage.prompt_tokens || 0, output_tokens: usage.completion_tokens || 0, total_tokens: usage.total_tokens || 0 } };
+    }
+
+    async function dtPdfTranslateBatches(texts, cfg, logCb, progCb) {
+      const results = [...texts];
+      const batches = [];
+      let cur = {}, chars = 0, cnt = 0;
+      for (let i = 0; i < texts.length; i++) {
+        if (!texts[i] || !texts[i].trim()) continue;
+        if (cnt >= 25 || (chars + texts[i].length > 3500 && cnt > 0)) { batches.push(cur); cur = {}; chars = 0; cnt = 0; }
+        cur[String(i)] = texts[i]; chars += texts[i].length; cnt++;
+      }
+      if (cnt > 0) batches.push(cur);
+      logCb(`[DocuTranslate] Tổng ${texts.length} đoạn -> ${batches.length} batch.`);
+      const stats = { input_tokens: 0, output_tokens: 0, total_tokens: 0, request_count: 0 };
+      let done = 0, idx = 0;
+      const workers = Math.min(Math.max(1, cfg.concurrent || 4), Math.max(1, batches.length));
+      await Promise.all(Array.from({ length: workers }, async () => {
+        while (idx < batches.length && !dtPdfBrowserCancelled) {
+          const bIdx = idx++;
+          const bObj = batches[bIdx];
+          for (let att = 1; att <= 3; att++) {
+            try {
+              const { parsed, usage } = await dtPdfCallLlmBatch(bObj, cfg);
+              Object.keys(bObj).forEach(k => { if (parsed[k] != null) results[Number(k)] = String(parsed[k]); });
+              stats.input_tokens += usage.input_tokens; stats.output_tokens += usage.output_tokens;
+              stats.total_tokens += usage.total_tokens; stats.request_count++;
+              break;
+            } catch (e) {
+              logCb(`[Cảnh báo] Batch ${bIdx + 1} lỗi (${att}/3): ${e.message}`);
+              if (att === 3) throw e;
+              await new Promise(r => setTimeout(r, 1200 * att));
+            }
+          }
+          done++;
+          progCb(20 + Math.round((done / batches.length) * 75), `Đang dịch batch ${done}/${batches.length}...`);
+        }
+      }));
+      if (dtPdfBrowserCancelled) throw new Error('Đã hủy tác vụ.');
+      return { results, stats };
+    }
+
+    async function dtPdfRunTranslation() {
+      if (!dtPdfSelectedFile) { showToast('Vui lòng chọn PDF hoặc tệp cần dịch!', 'warning'); return; }
+      const execMode = document.getElementById('dtPdfExecMode')?.value || 'browser';
+      const logsBox = document.getElementById('dtPdfLogsBox');
+      const dlBox = document.getElementById('dtPdfDownloadButtons');
+      const statsBox = document.getElementById('dtPdfStatsBox');
+      const progArea = document.getElementById('dtPdfProgressArea');
+      const setProg = (pct, msg) => {
+        document.getElementById('dtPdfProgressBar').style.width = `${pct}%`;
+        document.getElementById('dtPdfProgressTxt').innerText = `${pct}%`;
+        document.getElementById('dtPdfStatusTxt').innerText = msg;
+      };
+      const addLog = m => { if (logsBox) { logsBox.textContent += m + '\n'; logsBox.scrollTop = logsBox.scrollHeight; } };
+
+      dtPdfSaveConfig();
+      if (progArea) progArea.classList.remove('hidden');
+      if (logsBox) logsBox.textContent = '';
+      if (dlBox) { dlBox.innerHTML = ''; dlBox.classList.add('hidden'); }
+      if (statsBox) { statsBox.innerHTML = ''; statsBox.classList.add('hidden'); }
+      document.getElementById('dtPdfBtnRun')?.classList.add('hidden');
+      document.getElementById('dtPdfBtnCancel')?.classList.remove('hidden');
+
+      if (execMode === 'server') {
+        const base = (document.getElementById('dtPdfServerUrl')?.value || 'http://127.0.0.1:8011').trim().replace(/\/+$/, '');
+        const payload = {
+          workflow_type: 'auto',
+          base_url: document.getElementById('dtPdfBaseUrl').value.trim(),
+          api_key: document.getElementById('dtPdfApiKey').value.trim() || 'xx',
+          model_id: document.getElementById('dtPdfModelId').value.trim(),
+          to_lang: document.getElementById('dtPdfTargetLang').value,
+          insert_mode: document.getElementById('dtPdfInsertMode').value,
+          concurrent: parseInt(document.getElementById('dtPdfConcurrent').value || '4', 10) || 4
+        };
+        const cp = document.getElementById('dtPdfCustomPrompt')?.value.trim(); if (cp) payload.custom_prompt = cp;
+        const mt = document.getElementById('dtPdfMineruToken')?.value.trim(); if (mt) payload.mineru_token = mt;
+        const fd = new FormData(); fd.append('file', dtPdfSelectedFile); fd.append('payload', JSON.stringify(payload));
+        try {
+          addLog(`[Server] Đang gửi ${dtPdfSelectedFile.name} tới ${base}...`);
+          const res = await fetch(`${base}/service/translate/file`, { method: 'POST', body: fd });
+          const data = await res.json();
+          if (!res.ok || !data.task_started) throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+          dtPdfServerTaskId = data.task_id;
+          const poll = async () => {
+            const [stR, lgR] = await Promise.all([fetch(`${base}/service/status/${dtPdfServerTaskId}`), fetch(`${base}/service/logs/${dtPdfServerTaskId}`)]);
+            if (lgR.ok) { const ld = await lgR.json(); (ld.logs || []).forEach(addLog); }
+            if (stR.ok) {
+              const st = await stR.json();
+              setProg(st.progress_percent ?? 0, st.status_message || 'Đang xử lý...');
+              if (!st.is_processing) {
+                document.getElementById('dtPdfBtnRun')?.classList.remove('hidden');
+                document.getElementById('dtPdfBtnCancel')?.classList.add('hidden');
+                if (st.download_ready && st.downloads && dlBox) {
+                  dlBox.classList.remove('hidden');
+                  dlBox.innerHTML = '<span class="font-bold text-emerald-800">Tải kết quả:</span>';
+                  Object.entries(st.downloads).forEach(([fmt, url]) => {
+                    const a = document.createElement('a');
+                    a.href = url.startsWith('http') ? url : `${base}${url}`; a.target = '_blank';
+                    a.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded text-xs';
+                    a.innerText = `Tải ${fmt.toUpperCase()}`; dlBox.appendChild(a);
+                  });
+                }
+                return;
+              }
+            }
+            setTimeout(poll, 1500);
+          };
+          poll();
+        } catch (err) {
+          addLog(`[LỖI] ${err.message}`);
+          document.getElementById('dtPdfBtnRun')?.classList.remove('hidden');
+          document.getElementById('dtPdfBtnCancel')?.classList.add('hidden');
+        }
+        return;
+      }
+
+      dtPdfBrowserCancelled = false;
+      const cfg = {
+        preset: document.getElementById('dtPdfProviderPreset').value,
+        baseUrl: document.getElementById('dtPdfBaseUrl').value.trim(),
+        modelId: document.getElementById('dtPdfModelId').value.trim(),
+        apiKey: document.getElementById('dtPdfApiKey').value.trim() || 'ollama',
+        toLang: document.getElementById('dtPdfTargetLang').value,
+        insertMode: document.getElementById('dtPdfInsertMode').value,
+        concurrent: parseInt(document.getElementById('dtPdfConcurrent').value || '4', 10) || 4,
+        customPrompt: document.getElementById('dtPdfCustomPrompt')?.value.trim() || ''
+      };
+      try {
+        const ext = dtPdfSelectedFile.name.split('.').pop().toLowerCase();
+        let downloads = [], stats = null;
+        if (ext === 'pdf') {
+          const buf = await dtPdfSelectedFile.arrayBuffer();
+          const { geoPages, textsToTranslate, targets } = await dtPdfAnalyzePdfGeometry(buf, setProg);
+          const tr = await dtPdfTranslateBatches(textsToTranslate, cfg, addLog, setProg);
+          stats = tr.stats;
+          targets.forEach((tgt, i) => {
+            const finalStr = cfg.insertMode === 'append' ? `${tgt.orig}\n${tr.results[i]}` : cfg.insertMode === 'prepend' ? `${tr.results[i]}\n${tgt.orig}` : tr.results[i];
+            if (tgt.kind === 'cell') tgt.blk.rows[tgt.rIdx][tgt.cIdx] = finalStr; else tgt.blk.finalText = finalStr;
+          });
+          const docxBlob = await dtPdfBuildDocxFromGeo(geoPages);
+          downloads.push({ label: 'DOCX (Giữ bảng & bố cục)', blob: docxBlob, filename: dtPdfSelectedFile.name.replace(/\.pdf$/i, '_translated.docx') });
+        } else if (ext === 'docx') {
+          const zip = await JSZip.loadAsync(await dtPdfSelectedFile.arrayBuffer());
+          const parser = new DOMParser(), serializer = new XMLSerializer();
+          const paths = Object.keys(zip.files).filter(p => /^word\/(document|header\d*|footer\d*)\.xml$/i.test(p));
+          const entries = [], texts = [], docsMap = {};
+          for (const p of paths) {
+            const xmlDoc = parser.parseFromString(await zip.file(p).async('string'), 'application/xml');
+            docsMap[p] = xmlDoc;
+            for (const pNode of Array.from(xmlDoc.getElementsByTagName('w:p'))) {
+              const runs = Array.from(pNode.getElementsByTagName('w:r')).filter(r => !r.getElementsByTagName('w:instrText').length);
+              const txt = runs.map(r => Array.from(r.getElementsByTagName('w:t')).map(t => t.textContent || '').join('')).join('');
+              if (txt.trim()) { entries.push(pNode); texts.push(txt); }
+            }
+          }
+          const tr = await dtPdfTranslateBatches(texts, cfg, addLog, setProg); stats = tr.stats;
+          entries.forEach((pNode, i) => {
+            const setTxt = (node, val) => {
+              let placed = false;
+              for (const r of Array.from(node.getElementsByTagName('w:r'))) {
+                if (r.getElementsByTagName('w:instrText').length) continue;
+                for (const t of Array.from(r.getElementsByTagName('w:t'))) {
+                  if (!placed) { t.textContent = val; t.setAttribute('xml:space', 'preserve'); placed = true; } else t.textContent = '';
+                }
+              }
+            };
+            if (cfg.insertMode === 'replace') setTxt(pNode, tr.results[i]);
+            else {
+              const cl = pNode.cloneNode(true);
+              ['w:drawing', 'w:pict', 'w:bookmarkStart', 'w:bookmarkEnd'].forEach(tg => Array.from(cl.getElementsByTagName(tg)).forEach(e => e.parentNode?.removeChild(e)));
+              setTxt(cl, tr.results[i]);
+              pNode.parentNode?.insertBefore(cl, cfg.insertMode === 'append' ? pNode.nextSibling : pNode);
+            }
+          });
+          paths.forEach(p => zip.file(p, serializer.serializeToString(docsMap[p])));
+          downloads.push({ label: 'DOCX', blob: await zip.generateAsync({ type: 'blob' }), filename: dtPdfSelectedFile.name.replace(/\.docx$/i, '_translated.docx') });
+        } else {
+          const txt = await dtPdfSelectedFile.text();
+          const parts = txt.split(/\n\n+/);
+          const tr = await dtPdfTranslateBatches(parts, cfg, addLog, setProg); stats = tr.stats;
+          const out = parts.map((o, i) => cfg.insertMode === 'append' ? `${o}\n${tr.results[i]}` : cfg.insertMode === 'prepend' ? `${tr.results[i]}\n${o}` : tr.results[i]).join('\n\n');
+          downloads.push({ label: ext.toUpperCase(), blob: new Blob([out], { type: 'text/plain;charset=utf-8' }), filename: dtPdfSelectedFile.name.replace(/(\.[^.]+)$/, '_translated$1') });
+        }
+        setProg(100, 'Hoàn tất dịch tài liệu!');
+        if (stats && statsBox) { statsBox.classList.remove('hidden'); statsBox.innerText = `Token: Input ${stats.input_tokens} | Output ${stats.output_tokens} | Tổng ${stats.total_tokens}`; }
+        if (dlBox) {
+          dlBox.classList.remove('hidden');
+          dlBox.innerHTML = '<span class="font-bold text-emerald-800">Tải kết quả:</span>';
+          downloads.forEach(d => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(d.blob); a.download = d.filename;
+            a.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded text-xs inline-flex items-center gap-1';
+            a.innerHTML = `<i class="fa-solid fa-download"></i> ${d.label}`;
+            dlBox.appendChild(a);
+          });
+        }
+        showToast('Dịch tài liệu giữ bố cục hoàn tất!', 'success');
+      } catch (err) {
+        setProg(0, `Lỗi: ${err.message}`);
+        addLog(`[LỖI] ${err.message}`);
+      } finally {
+        document.getElementById('dtPdfBtnRun')?.classList.remove('hidden');
+        document.getElementById('dtPdfBtnCancel')?.classList.add('hidden');
+      }
+    }
+
+    async function dtPdfCancelTranslation() {
+      dtPdfBrowserCancelled = true;
+      if (dtPdfServerTaskId) {
+        const base = (document.getElementById('dtPdfServerUrl')?.value || 'http://127.0.0.1:8011').trim().replace(/\/+$/, '');
+        try { await fetch(`${base}/service/cancel/${dtPdfServerTaskId}`, { method: 'POST' }); } catch (e) {}
+      }
+    }
+
+    async function dtPdfCheckServerHealth() {
+      const base = (document.getElementById('dtPdfServerUrl')?.value || 'http://127.0.0.1:8011').trim().replace(/\/+$/, '');
+      const badge = document.getElementById('dtPdfServerBadge');
+      try {
+        const res = await fetch(`${base}/service/capabilities`);
+        if (!res.ok) throw new Error();
+        if (badge) { badge.className = 'dt-pdf-server-only px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800'; badge.innerText = 'Đã kết nối'; }
+      } catch (e) {
+        if (badge) { badge.className = 'dt-pdf-server-only px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800'; badge.innerText = 'Chưa kết nối'; }
+      }
     }
 
     window.onload = function () {
