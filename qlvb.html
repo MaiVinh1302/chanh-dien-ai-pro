@@ -1336,24 +1336,28 @@ Next k
                         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-200 pb-2.5">
                             <div>
                                 <div class="font-bold text-cyan-900 text-sm flex items-center gap-2">
-                                    <i class="fa-solid fa-rocket text-cyan-600"></i> DocuTranslate AI Engine (Giữ nguyên bố cục DOCX / XLSX / PPTX / PDF / EPUB / SRT)
+                                    <i class="fa-solid fa-rocket text-cyan-600"></i> DocuTranslate Pro (Giữ nguyên bố cục DOCX / XLSX / PPTX / PDF / HTML / SRT)
                                 </div>
-                                <div class="text-[11px] text-slate-600 mt-0.5">
-                                    Kết nối trực tiếp tới hệ thống <code class="bg-slate-200 px-1 rounded text-slate-800">docutranslate</code> trên máy (chạy lệnh <code class="bg-slate-800 text-emerald-300 px-1.5 py-0.5 rounded select-all">docutranslate -i -p 8010 --cors</code>) hoặc server riêng.
+                                <div class="text-[11px] text-slate-600 mt-0.5" id="dtModeSubtitle">
+                                    Chạy trực tiếp 100% trên trình duyệt bằng JSZip + AI API của bạn — <b>không cần cài Server</b>, chia sẻ dùng ngay cho mọi người!
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span id="dtServerStatusBadge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700">Chưa kiểm tra</span>
-                                <button onclick="checkDocuTranslateHealth()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-1.5 rounded shadow-sm text-xs flex items-center gap-1.5">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <select id="dtExecMode" onchange="dtOnExecModeChange()" class="border border-cyan-400 bg-white text-cyan-900 font-bold rounded px-2.5 py-1.5 text-xs shadow-sm">
+                                    <option value="browser">🌐 Trực tiếp Trình duyệt (Không cần Server)</option>
+                                    <option value="server">🖥️ Qua DocuTranslate Server (MinerU PDF)</option>
+                                </select>
+                                <span id="dtServerStatusBadge" class="dt-server-only hidden px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700">Chưa kiểm tra</span>
+                                <button onclick="checkDocuTranslateHealth()" class="dt-server-only hidden bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-1.5 rounded shadow-sm text-xs flex items-center gap-1.5">
                                     <i class="fa-solid fa-plug-circle-check"></i> Kiểm tra kết nối
                                 </button>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
-                            <div>
+                            <div class="dt-server-only hidden">
                                 <label class="block font-bold text-slate-700 mb-1">DocuTranslate Server URL:</label>
-                                <input type="text" id="dtServerUrl" value="http://127.0.0.1:8010" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
+                                <input type="text" id="dtServerUrl" value="http://127.0.0.1:8011" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
                             </div>
                             <div>
                                 <label class="block font-bold text-slate-700 mb-1">Nhà cung cấp LLM:</label>
@@ -1391,7 +1395,7 @@ Next k
                                     <option value="prepend">Song ngữ: Dịch trước + Gốc sau (Prepend)</option>
                                 </select>
                             </div>
-                            <div>
+                            <div class="dt-server-only hidden">
                                 <label class="block font-bold text-slate-700 mb-1">Xuất Word cho PDF/MD (md2docx_engine):</label>
                                 <select id="dtMd2DocxEngine" onchange="dtSaveConfig()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
                                     <option value="auto">Tự động (Auto: Pandoc / Python)</option>
@@ -1400,7 +1404,7 @@ Next k
                                     <option value="">Chỉ xuất Markdown / HTML</option>
                                 </select>
                             </div>
-                            <div>
+                            <div class="dt-server-only hidden">
                                 <label class="block font-bold text-slate-700 mb-1">MinerU Token (nếu dịch PDF/Ảnh):</label>
                                 <input type="password" id="dtMineruToken" onchange="dtSaveConfig()" placeholder="Tùy chọn cho PDF/Ảnh..." class="w-full border border-slate-300 rounded px-2.5 py-1.5 bg-white">
                             </div>
@@ -6279,9 +6283,25 @@ table.sig-table td, table.layout-noborder td { border: none; }
         return raw.replace(/\/+$/, '');
     }
 
+    function dtOnExecModeChange() {
+        const mode = document.getElementById('dtExecMode')?.value || 'browser';
+        const isServer = mode === 'server';
+        document.querySelectorAll('.dt-server-only').forEach(el => {
+            el.classList.toggle('hidden', !isServer);
+        });
+        const sub = document.getElementById('dtModeSubtitle');
+        if (sub) {
+            sub.innerHTML = isServer
+                ? 'Kết nối tới hệ thống <code class="bg-slate-200 px-1 rounded text-slate-800">docutranslate</code> trên máy (<code class="bg-slate-800 text-emerald-300 px-1.5 py-0.5 rounded select-all">docutranslate -i -p 8011 --cors</code>) để dùng MinerU PDF / EPUB.'
+                : 'Chạy trực tiếp 100% trên trình duyệt bằng JSZip + AI API của bạn — <b>không cần cài Server</b>, chia sẻ dùng ngay cho mọi người!';
+        }
+        dtSaveConfig();
+    }
+
     function dtSaveConfig() {
         try {
             const cfg = {
+                execMode: document.getElementById('dtExecMode')?.value || 'browser',
                 serverUrl: document.getElementById('dtServerUrl')?.value || '',
                 preset: document.getElementById('dtProviderPreset')?.value || 'openai',
                 baseUrl: document.getElementById('dtBaseUrl')?.value || '',
@@ -6303,6 +6323,8 @@ table.sig-table td, table.layout-noborder td { border: none; }
             const raw = localStorage.getItem('qlvb_docutranslate_cfg');
             if (!raw) return;
             const cfg = JSON.parse(raw);
+            if (cfg.execMode && document.getElementById('dtExecMode')) document.getElementById('dtExecMode').value = cfg.execMode;
+            dtOnExecModeChange();
             if (cfg.serverUrl && document.getElementById('dtServerUrl')) document.getElementById('dtServerUrl').value = cfg.serverUrl;
             if (cfg.preset && document.getElementById('dtProviderPreset')) document.getElementById('dtProviderPreset').value = cfg.preset;
             if (cfg.baseUrl && document.getElementById('dtBaseUrl')) document.getElementById('dtBaseUrl').value = cfg.baseUrl;
@@ -6491,6 +6513,10 @@ table.sig-table td, table.layout-noborder td { border: none; }
             showToast('Vui lòng chọn tài liệu cần dịch trước!', 'warning');
             return;
         }
+        const execMode = document.getElementById('dtExecMode')?.value || 'browser';
+        if (execMode === 'browser') {
+            return dtRunBrowserTranslation();
+        }
         const base = dtGetBaseServerUrl();
         const baseUrl = (document.getElementById('dtBaseUrl')?.value || '').trim();
         const modelId = (document.getElementById('dtModelId')?.value || '').trim();
@@ -6632,13 +6658,523 @@ table.sig-table td, table.layout-noborder td { border: none; }
         tick();
     }
 
+    let dtBrowserCancelled = false;
+
     async function cancelDocuTranslateTask() {
+        const execMode = document.getElementById('dtExecMode')?.value || 'browser';
+        if (execMode === 'browser') {
+            dtBrowserCancelled = true;
+            showToast('Đang dừng quá trình dịch trên trình duyệt...', 'info');
+            return;
+        }
         if (!dtCurrentTaskId) return;
         const base = dtGetBaseServerUrl();
         try {
             await fetch(`${base}/service/cancel/${dtCurrentTaskId}`, { method: 'POST' });
             showToast('Đã gửi yêu cầu hủy tác vụ DocuTranslate.', 'info');
         } catch (e) { console.warn(e); }
+    }
+
+    function dtAppendLog(msg) {
+        const logsBox = document.getElementById('dtLogsBox');
+        if (logsBox) {
+            logsBox.textContent += msg + '\n';
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+    }
+
+    function dtSetProgress(pct, msg) {
+        const pBar = document.getElementById('dtProgressBar');
+        const pTxt = document.getElementById('dtProgressTxt');
+        const sTxt = document.getElementById('dtStatusTxt');
+        if (pBar) pBar.style.width = `${pct}%`;
+        if (pTxt) pTxt.innerText = `${pct}%`;
+        if (sTxt && msg) sTxt.innerText = msg;
+    }
+
+    async function dtCallLlmBatch(batchObj, cfg) {
+        const systemPrompt = [
+            `You are a professional document translator. Translate every value in the input JSON object into ${cfg.toLang}.`,
+            `Preserve placeholders, numbers, tags, and line breaks accurately. Return ONLY a valid JSON object with the exact same string keys and translated values.`,
+            cfg.customPrompt ? `Additional domain instructions: ${cfg.customPrompt}` : ''
+        ].filter(Boolean).join('\n');
+
+        const userContent = JSON.stringify(batchObj);
+        let rawText = '';
+        let usage = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
+
+        if (cfg.preset === 'gemini' && cfg.baseUrl.includes('generativelanguage.googleapis.com') && !cfg.baseUrl.includes('/openai')) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.modelId)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\nInput JSON:\n${userContent}` }] }],
+                    generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error?.message || `Gemini HTTP ${res.status}`);
+            rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+            if (data.usageMetadata) {
+                usage.input_tokens = data.usageMetadata.promptTokenCount || 0;
+                usage.output_tokens = data.usageMetadata.candidatesTokenCount || 0;
+                usage.total_tokens = data.usageMetadata.totalTokenCount || (usage.input_tokens + usage.output_tokens);
+            }
+        } else {
+            const endpoint = `${cfg.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+            const headers = { 'Content-Type': 'application/json' };
+            if (cfg.apiKey && cfg.apiKey !== 'xx') headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+            const body = {
+                model: cfg.modelId,
+                temperature: 0.2,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userContent }
+                ]
+            };
+            if (cfg.preset === 'openai' || cfg.preset === 'deepseek') {
+                body.response_format = { type: 'json_object' };
+            }
+            const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error?.message || `API HTTP ${res.status}`);
+            rawText = data.choices?.[0]?.message?.content || '{}';
+            if (data.usage) {
+                usage.input_tokens = data.usage.prompt_tokens || 0;
+                usage.output_tokens = data.usage.completion_tokens || 0;
+                usage.total_tokens = data.usage.total_tokens || (usage.input_tokens + usage.output_tokens);
+            }
+        }
+
+        let cleaned = rawText.trim();
+        const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fenceMatch) cleaned = fenceMatch[1].trim();
+        let parsed = {};
+        try {
+            parsed = JSON.parse(cleaned);
+        } catch (e) {
+            const firstBrace = cleaned.indexOf('{');
+            const lastBrace = cleaned.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace > firstBrace) {
+                parsed = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+            } else {
+                throw new Error('LLM không trả về JSON hợp lệ');
+            }
+        }
+        return { parsed, usage };
+    }
+
+    async function dtTranslateSegmentsInBatches(texts, cfg) {
+        const results = [...texts];
+        const batches = [];
+        let currentBatch = {};
+        let currentChars = 0;
+        let currentCount = 0;
+
+        for (let i = 0; i < texts.length; i++) {
+            const txt = texts[i];
+            if (!txt || !txt.trim()) continue;
+            const len = txt.length;
+            if ((currentCount >= 25 || (currentChars + len > 3500 && currentCount > 0))) {
+                batches.push(currentBatch);
+                currentBatch = {};
+                currentChars = 0;
+                currentCount = 0;
+            }
+            currentBatch[String(i)] = txt;
+            currentChars += len;
+            currentCount++;
+        }
+        if (currentCount > 0) batches.push(currentBatch);
+
+        const totalBatches = batches.length;
+        dtAppendLog(`[Browser Engine] Tổng ${texts.length} đoạn cần dịch -> chia thành ${totalBatches} batch.`);
+        if (totalBatches === 0) return { results, stats: { input_tokens: 0, output_tokens: 0, total_tokens: 0, request_count: 0 } };
+
+        const stats = { input_tokens: 0, output_tokens: 0, total_tokens: 0, request_count: 0 };
+        let completed = 0;
+        const maxWorkers = Math.max(1, Math.min(cfg.concurrent || 4, 8));
+        let nextIdx = 0;
+
+        async function worker() {
+            while (nextIdx < totalBatches && !dtBrowserCancelled) {
+                const bIdx = nextIdx++;
+                const batchObj = batches[bIdx];
+                let attempt = 0;
+                while (attempt < 3 && !dtBrowserCancelled) {
+                    try {
+                        const { parsed, usage } = await dtCallLlmBatch(batchObj, cfg);
+                        Object.keys(batchObj).forEach(k => {
+                            if (parsed[k] !== undefined && parsed[k] !== null) {
+                                results[Number(k)] = String(parsed[k]);
+                            }
+                        });
+                        stats.input_tokens += usage.input_tokens;
+                        stats.output_tokens += usage.output_tokens;
+                        stats.total_tokens += usage.total_tokens;
+                        stats.request_count += 1;
+                        break;
+                    } catch (err) {
+                        attempt++;
+                        dtAppendLog(`[Cảnh báo] Batch ${bIdx + 1}/${totalBatches} lỗi (thử ${attempt}/3): ${err.message}`);
+                        if (attempt >= 3) throw err;
+                        await new Promise(r => setTimeout(r, 1200 * attempt));
+                    }
+                }
+                completed++;
+                const pct = 15 + Math.round((completed / totalBatches) * 80);
+                dtSetProgress(pct, `Đang dịch batch ${completed}/${totalBatches}...`);
+            }
+        }
+
+        await Promise.all(Array.from({ length: Math.min(maxWorkers, totalBatches) }, () => worker()));
+        if (dtBrowserCancelled) throw new Error('Người dùng đã hủy tác vụ.');
+        return { results, stats };
+    }
+
+    function dtSetParagraphTextInOoxml(pNode, newText, tagPrefix) {
+        const tTag = tagPrefix === 'w' ? 'w:t' : 'a:t';
+        const rTag = tagPrefix === 'w' ? 'w:r' : 'a:r';
+        const runs = Array.from(pNode.getElementsByTagName(rTag));
+        let placed = false;
+        for (const r of runs) {
+            if (tagPrefix === 'w' && r.getElementsByTagName('w:instrText').length > 0) continue;
+            const ts = Array.from(r.getElementsByTagName(tTag));
+            for (const t of ts) {
+                if (!placed) {
+                    t.textContent = newText;
+                    t.setAttribute('xml:space', 'preserve');
+                    placed = true;
+                } else {
+                    t.textContent = '';
+                }
+            }
+        }
+    }
+
+    function dtExtractParagraphTextOoxml(pNode, tagPrefix) {
+        const tTag = tagPrefix === 'w' ? 'w:t' : 'a:t';
+        const rTag = tagPrefix === 'w' ? 'w:r' : 'a:r';
+        const runs = Array.from(pNode.getElementsByTagName(rTag));
+        let out = '';
+        for (const r of runs) {
+            if (tagPrefix === 'w' && r.getElementsByTagName('w:instrText').length > 0) continue;
+            const ts = Array.from(r.getElementsByTagName(tTag));
+            for (const t of ts) out += t.textContent || '';
+        }
+        return out;
+    }
+
+    function dtCleanClonedOoxmlParagraph(cloneNode) {
+        ['w:drawing', 'w:pict', 'w:object', 'w:bookmarkStart', 'w:bookmarkEnd'].forEach(tag => {
+            Array.from(cloneNode.getElementsByTagName(tag)).forEach(el => el.parentNode?.removeChild(el));
+        });
+    }
+
+    async function dtTranslateDocxBrowser(file, cfg) {
+        const buf = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(buf);
+        const xmlPaths = Object.keys(zip.files).filter(p => /^word\/(document|header\d*|footer\d*)\.xml$/i.test(p));
+        const parser = new DOMParser();
+        const serializer = new XMLSerializer();
+
+        const entries = [];
+        const texts = [];
+        const docsMap = {};
+
+        for (const path of xmlPaths) {
+            const xmlStr = await zip.file(path).async('string');
+            const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+            docsMap[path] = xmlDoc;
+            const paragraphs = Array.from(xmlDoc.getElementsByTagName('w:p'));
+            for (const p of paragraphs) {
+                const txt = dtExtractParagraphTextOoxml(p, 'w');
+                if (txt && txt.trim()) {
+                    entries.push({ p });
+                    texts.push(txt);
+                }
+            }
+        }
+
+        const { results, stats } = await dtTranslateSegmentsInBatches(texts, cfg);
+        for (let i = 0; i < entries.length; i++) {
+            const p = entries[i].p;
+            const translated = results[i];
+            if (cfg.insertMode === 'replace') {
+                dtSetParagraphTextInOoxml(p, translated, 'w');
+            } else {
+                const clone = p.cloneNode(true);
+                dtCleanClonedOoxmlParagraph(clone);
+                dtSetParagraphTextInOoxml(clone, translated, 'w');
+                if (cfg.insertMode === 'append') {
+                    p.parentNode?.insertBefore(clone, p.nextSibling);
+                } else {
+                    p.parentNode?.insertBefore(clone, p);
+                }
+            }
+        }
+
+        for (const path of xmlPaths) {
+            zip.file(path, serializer.serializeToString(docsMap[path]));
+        }
+        const outBlob = await zip.generateAsync({ type: 'blob' });
+        return { downloads: [{ label: 'DOCX', blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
+    }
+
+    async function dtTranslateXlsxBrowser(file, cfg) {
+        const buf = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(buf);
+        const parser = new DOMParser();
+        const serializer = new XMLSerializer();
+        const ssFile = zip.file('xl/sharedStrings.xml');
+        if (!ssFile) throw new Error('File Excel không chứa sharedStrings.xml (hoặc toàn bộ là số/công thức).');
+
+        const ssXml = parser.parseFromString(await ssFile.async('string'), 'application/xml');
+        const siNodes = Array.from(ssXml.getElementsByTagName('si'));
+        const entries = [];
+        const texts = [];
+
+        for (const si of siNodes) {
+            const tNodes = Array.from(si.getElementsByTagName('t')).filter(t => !t.parentNode || t.parentNode.nodeName !== 'rPh');
+            const fullText = tNodes.map(t => t.textContent || '').join('');
+            if (fullText.trim() && !/^[\d\s.,+\-%/()]+$/.test(fullText.trim())) {
+                entries.push({ tNodes, orig: fullText });
+                texts.push(fullText);
+            }
+        }
+
+        const { results, stats } = await dtTranslateSegmentsInBatches(texts, cfg);
+        for (let i = 0; i < entries.length; i++) {
+            const { tNodes, orig } = entries[i];
+            const trans = results[i];
+            const finalStr = cfg.insertMode === 'append' ? `${orig}\n${trans}`
+                : cfg.insertMode === 'prepend' ? `${trans}\n${orig}` : trans;
+            if (tNodes.length > 0) {
+                tNodes[0].textContent = finalStr;
+                tNodes[0].setAttribute('xml:space', 'preserve');
+                for (let j = 1; j < tNodes.length; j++) tNodes[j].textContent = '';
+            }
+        }
+        zip.file('xl/sharedStrings.xml', serializer.serializeToString(ssXml));
+        const outBlob = await zip.generateAsync({ type: 'blob' });
+        return { downloads: [{ label: 'XLSX', blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
+    }
+
+    async function dtTranslatePptxBrowser(file, cfg) {
+        const buf = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(buf);
+        const slidePaths = Object.keys(zip.files).filter(p => /^ppt\/slides\/slide\d+\.xml$/i.test(p));
+        const parser = new DOMParser();
+        const serializer = new XMLSerializer();
+        const entries = [];
+        const texts = [];
+        const docsMap = {};
+
+        for (const path of slidePaths) {
+            const xmlDoc = parser.parseFromString(await zip.file(path).async('string'), 'application/xml');
+            docsMap[path] = xmlDoc;
+            const paragraphs = Array.from(xmlDoc.getElementsByTagName('a:p'));
+            for (const p of paragraphs) {
+                const txt = dtExtractParagraphTextOoxml(p, 'a');
+                if (txt && txt.trim()) {
+                    entries.push({ p });
+                    texts.push(txt);
+                }
+            }
+        }
+
+        const { results, stats } = await dtTranslateSegmentsInBatches(texts, cfg);
+        for (let i = 0; i < entries.length; i++) {
+            const p = entries[i].p;
+            const translated = results[i];
+            if (cfg.insertMode === 'replace') {
+                dtSetParagraphTextInOoxml(p, translated, 'a');
+            } else {
+                const clone = p.cloneNode(true);
+                dtSetParagraphTextInOoxml(clone, translated, 'a');
+                if (cfg.insertMode === 'append') {
+                    p.parentNode?.insertBefore(clone, p.nextSibling);
+                } else {
+                    p.parentNode?.insertBefore(clone, p);
+                }
+            }
+        }
+        for (const path of slidePaths) zip.file(path, serializer.serializeToString(docsMap[path]));
+        const outBlob = await zip.generateAsync({ type: 'blob' });
+        return { downloads: [{ label: 'PPTX', blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
+    }
+
+    async function dtTranslateSrtBrowser(file, cfg) {
+        const text = await file.text();
+        const blocks = text.replace(/\r\n/g, '\n').split(/\n\n+/);
+        const entries = [];
+        const texts = [];
+        const parsedBlocks = blocks.map(b => {
+            const lines = b.split('\n');
+            if (lines.length >= 3 && /-->/.test(lines[1])) {
+                const body = lines.slice(2).join('\n');
+                if (body.trim()) {
+                    entries.push(lines);
+                    texts.push(body);
+                    return { idx: entries.length - 1, header: lines.slice(0, 2) };
+                }
+            }
+            return { raw: b };
+        });
+
+        const { results, stats } = await dtTranslateSegmentsInBatches(texts, cfg);
+        const outText = parsedBlocks.map(item => {
+            if (item.raw !== undefined) return item.raw;
+            const orig = texts[item.idx];
+            const trans = results[item.idx];
+            const body = cfg.insertMode === 'append' ? `${orig}\n${trans}`
+                : cfg.insertMode === 'prepend' ? `${trans}\n${orig}` : trans;
+            return `${item.header[0]}\n${item.header[1]}\n${body}`;
+        }).join('\n\n');
+
+        const outBlob = new Blob([outText], { type: 'text/plain;charset=utf-8' });
+        return { downloads: [{ label: 'SRT', blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
+    }
+
+    async function dtTranslateHtmlBrowser(file, cfg) {
+        const htmlStr = await file.text();
+        const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+        const skipTags = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE', 'NOSCRIPT', 'SVG']);
+        const walker = doc.createTreeWalker(doc.body || doc.documentElement, NodeFilter.SHOW_TEXT);
+        const textNodes = [];
+        const texts = [];
+        let node;
+        while ((node = walker.nextNode())) {
+            let p = node.parentElement;
+            let skip = false;
+            while (p) { if (skipTags.has(p.tagName)) { skip = true; break; } p = p.parentElement; }
+            if (!skip && node.nodeValue && node.nodeValue.trim()) {
+                textNodes.push(node);
+                texts.push(node.nodeValue);
+            }
+        }
+        const { results, stats } = await dtTranslateSegmentsInBatches(texts, cfg);
+        for (let i = 0; i < textNodes.length; i++) {
+            const orig = texts[i];
+            const trans = results[i];
+            textNodes[i].nodeValue = cfg.insertMode === 'append' ? `${orig} ${trans}`
+                : cfg.insertMode === 'prepend' ? `${trans} ${orig}` : trans;
+        }
+        const outHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+        const outBlob = new Blob([outHtml], { type: 'text/html;charset=utf-8' });
+        return { downloads: [{ label: 'HTML', blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
+    }
+
+    async function dtTranslateTextBrowser(file, cfg) {
+        const raw = await file.text();
+        const lines = raw.replace(/\r\n/g, '\n').split(/\n\n+/);
+        const { results, stats } = await dtTranslateSegmentsInBatches(lines, cfg);
+        const out = lines.map((orig, i) => {
+            if (!orig.trim()) return orig;
+            const trans = results[i];
+            return cfg.insertMode === 'append' ? `${orig}\n${trans}`
+                : cfg.insertMode === 'prepend' ? `${trans}\n${orig}` : trans;
+        }).join('\n\n');
+        const ext = file.name.split('.').pop().toUpperCase();
+        const outBlob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+        return { downloads: [{ label: ext, blob: outBlob, filename: file.name.replace(/(\.[^.]+)$/, '_translated$1') }], stats };
+    }
+
+    async function dtTranslatePdfBrowser(file, cfg) {
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        const pageTexts = [];
+        for (let p = 1; p <= pdf.numPages; p++) {
+            dtSetProgress(Math.round((p / pdf.numPages) * 15), `Đang đọc trang PDF ${p}/${pdf.numPages}...`);
+            const page = await pdf.getPage(p);
+            const tc = await page.getTextContent();
+            const str = tc.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+            pageTexts.push(str || `[Trang ${p} không có lớp chữ — hãy dùng tab Chuyển PDF sang Word/OCR hoặc chế độ Server MinerU]`);
+        }
+        const { results, stats } = await dtTranslateSegmentsInBatches(pageTexts, cfg);
+        const mdOut = results.map((t, i) => `## Trang ${i + 1}\n\n${cfg.insertMode === 'append' ? pageTexts[i] + '\n\n' + t : cfg.insertMode === 'prepend' ? t + '\n\n' + pageTexts[i] : t}`).join('\n\n---\n\n');
+        const outBlob = new Blob([mdOut], { type: 'text/markdown;charset=utf-8' });
+        return { downloads: [{ label: 'MARKDOWN', blob: outBlob, filename: file.name.replace(/\.pdf$/i, '_translated.md') }], stats };
+    }
+
+    async function dtRunBrowserTranslation() {
+        const preset = document.getElementById('dtProviderPreset')?.value || 'openai';
+        const baseUrl = (document.getElementById('dtBaseUrl')?.value || '').trim();
+        const modelId = (document.getElementById('dtModelId')?.value || '').trim();
+        const apiKey = (document.getElementById('dtApiKey')?.value || '').trim();
+        if (!baseUrl || !modelId || (!apiKey && preset !== 'ollama')) {
+            showToast('Vui lòng chọn Nhà cung cấp, nhập API Key và chọn Model ID!', 'warning');
+            return;
+        }
+        dtSaveConfig();
+        dtBrowserCancelled = false;
+
+        const cfg = {
+            preset,
+            baseUrl,
+            modelId,
+            apiKey: apiKey || 'ollama',
+            toLang: dtMapTargetLanguage(),
+            insertMode: document.getElementById('dtInsertMode')?.value || 'replace',
+            concurrent: parseInt(document.getElementById('dtConcurrent')?.value || '4', 10) || 4,
+            customPrompt: (document.getElementById('dtCustomPrompt')?.value || '').trim()
+        };
+
+        const progressArea = document.getElementById('dtProgressArea');
+        const logsBox = document.getElementById('dtLogsBox');
+        const dlBox = document.getElementById('dtDownloadButtons');
+        const statsBox = document.getElementById('dtStatsBox');
+        if (progressArea) progressArea.classList.remove('hidden');
+        if (logsBox) logsBox.textContent = `[DocuTranslate Browser] Bắt đầu xử lý "${dtSelectedFile.name}" (${cfg.modelId} -> ${cfg.toLang}, mode: ${cfg.insertMode})...\n`;
+        if (dlBox) { dlBox.innerHTML = ''; dlBox.classList.add('hidden'); }
+        if (statsBox) { statsBox.innerHTML = ''; statsBox.classList.add('hidden'); }
+        document.getElementById('dtBtnRun')?.classList.add('hidden');
+        document.getElementById('dtBtnCancel')?.classList.remove('hidden');
+        dtSetProgress(5, 'Đang phân tích cấu trúc tệp...');
+
+        try {
+            const ext = dtSelectedFile.name.split('.').pop().toLowerCase();
+            let resObj;
+            if (ext === 'docx') resObj = await dtTranslateDocxBrowser(dtSelectedFile, cfg);
+            else if (ext === 'xlsx') resObj = await dtTranslateXlsxBrowser(dtSelectedFile, cfg);
+            else if (ext === 'pptx') resObj = await dtTranslatePptxBrowser(dtSelectedFile, cfg);
+            else if (ext === 'srt') resObj = await dtTranslateSrtBrowser(dtSelectedFile, cfg);
+            else if (ext === 'html' || ext === 'htm') resObj = await dtTranslateHtmlBrowser(dtSelectedFile, cfg);
+            else if (ext === 'pdf') resObj = await dtTranslatePdfBrowser(dtSelectedFile, cfg);
+            else if (['txt', 'md', 'markdown', 'csv'].includes(ext)) resObj = await dtTranslateTextBrowser(dtSelectedFile, cfg);
+            else throw new Error(`Định dạng .${ext} chưa hỗ trợ chạy thuần trình duyệt — hãy chuyển sang chế độ "Qua DocuTranslate Server".`);
+
+            dtSetProgress(100, 'Hoàn tất dịch tài liệu!');
+            dtAppendLog('[DocuTranslate Browser] Hoàn tất! Sẵn sàng tải tệp kết quả.');
+
+            if (statsBox && resObj.stats) {
+                const t = resObj.stats;
+                statsBox.classList.remove('hidden');
+                statsBox.innerText = `Thống kê Token: Input ${t.input_tokens} | Output ${t.output_tokens} | Tổng ${t.total_tokens} | Requests: ${t.request_count}`;
+            }
+            if (dlBox && resObj.downloads?.length) {
+                dlBox.classList.remove('hidden');
+                dlBox.innerHTML = '<span class="font-bold text-emerald-800 text-xs">Tải kết quả:</span>';
+                resObj.downloads.forEach(item => {
+                    const url = URL.createObjectURL(item.blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = item.filename;
+                    a.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded text-xs inline-flex items-center gap-1';
+                    a.innerHTML = `<i class="fa-solid fa-download"></i> ${item.label} (${item.filename})`;
+                    dlBox.appendChild(a);
+                });
+            }
+            showToast('Đã dịch xong tài liệu giữ nguyên bố cục!', 'success');
+        } catch (err) {
+            dtSetProgress(0, `Lỗi: ${err.message}`);
+            dtAppendLog(`[LỖI] ${err.message}`);
+            showToast(`Lỗi dịch: ${err.message}`, 'error');
+        } finally {
+            document.getElementById('dtBtnRun')?.classList.remove('hidden');
+            document.getElementById('dtBtnCancel')?.classList.add('hidden');
+        }
     }
 
     window.addEventListener('DOMContentLoaded', dtLoadConfig);
