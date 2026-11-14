@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocuTranslate × ONLYOFFICE Studio — Dịch & Tái Cấu Trúc Tài Liệu AI (100% Trình Duyệt)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0b1120; color: #e2e8f0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .glass { background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.14); }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 9999px; }
+    .drop-active { border-color: #38bdf8 !important; background: rgba(56, 189, 248, 0.08) !important; }
+    @keyframes pulseGlow { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+    .animate-pulse-glow { animation: pulseGlow 1.8s infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP NAVBAR -->
+  <header class="sticky top-0 z-40 glass border-b border-slate-800/90 px-4 md:px-6 py-3">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 transition" title="Về trang chủ Chánh Điện AI Pro">
+          <i class="fa-solid fa-house text-sm"></i>
+        </a>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 via-indigo-500 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+          <i class="fa-solid fa-language text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base md:text-lg font-extrabold tracking-tight text-white">DocuTranslate × ONLYOFFICE Studio</h1>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">100% BROWSER-SIDE</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">DocxRenderer 3-Stage</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Dịch thuật giữ nguyên bố cục OOXML (DOCX/XLSX/PPTX/SRT/MD) &amp; Tái cấu trúc hình học PDF ➔ DOCX theo lõi ONLYOFFICE</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="copyShareLink()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-sky-300 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-share-nodes"></i>
+          <span>Chia sẻ Link App</span>
+        </button>
+        <a href="pdf_editor.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-pen-nib text-indigo-400"></i>
+          <span>PDF Editor</span>
+        </a>
+        <a href="qlvb.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-folder-tree text-sky-400"></i>
+          <span>QLVB Pro</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- LEFT SIDEBAR: CONFIG & PIPELINE (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+
+      <!-- 1. UPLOAD & FORMAT PANEL -->
+      <div class="glass rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-file-arrow-up text-sky-400"></i>
+            <span>1. Chọn Tài Liệu Nguồn</span>
+          </h2>
+          <span id="fileBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400">Chưa có file</span>
+        </div>
+
+        <label id="dropZone" for="fileInput" class="block border-2 border-dashed border-slate-700 hover:border-sky-500/70 rounded-xl p-5 text-center cursor-pointer transition bg-slate-900/50">
+          <input id="fileInput" type="file" class="hidden" accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.srt,.vtt,.html,.htm,.json,.csv" />
+          <div class="w-11 h-11 mx-auto rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center text-xl mb-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div class="text-xs font-semibold text-slate-200">Kéo thả hoặc nhấn để chọn file tài liệu</div>
+          <div class="text-[11px] text-slate-400 mt-1">Hỗ trợ: <span class="text-sky-300 font-medium">PDF, DOCX, XLSX, PPTX, SRT, VTT, MD, TXT, HTML, JSON, CSV</span></div>
+        </label>
+
+        <!-- Quick Actions for PDF -->
+        <div id="pdfQuickBar" class="hidden flex items-center justify-between gap-2 bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-3 py-2">
+          <div class="text-[11px] text-emerald-200">
+            <i class="fa-solid fa-cubes mr-1 text-emerald-400"></i>
+            <b>ONLYOFFICE DocxRenderer:</b> Sẵn sàng chuyển PDF ➔ Word (.docx) giữ bảng &amp; dòng hoàn toàn Offline.
+          </div>
+          <button onclick="exportPdfToDocxOffline()" class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow transition">
+            <i class="fa-solid fa-file-word mr-1"></i>Xuất DOCX Offline
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. EXECUTION MODE & AI PROVIDER + MODEL PICKER -->
+      <div class="glass rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-robot text-indigo-400"></i>
+            <span>2. Động Cơ AI &amp; Phiên Bản Model</span>
+          </h2>
+          <div class="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-700 text-[11px]">
+            <button id="modeBtnBrowser" onclick="setExecMode('browser')" class="px-2.5 py-1 rounded-md font-semibold bg-sky-600 text-white transition">Trình duyệt (Không Server)</button>
+            <button id="modeBtnServer" onclick="setExecMode('server')" class="px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition">Server Cục Bộ</button>
+          </div>
+        </div>
+
+        <!-- Optional Server Box -->
+        <div id="serverConfigBox" class="hidden bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-[11px] font-semibold text-slate-300">DocuTranslate Server URL (<code class="text-amber-300">docutranslate -i -p 8010 --cors</code>)</label>
+            <span id="serverStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400">Chưa kiểm tra</span>
+          </div>
+          <div class="flex gap-2">
+            <input id="serverUrl" type="text" value="http://127.0.0.1:8010" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 mono focus:outline-none focus:border-sky-500" />
+            <button onclick="checkServerHealth()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-semibold text-sky-300">Kiểm tra</button>
+          </div>
+        </div>
+
+        <!-- Provider & Base URL -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Nhà cung cấp AI</label>
+            <select id="llmPreset" onchange="onPresetChange()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+              <option value="gemini">Google Gemini (OpenAI-compat)</option>
+              <option value="openai">OpenAI (GPT)</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="ollama">Ollama (Localhost)</option>
+              <option value="custom">Custom OpenAI-Compatible</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Model ID đang chọn</label>
+            <input id="modelId" type="text" value="gemini-2.5-flash" onchange="saveConfig()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-semibold mono focus:outline-none focus:border-sky-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-400 mb-1">Base URL (OpenAI-compatible)</label>
+          <input id="baseUrl" type="text" value="https://generativelanguage.googleapis.com/v1beta/openai/" onchange="saveConfig()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 mono focus:outline-none focus:border-sky-500" />
+        </div>
+
+        <!-- API Key + Fetch Models -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] font-semibold text-slate-400">API Key (Lưu cục bộ trên trình duyệt của bạn)</label>
+            <span id="modelFetchStatus" class="text-[10px] text-slate-400">Nhập API Key để tự động tải toàn bộ phiên bản model</span>
+          </div>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <input id="apiKey" type="password" placeholder="AIza... / sk-..." oninput="onApiKeyInput()" class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-2.5 pr-8 py-1.5 text-xs text-slate-200 mono focus:outline-none focus:border-sky-500" />
+              <button type="button" onclick="toggleApiKeyVis()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">
+                <i id="apiKeyEye" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <button onclick="fetchAvailableModels(true)" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition shrink-0">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>Nạp DS Model</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Auto-Fetched Model Picker Box -->
+        <div id="modelPickerBox" class="hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[11px] font-bold text-indigo-300"><i class="fa-solid fa-list-check mr-1"></i>Tích chọn phiên bản AI (<span id="modelCount">0</span>)</span>
+            <input id="modelFilter" type="text" placeholder="Lọc nhanh (vd: flash, 2.5, gpt-4o)..." oninput="renderModelList()" class="w-44 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-400" />
+          </div>
+          <div id="modelListGrid" class="max-h-36 overflow-y-auto scrollbar-thin grid grid-cols-1 sm:grid-cols-2 gap-1.5 pr-1"></div>
+        </div>
+      </div>
+
+      <!-- 3. TRANSLATION & GLOSSARY SETTINGS -->
+      <div class="glass rounded-2xl p-4 space-y-3">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-amber-400"></i>
+          <span>3. Ngôn Ngữ, Chế Độ Chèn &amp; Thuật Ngữ (Glossary)</span>
+        </h2>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-400 mb-1">Ngôn ngữ đích</label>
+            <select id="targetLang" onchange="saveConfig()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200">
+              <option value="Tiếng Việt">Tiếng Việt</option>
+              <option value="English">English</option>
+              <option value="日本語 (Japanese)">日本語 (Japanese)</option>
+              <option value="한국어 (Korean)">한국어 (Korean)</option>
+              <option value="中文 (Chinese)">中文 (Chinese)</option>
+              <option value="Français (French)">Français</option>
+              <option value="Deutsch (German)">Deutsch</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-400 mb-1">Chế độ chèn</label>
+            <select id="insertMode" onchange="saveConfig()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200">
+              <option value="replace">Thay thế (Chỉ bản dịch)</option>
+              <option value="append">Song ngữ (Gốc + Dịch)</option>
+              <option value="prepend">Song ngữ (Dịch + Gốc)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-400 mb-1">Chuyên ngành</label>
+            <select id="domainPreset" onchange="applyDomainPreset()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200">
+              <option value="general">Tổng quát</option>
+              <option value="construction">Xây dựng / Đấu thầu / FIDIC</option>
+              <option value="legal">Pháp lý / Hợp đồng</option>
+              <option value="tech">CNTT / Kỹ thuật</option>
+              <option value="medical">Y khoa / Dược phẩm</option>
+              <option value="finance">Tài chính / Kế toán</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-400 mb-1">Số luồng (1-15)</label>
+            <input id="concurrency" type="number" min="1" max="15" value="4" onchange="saveConfig()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 mono" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-400 mb-1">Custom Prompt / Quy tắc dịch thuật</label>
+          <textarea id="customPrompt" rows="2" onchange="saveConfig()" placeholder="Ví dụ: Giữ nguyên ký hiệu kỹ thuật, tiêu chuẩn TCVN, QCVN, tên riêng tổ chức..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500"></textarea>
+        </div>
+
+        <details class="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5">
+          <summary class="text-xs font-semibold text-amber-300 cursor-pointer select-none flex items-center justify-between">
+            <span><i class="fa-solid fa-book-bookmark mr-1.5"></i>Bảng thuật ngữ cố định (Glossary: Gốc = Dịch)</span>
+            <span class="text-[10px] text-slate-400 font-normal">Mỗi dòng 1 cặp</span>
+          </summary>
+          <textarea id="glossaryText" rows="3" onchange="saveConfig()" placeholder="Employer = Chủ đầu tư&#10;Contractor = Nhà thầu&#10;Bill of Quantities = Bảng khối lượng mời thầu" class="mt-2 w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 mono focus:outline-none focus:border-amber-400"></textarea>
+        </details>
+
+        <!-- ACTION BUTTONS -->
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <button id="btnRunTranslate" onclick="runTranslationPipeline()" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-extrabold shadow-lg shadow-sky-600/20 flex items-center justify-center gap-2 transition">
+            <i class="fa-solid fa-play"></i>
+            <span>Bắt Đầu Dịch Tài Liệu</span>
+          </button>
+          <button id="btnCancelTranslate" onclick="cancelTranslation()" class="hidden py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-stop"></i>
+            <span>Dừng</span>
+          </button>
+        </div>
+
+        <!-- PROGRESS & TOKEN STATS -->
+        <div id="progressBox" class="hidden space-y-2 pt-1">
+          <div class="flex items-center justify-between text-[11px]">
+            <span id="progressLabel" class="font-semibold text-sky-300">Đang chuẩn bị...</span>
+            <span id="progressPct" class="mono font-bold text-white">0%</span>
+          </div>
+          <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-400 mono">
+            <span id="tokenStats">Tokens: 0 in / 0 out</span>
+            <span id="timeStats">0.0s</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT WORKSPACE: ONLYOFFICE VISUAL INSPECTOR & BILINGUAL STUDIO (7 cols) -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+
+      <!-- TOOLBAR + TABS -->
+      <div class="glass rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button id="tabBtnSegments" onclick="switchViewTab('segments')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition">
+            <i class="fa-solid fa-columns mr-1.5"></i>So Sánh Song Ngữ (<span id="segCountBadge">0</span>)
+          </button>
+          <button id="tabBtnPdfGeo" onclick="switchViewTab('pdfgeo')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">
+            <i class="fa-solid fa-vector-square mr-1.5"></i>Soi Hình Học PDF (ONLYOFFICE)
+          </button>
+          <button id="tabBtnLogs" onclick="switchViewTab('logs')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">
+            <i class="fa-solid fa-terminal mr-1.5"></i>Nhật Ký
+          </button>
+        </div>
+
+        <div id="downloadBar" class="flex items-center gap-2 flex-wrap">
+          <button id="btnDownloadTranslated" disabled onclick="downloadTranslatedOutput()" class="px-3 py-1.5 rounded-lg bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Tải File Đã Dịch</span>
+          </button>
+          <button id="btnDownloadBilingualHtml" disabled onclick="downloadBilingualHtmlReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 disabled:opacity-40 hover:bg-slate-700 border border-slate-700 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-file-code"></i>
+            <span>Báo Cáo Song Ngữ HTML</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: BILINGUAL SEGMENT INSPECTOR & LIVE EDITOR -->
+      <div id="viewTabSegments" class="glass rounded-2xl p-4 flex-1 flex flex-col min-h-[540px]">
+        <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <div class="text-xs text-slate-300">
+            <i class="fa-solid fa-pen-to-square text-sky-400 mr-1"></i>
+            Bạn có thể <b>sửa trực tiếp câu dịch</b> ở cột bên phải trước khi bấm <b>Tải File Đã Dịch</b> — cấu trúc file gốc (font, bảng, slide, XML) được giữ nguyên!
+          </div>
+          <input id="segSearchInput" type="text" placeholder="Tìm đoạn văn..." oninput="renderSegmentTable()" class="w-48 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
+        </div>
+
+        <div id="segmentEmptyState" class="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-500">
+          <i class="fa-solid fa-file-lines text-4xl mb-3 text-slate-700"></i>
+          <div class="text-sm font-semibold text-slate-300">Chưa có dữ liệu tài liệu</div>
+          <div class="text-xs max-w-md mt-1">Chọn một file PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Phụ đề (.srt) hoặc Markdown ở cột bên trái để phân tích cấu trúc và dịch song ngữ.</div>
+        </div>
+
+        <div id="segmentTableWrap" class="hidden flex-1 overflow-y-auto scrollbar-thin border border-slate-800 rounded-xl bg-slate-950/60">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="sticky top-0 bg-slate-900 border-b border-slate-800 text-[11px] text-slate-400 uppercase">
+              <tr>
+                <th class="p-2.5 w-12 text-center">#</th>
+                <th class="p-2.5 w-24">Vị trí / Loại</th>
+                <th class="p-2.5 w-[42%]">Văn bản gốc</th>
+                <th class="p-2.5">Bản dịch (Có thể chỉnh sửa)</th>
+              </tr>
+            </thead>
+            <tbody id="segmentTableBody" class="divide-y divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: ONLYOFFICE PDF GEOMETRY VISUALIZER -->
+      <div id="viewTabPdfGeo" class="hidden glass rounded-2xl p-4 flex-1 flex flex-col min-h-[540px]">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <button onclick="changePdfPreviewPage(-1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-200"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="pdfPageIndicator" class="text-xs font-bold text-slate-200 mono">Trang 0 / 0</span>
+            <button onclick="changePdfPreviewPage(1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-200"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div class="flex items-center gap-3 text-[11px]">
+            <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+              <input id="chkShowGeoOverlay" type="checkbox" checked onchange="renderPdfGeoPage()" class="accent-sky-500" />
+              <span>Hiện khung hình học ONLYOFFICE</span>
+            </label>
+            <span class="flex items-center gap-1 text-cyan-300"><span class="w-2.5 h-2.5 rounded-sm bg-cyan-400/40 border border-cyan-400 inline-block"></span>Dòng</span>
+            <span class="flex items-center gap-1 text-emerald-300"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400/40 border border-emerald-400 inline-block"></span>Bảng</span>
+            <span class="flex items-center gap-1 text-amber-300"><span class="w-2.5 h-2.5 rounded-sm bg-amber-400/40 border border-amber-400 inline-block"></span>Tiêu đề</span>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-auto scrollbar-thin bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex items-start justify-center">
+          <div id="pdfCanvasContainer" class="relative shadow-2xl">
+            <canvas id="pdfRenderCanvas" class="block bg-white rounded"></canvas>
+            <canvas id="pdfOverlayCanvas" class="absolute inset-0 pointer-events-none"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: EXECUTION LOGS -->
+      <div id="viewTabLogs" class="hidden glass rounded-2xl p-4 flex-1 flex flex-col min-h-[540px]">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-300"><i class="fa-solid fa-terminal text-emerald-400 mr-1.5"></i>Nhật ký xử lý hệ thống</span>
+          <button onclick="clearLogs()" class="text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800">Xóa log</button>
+        </div>
+        <div id="logConsole" class="flex-1 overflow-y-auto scrollbar-thin bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] mono space-y-1 text-slate-300"></div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-slate-900 border border-sky-500/40 text-xs font-semibold text-white shadow-2xl"></div>
+
+<script>
+// ============================================================================
+// INIT PDF.JS WORKER
+// ============================================================================
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ============================================================================
+// GLOBAL STATE
+// ============================================================================
+const STATE = {
+  execMode: 'browser', // 'browser' | 'server'
+  file: null,
+  fileExt: '',
+  fileBytes: null,
+  zipObj: null,
+  segments: [], // { id, loc, type, orig, trans, applyFn }
+  pdfDoc: null,
+  pdfGeoPages: [], // ONLYOFFICE 3-stage output per page
+  pdfCurrentPage: 1,
+  models: [],
+  abortController: null,
+  tokensIn: 0,
+  tokensOut: 0,
+  translatedReady: false
+};
+
+const PRESETS = {
+  gemini:     { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.5-flash' },
+  openai:     { baseUrl: 'https://api.openai.com/v1/', model: 'gpt-4o-mini' },
+  deepseek:   { baseUrl: 'https://api.deepseek.com/v1/', model: 'deepseek-chat' },
+  openrouter: { baseUrl: 'https://openrouter.ai/api/v1/', model: 'google/gemini-2.5-flash' },
+  ollama:     { baseUrl: 'http://127.0.0.1:11434/v1/', model: 'qwen2.5:7b' },
+  custom:     { baseUrl: '', model: '' }
+};
+
+const DOMAIN_PROMPTS = {
+  general: 'Dịch tự nhiên, chính xác, giữ nguyên định dạng, ký hiệu và số liệu.',
+  construction: 'Dịch chuẩn thuật ngữ chuyên ngành xây dựng, đấu thầu, hợp đồng FIDIC, quy chuẩn QCVN và tiêu chuẩn TCVN. Giữ nguyên mã hiệu định mức, đơn vị tính (m2, m3, tấn, bộ).',
+  legal: 'Dịch văn phong pháp lý chặt chẽ, chính xác các điều khoản hợp đồng, quyền và nghĩa vụ các bên, thuật ngữ luật định.',
+  tech: 'Dịch chuẩn thuật ngữ công nghệ thông tin, phần mềm, kỹ thuật. Giữ nguyên tên hàm, biến, lệnh code và thông số kỹ thuật.',
+  medical: 'Dịch chuẩn thuật ngữ y khoa, dược phẩm, giải phẫu học và lâm sàng.',
+  finance: 'Dịch chuẩn thuật ngữ tài chính, kế toán, kiểm toán, báo cáo tài chính (VAS/IFRS).'
+};
+
+// ============================================================================
+// UI HELPERS & CONFIG PERSISTENCE
+// ============================================================================
+function showToast(msg, isErr = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-2xl transition ${isErr ? 'bg-rose-950 border-rose-500/50 text-rose-200' : 'bg-slate-900 border-sky-500/50 text-sky-100'}`;
+  el.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.add('hidden'), 3400);
+}
+
+function addLog(msg, level = 'info') {
+  const consoleEl = document.getElementById('logConsole');
+  const time = new Date().toLocaleTimeString('vi-VN');
+  const color = level === 'error' ? 'text-rose-400' : level === 'success' ? 'text-emerald-400' : level === 'warn' ? 'text-amber-300' : 'text-slate-300';
+  const row = document.createElement('div');
+  row.className = color;
+  row.textContent = `[${time}] ${msg}`;
+  consoleEl.appendChild(row);
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
+function clearLogs() {
+  document.getElementById('logConsole').innerHTML = '';
+}
+
+function copyShareLink() {
+  const url = window.location.href.split('#')[0];
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Đã sao chép liên kết ứng dụng để chia sẻ!');
+  }).catch(() => {
+    showToast('Link: ' + url);
+  });
+}
+
+function switchViewTab(tab) {
+  ['segments', 'pdfgeo', 'logs'].forEach(t => {
+    document.getElementById(`viewTab${t === 'segments' ? 'Segments' : t === 'pdfgeo' ? 'PdfGeo' : 'Logs'}`).classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById(`tabBtn${t === 'segments' ? 'Segments' : t === 'pdfgeo' ? 'PdfGeo' : 'Logs'}`);
+    btn.className = t === tab
+      ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition'
+      : 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition';
+  });
+  if (tab === 'pdfgeo' && STATE.pdfDoc) renderPdfGeoPage();
+}
+
+function setExecMode(mode) {
+  STATE.execMode = mode;
+  document.getElementById('serverConfigBox').classList.toggle('hidden', mode !== 'server');
+  document.getElementById('modeBtnBrowser').className = mode === 'browser' ? 'px-2.5 py-1 rounded-md font-semibold bg-sky-600 text-white transition' : 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition';
+  document.getElementById('modeBtnServer').className = mode === 'server' ? 'px-2.5 py-1 rounded-md font-semibold bg-sky-600 text-white transition' : 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white transition';
+  saveConfig();
+}
+
+function toggleApiKeyVis() {
+  const inp = document.getElementById('apiKey');
+  const eye = document.getElementById('apiKeyEye');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    eye.className = 'fa-solid fa-eye-slash';
+  } else {
+    inp.type = 'password';
+    eye.className = 'fa-solid fa-eye';
+  }
+}
+
+function saveConfig() {
+  const cfg = {
+    execMode: STATE.execMode,
+    serverUrl: document.getElementById('serverUrl').value,
+    llmPreset: document.getElementById('llmPreset').value,
+    baseUrl: document.getElementById('baseUrl').value,
+    modelId: document.getElementById('modelId').value,
+    apiKey: document.getElementById('apiKey').value,
+    targetLang: document.getElementById('targetLang').value,
+    insertMode: document.getElementById('insertMode').value,
+    domainPreset: document.getElementById('domainPreset').value,
+    concurrency: document.getElementById('concurrency').value,
+    customPrompt: document.getElementById('customPrompt').value,
+    glossaryText: document.getElementById('glossaryText').value
+  };
+  localStorage.setItem('dt_onlyoffice_studio_cfg', JSON.stringify(cfg));
+}
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem('dt_onlyoffice_studio_cfg');
+    if (!raw) return;
+    const cfg = JSON.parse(raw);
+    if (cfg.serverUrl) document.getElementById('serverUrl').value = cfg.serverUrl;
+    if (cfg.llmPreset) document.getElementById('llmPreset').value = cfg.llmPreset;
+    if (cfg.baseUrl) document.getElementById('baseUrl').value = cfg.baseUrl;
+    if (cfg.modelId) document.getElementById('modelId').value = cfg.modelId;
+    if (cfg.apiKey) document.getElementById('apiKey').value = cfg.apiKey;
+    if (cfg.targetLang) document.getElementById('targetLang').value = cfg.targetLang;
+    if (cfg.insertMode) document.getElementById('insertMode').value = cfg.insertMode;
+    if (cfg.domainPreset) document.getElementById('domainPreset').value = cfg.domainPreset;
+    if (cfg.concurrency) document.getElementById('concurrency').value = cfg.concurrency;
+    if (cfg.customPrompt) document.getElementById('customPrompt').value = cfg.customPrompt;
+    if (cfg.glossaryText) document.getElementById('glossaryText').value = cfg.glossaryText;
+    if (cfg.execMode) setExecMode(cfg.execMode);
+    if (cfg.apiKey && cfg.apiKey.length > 10) fetchAvailableModels(false);
+  } catch (e) {}
+}
+
+function onPresetChange() {
+  const preset = document.getElementById('llmPreset').value;
+  if (PRESETS[preset] && preset !== 'custom') {
+    document.getElementById('baseUrl').value = PRESETS[preset].baseUrl;
+    document.getElementById('modelId').value = PRESETS[preset].model;
+  }
+  saveConfig();
+  if (document.getElementById('apiKey').value.trim().length > 8 || preset === 'ollama') {
+    fetchAvailableModels(false);
+  }
+}
+
+function applyDomainPreset() {
+  const d = document.getElementById('domainPreset').value;
+  document.getElementById('customPrompt').value = DOMAIN_PROMPTS[d] || '';
+  saveConfig();
+}
+
+// ============================================================================
+// AUTO-FETCH & TICK-SELECT AI MODELS
+// ============================================================================
+let _apiKeyDebounce = null;
+function onApiKeyInput() {
+  saveConfig();
+  clearTimeout(_apiKeyDebounce);
+  const key = document.getElementById('apiKey').value.trim();
+  if (key.length >= 12) {
+    _apiKeyDebounce = setTimeout(() => fetchAvailableModels(false), 650);
+  }
+}
+
+async function fetchAvailableModels(manual = false) {
+  const preset = document.getElementById('llmPreset').value;
+  const baseUrl = document.getElementById('baseUrl').value.trim().replace(/\/+$/, '');
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const statusEl = document.getElementById('modelFetchStatus');
+
+  if (!apiKey && preset !== 'ollama') {
+    if (manual) showToast('Vui lòng nhập API Key trước khi nạp danh sách model.', true);
+    return;
+  }
+
+  statusEl.textContent = 'Đang tải danh sách phiên bản AI...';
+  statusEl.className = 'text-[10px] text-sky-400 animate-pulse';
+
+  try {
+    let models = [];
+    if (preset === 'gemini' || baseUrl.includes('generativelanguage.googleapis.com')) {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      models = (data.models || [])
+        .filter(m => !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => ({ id: m.name.replace(/^models\//, ''), name: m.displayName || m.name }));
+    } else {
+      const url = `${baseUrl}/models`;
+      const headers = apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {};
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      models = (data.data || data.models || []).map(m => ({ id: m.id || m.name, name: m.id || m.name }));
+    }
+
+    if (!models.length) throw new Error('Không tìm thấy model nào khả dụng.');
+    STATE.models = models;
+    document.getElementById('modelPickerBox').classList.remove('hidden');
+    statusEl.textContent = `Đã nạp ${models.length} phiên bản AI`;
+    statusEl.className = 'text-[10px] text-emerald-400 font-semibold';
+    renderModelList();
+    addLog(`Đã nạp ${models.length} model từ ${preset}.`, 'success');
+  } catch (err) {
+    statusEl.textContent = `Lỗi nạp model: ${err.message}`;
+    statusEl.className = 'text-[10px] text-rose-400';
+    if (manual) showToast(`Không thể tải danh sách model: ${err.message}`, true);
+  }
+}
+
+function renderModelList() {
+  const filter = document.getElementById('modelFilter').value.trim().toLowerCase();
+  const current = document.getElementById('modelId').value.trim();
+  const grid = document.getElementById('modelListGrid');
+  const filtered = STATE.models.filter(m => !filter || m.id.toLowerCase().includes(filter) || (m.name && m.name.toLowerCase().includes(filter)));
+  document.getElementById('modelCount').textContent = filtered.length;
+
+  grid.innerHTML = filtered.map(m => {
+    const checked = m.id === current;
+    return `
+      <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg border cursor-pointer text-[11px] transition ${checked ? 'bg-indigo-600/25 border-indigo-400 text-white font-semibold' : 'bg-slate-900/70 border-slate-800 text-slate-300 hover:border-slate-600'}">
+        <input type="radio" name="dtModelPick" value="${escapeHtml(m.id)}" ${checked ? 'checked' : ''} onchange="selectModelId('${escapeHtml(m.id)}')" class="accent-indigo-400" />
+        <span class="truncate mono" title="${escapeHtml(m.id)}">${escapeHtml(m.id)}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function selectModelId(id) {
+  document.getElementById('modelId').value = id;
+  saveConfig();
+  renderModelList();
+  showToast(`Đã chọn model: ${id}`);
+}
+
+async function checkServerHealth() {
+  const url = document.getElementById('serverUrl').value.trim().replace(/\/+$/, '');
+  const badge = document.getElementById('serverStatusBadge');
+  badge.textContent = 'Đang kiểm tra...';
+  try {
+    const resp = await fetch(`${url}/service/version`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    badge.textContent = `Đã kết nối (v${data.version || 'OK'})`;
+    badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300';
+    addLog(`Kết nối DocuTranslate Server thành công: ${url}`, 'success');
+  } catch (e) {
+    badge.textContent = 'Chưa chạy / Bị chặn CORS';
+    badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300';
+    showToast('Không kết nối được DocuTranslate Server.', true);
+  }
+}
+
+// ============================================================================
+// FILE LOADING & DRAG-DROP
+// ============================================================================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drop-active'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drop-active'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drop-active');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) handleFileUpload(e.target.files[0]);
+});
+
+async function handleFileUpload(file) {
+  STATE.file = file;
+  STATE.fileExt = (file.name.split('.').pop() || '').toLowerCase();
+  STATE.fileBytes = new Uint8Array(await file.arrayBuffer());
+  STATE.segments = [];
+  STATE.zipObj = null;
+  STATE.pdfDoc = null;
+  STATE.pdfGeoPages = [];
+  STATE.translatedReady = false;
+
+  document.getElementById('fileBadge').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+  document.getElementById('fileBadge').className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300';
+  document.getElementById('pdfQuickBar').classList.toggle('hidden', STATE.fileExt !== 'pdf');
+  document.getElementById('btnDownloadTranslated').disabled = true;
+  document.getElementById('btnDownloadBilingualHtml').disabled = true;
+
+  addLog(`Đã nạp file: ${file.name} [${STATE.fileExt.toUpperCase()}]`);
+
+  try {
+    if (STATE.fileExt === 'pdf') {
+      await parsePdfWithOnlyOfficeGeo(STATE.fileBytes);
+      switchViewTab('pdfgeo');
+    } else if (STATE.fileExt === 'docx') {
+      await parseDocxSegments(STATE.fileBytes);
+      switchViewTab('segments');
+    } else if (STATE.fileExt === 'xlsx') {
+      await parseXlsxSegments(STATE.fileBytes);
+      switchViewTab('segments');
+    } else if (STATE.fileExt === 'pptx') {
+      await parsePptxSegments(STATE.fileBytes);
+      switchViewTab('segments');
+    } else {
+      await parsePlainOrStructuredText(file);
+      switchViewTab('segments');
+    }
+    renderSegmentTable();
+  } catch (err) {
+    addLog(`Lỗi phân tích file: ${err.message}`, 'error');
+    showToast(`Lỗi đọc file: ${err.message}`, true);
+  }
+}
+
+// ============================================================================
+// ONLYOFFICE DocxRenderer 3-STAGE GEOMETRIC PDF RECONSTRUCTION
+// ============================================================================
+async function parsePdfWithOnlyOfficeGeo(bytes) {
+  addLog('Đang phân tích hình học PDF theo kiến trúc 3 giai đoạn ONLYOFFICE DocxRenderer...');
+  const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
+  STATE.pdfDoc = await loadingTask.promise;
+  const numPages = STATE.pdfDoc.numPages;
+  STATE.pdfGeoPages = [];
+  STATE.segments = [];
+  let segIdx = 1;
+
+  for (let p = 1; p <= numPages; p++) {
+    const page = await STATE.pdfDoc.getPage(p);
+    const vp = page.getViewport({ scale: 1.0 });
+    const textContent = await page.getTextContent();
+
+    // Stage 1: BuildTextLineGroups (cluster spans by Y baseline & sort by X)
+    const rawItems = textContent.items
+      .filter(it => it.str && it.str.trim().length > 0)
+      .map(it => {
+        const tx = it.transform;
+        const fontSize = Math.hypot(tx[0], tx[1]) || Math.abs(tx[3]) || 11;
+        const x = tx[4];
+        const yTop = vp.height - tx[5]; // top-down coordinate
+        const w = it.width || (it.str.length * fontSize * 0.5);
+        const fontName = (textContent.styles && textContent.styles[it.fontName]?.fontFamily) || it.fontName || '';
+        const isBold = /bold|black|heavy|demi/i.test(it.fontName + ' ' + fontName);
+        return { str: it.str, x, yTop, w, h: fontSize, fontSize, isBold };
+      });
+
+    rawItems.sort((a, b) => (Math.abs(a.yTop - b.yTop) < 3.5 ? a.x - b.x : a.yTop - b.yTop));
+
+    const lines = [];
+    for (const item of rawItems) {
+      let line = lines.find(l => Math.abs(l.yTop - item.yTop) <= Math.max(3.5, item.fontSize * 0.38));
+      if (!line) {
+        line = { yTop: item.yTop, items: [], fontSize: item.fontSize, isBold: item.isBold };
+        lines.push(line);
+      }
+      line.items.push(item);
+      line.fontSize = Math.max(line.fontSize, item.fontSize);
+      if (item.isBold) line.isBold = true;
+    }
+
+    // Build cell spans inside each line (gaps > 1.8 * fontSize indicate column separation)
+    for (const l of lines) {
+      l.items.sort((a, b) => a.x - b.x);
+      const cells = [];
+      let cur = null;
+      for (const it of l.items) {
+        if (!cur) {
+          cur = { x: it.x, xEnd: it.x + it.w, yTop: it.yTop, h: it.h, text: it.str, fontSize: it.fontSize, isBold: it.isBold };
+        } else {
+          const gap = it.x - cur.xEnd;
+          if (gap > Math.max(16, cur.fontSize * 1.6)) {
+            cells.push(cur);
+            cur = { x: it.x, xEnd: it.x + it.w, yTop: it.yTop, h: it.h, text: it.str, fontSize: it.fontSize, isBold: it.isBold };
+          } else {
+            cur.text += (gap > 2.2 ? ' ' : '') + it.str;
+            cur.xEnd = Math.max(cur.xEnd, it.x + it.w);
+          }
+        }
+      }
+      if (cur) cells.push(cur);
+      l.cells = cells;
+      l.text = cells.map(c => c.text).join('   ');
+      l.xMin = cells[0]?.x || 0;
+      l.xMax = cells[cells.length - 1]?.xEnd || 0;
+    }
+
+    // Stage 2: BuildGraphicalCells & Tables (consecutive multi-column lines form a table)
+    const blocks = [];
+    let i = 0;
+    while (i < lines.length) {
+      if (lines[i].cells.length >= 2) {
+        const tableRows = [lines[i]];
+        let j = i + 1;
+        while (j < lines.length && lines[j].cells.length >= 2 && (lines[j].yTop - lines[j - 1].yTop) < 36) {
+          tableRows.push(lines[j]);
+          j++;
+        }
+        if (tableRows.length >= 2) {
+          // Cluster X column anchors
+          const colCenters = [];
+          for (const r of tableRows) {
+            for (const c of r.cells) {
+              if (!colCenters.some(cx => Math.abs(cx - c.x) < 28)) colCenters.push(c.x);
+            }
+          }
+          colCenters.sort((a, b) => a - b);
+          const grid = tableRows.map(r => {
+            const rowArr = new Array(colCenters.length).fill('');
+            for (const c of r.cells) {
+              let bestIdx = 0, bestDist = Infinity;
+              colCenters.forEach((cx, idx) => {
+                const d = Math.abs(cx - c.x);
+                if (d < bestDist) { bestDist = d; bestIdx = idx; }
+              });
+              rowArr[bestIdx] = rowArr[bestIdx] ? (rowArr[bestIdx] + ' ' + c.text) : c.text;
+            }
+            return rowArr;
+          });
+          blocks.push({
+            kind: 'table',
+            rows: grid,
+            xMin: Math.min(...tableRows.map(r => r.xMin)),
+            xMax: Math.max(...tableRows.map(r => r.xMax)),
+            yMin: tableRows[0].yTop - tableRows[0].fontSize,
+            yMax: tableRows[tableRows.length - 1].yTop + 4
+          });
+          i = j;
+          continue;
+        }
+      }
+
+      // Stage 3: BuildParagraphs (merge closely spaced non-table lines into paragraphs)
+      const l = lines[i];
+      const isHeading = l.fontSize >= 13.5 || (l.isBold && l.text.length < 110);
+      const prev = blocks[blocks.length - 1];
+      if (!isHeading && prev && prev.kind === 'paragraph' && !prev.isHeading && (l.yTop - prev.lastY) < l.fontSize * 1.65 && Math.abs(l.xMin - prev.xMin) < 40) {
+        prev.text += ' ' + l.text;
+        prev.lastY = l.yTop;
+        prev.yMax = l.yTop + 4;
+        prev.xMax = Math.max(prev.xMax, l.xMax);
+      } else {
+        blocks.push({
+          kind: 'paragraph',
+          isHeading,
+          fontSize: l.fontSize,
+          isBold: l.isBold,
+          text: l.text,
+          xMin: l.xMin,
+          xMax: l.xMax,
+          yMin: l.yTop - l.fontSize,
+          yMax: l.yTop + 4,
+          lastY: l.yTop
+        });
+      }
+      i++;
+    }
+
+    STATE.pdfGeoPages.push({ pageNum: p, width: vp.width, height: vp.height, lines, blocks });
+
+    // Register translatable segments
+    for (let bIdx = 0; bIdx < blocks.length; bIdx++) {
+      const b = blocks[bIdx];
+      if (b.kind === 'paragraph' && b.text.trim()) {
+        STATE.segments.push({
+          id: segIdx++,
+          loc: `Trang ${p}`,
+          type: b.isHeading ? 'Tiêu đề' : 'Đoạn văn',
+          orig: b.text.trim(),
+          trans: '',
+          geoRef: { pageIdx: p - 1, blockIdx: bIdx }
+        });
+      } else if (b.kind === 'table') {
+        b.rows.forEach((r, rIdx) => {
+          r.forEach((cellText, cIdx) => {
+            if (cellText.trim()) {
+              STATE.segments.push({
+                id: segIdx++,
+                loc: `Trang ${p} [Bảng]`,
+                type: `Ô (${rIdx + 1},${cIdx + 1})`,
+                orig: cellText.trim(),
+                trans: '',
+                geoRef: { pageIdx: p - 1, blockIdx: bIdx, rIdx, cIdx }
+              });
+            }
+          });
+        });
+      }
+    }
+  }
+
+  STATE.pdfCurrentPage = 1;
+  addLog(`Hoàn tất phân tích PDF: ${numPages} trang, ${STATE.segments.length} phân đoạn văn bản & bảng biểu.`, 'success');
+}
+
+async function renderPdfGeoPage() {
+  if (!STATE.pdfDoc) return;
+  const pageNum = STATE.pdfCurrentPage;
+  const page = await STATE.pdfDoc.getPage(pageNum);
+  const scale = 1.35;
+  const vp = page.getViewport({ scale });
+
+  const canvas = document.getElementById('pdfRenderCanvas');
+  const overlay = document.getElementById('pdfOverlayCanvas');
+  canvas.width = vp.width;
+  canvas.height = vp.height;
+  overlay.width = vp.width;
+  overlay.height = vp.height;
+
+  const ctx = canvas.getContext('2d');
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+  const octx = overlay.getContext('2d');
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  document.getElementById('pdfPageIndicator').textContent = `Trang ${pageNum} / ${STATE.pdfDoc.numPages}`;
+
+  if (!document.getElementById('chkShowGeoOverlay').checked) return;
+
+  const geo = STATE.pdfGeoPages[pageNum - 1];
+  if (!geo) return;
+
+  for (const b of geo.blocks) {
+    const x = b.xMin * scale;
+    const y = b.yMin * scale;
+    const w = Math.max(20, (b.xMax - b.xMin) * scale);
+    const h = Math.max(12, (b.yMax - b.yMin) * scale);
+
+    if (b.kind === 'table') {
+      octx.strokeStyle = 'rgba(16, 185, 129, 0.9)';
+      octx.fillStyle = 'rgba(16, 185, 129, 0.10)';
+    } else if (b.isHeading) {
+      octx.strokeStyle = 'rgba(245, 158, 11, 0.9)';
+      octx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+    } else {
+      octx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+      octx.fillStyle = 'rgba(56, 189, 248, 0.06)';
+    }
+    octx.lineWidth = 1.5;
+    octx.fillRect(x, y, w, h);
+    octx.strokeRect(x, y, w, h);
+  }
+}
+
+function changePdfPreviewPage(delta) {
+  if (!STATE.pdfDoc) return;
+  const next = STATE.pdfCurrentPage + delta;
+  if (next >= 1 && next <= STATE.pdfDoc.numPages) {
+    STATE.pdfCurrentPage = next;
+    renderPdfGeoPage();
+  }
+}
+
+function buildDocxFromPdfGeo(insertMode = 'none') {
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+
+  // Map translated strings back to blocks
+  const segMap = new Map();
+  for (const s of STATE.segments) {
+    if (!s.geoRef) continue;
+    const key = `${s.geoRef.pageIdx}:${s.geoRef.blockIdx}:${s.geoRef.rIdx ?? ''}:${s.geoRef.cIdx ?? ''}`;
+    segMap.set(key, s);
+  }
+
+  const formatText = (orig, seg) => {
+    if (!seg || !seg.trans || insertMode === 'none') return orig;
+    if (insertMode === 'replace') return seg.trans;
+    if (insertMode === 'prepend') return `${seg.trans}\n${orig}`;
+    return `${orig}\n${seg.trans}`;
+  };
+
+  let bodyXml = '';
+  STATE.pdfGeoPages.forEach((page, pIdx) => {
+    page.blocks.forEach((b, bIdx) => {
+      if (b.kind === 'paragraph') {
+        const seg = segMap.get(`${pIdx}:${bIdx}::`);
+        const txt = formatText(b.text, seg);
+        const sz = Math.round((b.fontSize || 11) * 2);
+        const boldXml = b.isBold || b.isHeading ? '<w:b/>' : '';
+        const paras = txt.split('\n').map(line =>
+          `<w:p><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>${boldXml}<w:sz w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`
+        ).join('');
+        bodyXml += paras;
+      } else if (b.kind === 'table') {
+        let rowsXml = '';
+        b.rows.forEach((row, rIdx) => {
+          let cellsXml = '';
+          row.forEach((cell, cIdx) => {
+            const seg = segMap.get(`${pIdx}:${bIdx}:${rIdx}:${cIdx}`);
+            const txt = formatText(cell, seg);
+            const paras = txt.split('\n').map(line =>
+              `<w:p><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`
+            ).join('');
+            cellsXml += `<w:tc><w:tcPr><w:tcW w:w="2400" w:type="dxa"/></w:tcPr>${paras || '<w:p/>'}</w:tc>`;
+          });
+          rowsXml += `<w:tr>${cellsXml}</w:tr>`;
+        });
+        bodyXml += `<w:tbl><w:tblPr><w:tblBorders>
+          <w:top w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/>
+          <w:left w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/>
+          <w:bottom w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/>
+          <w:right w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/>
+          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>
+          <w:insideV w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>
+        </w:tblBorders></w:tblPr>${rowsXml}</w:tbl><w:p/>`;
+      }
+    });
+    if (pIdx < STATE.pdfGeoPages.length - 1) {
+      bodyXml += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+    }
+  });
+
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body>
+</w:document>`);
+
+  return zip.generateAsync({ type: 'blob' });
+}
+
+async function exportPdfToDocxOffline() {
+  if (!STATE.pdfGeoPages.length) return;
+  const blob = await buildDocxFromPdfGeo('none');
+  const outName = STATE.file.name.replace(/\.pdf$/i, '') + '_ONLYOFFICE_Geo.docx';
+  triggerBlobDownload(blob, outName);
+  showToast(`Đã xuất ${outName} hoàn toàn offline!`);
+  addLog(`Xuất PDF ➔ DOCX offline thành công: ${outName}`, 'success');
+}
+
+// ============================================================================
+// OOXML PARSERS: DOCX / XLSX / PPTX / TEXT-SRT-MD
+// ============================================================================
+async function parseDocxSegments(bytes) {
+  const zip = await JSZip.loadAsync(bytes);
+  STATE.zipObj = zip;
+  const parser = new DOMParser();
+  const xmlPaths = Object.keys(zip.files).filter(p => /^word\/(document|header\d*|footer\d*)\.xml$/i.test(p));
+  let idx = 1;
+
+  for (const path of xmlPaths) {
+    const xmlStr = await zip.file(path).async('string');
+    const doc = parser.parseFromString(xmlStr, 'application/xml');
+    const paras = Array.from(doc.getElementsByTagName('w:p'));
+    paras.forEach((pEl, pIdx) => {
+      const tNodes = Array.from(pEl.getElementsByTagName('w:t'));
+      const fullText = tNodes.map(t => t.textContent).join('').trim();
+      if (fullText) {
+        STATE.segments.push({
+          id: idx++,
+          loc: path.replace('word/', ''),
+          type: `Đoạn #${pIdx + 1}`,
+          orig: fullText,
+          trans: '',
+          xmlPath: path,
+          nodeIndex: pIdx
+        });
+      }
+    });
+  }
+  addLog(`Đã đọc DOCX (${xmlPaths.length} phần XML, ${STATE.segments.length} đoạn văn).`, 'success');
+}
+
+async function parseXlsxSegments(bytes) {
+  const zip = await JSZip.loadAsync(bytes);
+  STATE.zipObj = zip;
+  const parser = new DOMParser();
+  let idx = 1;
+
+  if (zip.file('xl/sharedStrings.xml')) {
+    const xmlStr = await zip.file('xl/sharedStrings.xml').async('string');
+    const doc = parser.parseFromString(xmlStr, 'application/xml');
+    const siNodes = Array.from(doc.getElementsByTagName('si'));
+    siNodes.forEach((si, sIdx) => {
+      const tNodes = Array.from(si.getElementsByTagName('t'));
+      const txt = tNodes.map(t => t.textContent).join('').trim();
+      if (txt && !/^[\d.,\-\+%\/]+$/.test(txt)) {
+        STATE.segments.push({
+          id: idx++,
+          loc: 'sharedStrings',
+          type: `Chuỗi #${sIdx + 1}`,
+          orig: txt,
+          trans: '',
+          xmlPath: 'xl/sharedStrings.xml',
+          nodeIndex: sIdx
+        });
+      }
+    });
+  }
+  addLog(`Đã đọc XLSX (${STATE.segments.length} chuỗi văn bản trong workbook).`, 'success');
+}
+
+async function parsePptxSegments(bytes) {
+  const zip = await JSZip.loadAsync(bytes);
+  STATE.zipObj = zip;
+  const parser = new DOMParser();
+  const slidePaths = Object.keys(zip.files)
+    .filter(p => /^ppt\/slides\/slide\d+\.xml$/i.test(p))
+    .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+  let idx = 1;
+
+  for (const path of slidePaths) {
+    const xmlStr = await zip.file(path).async('string');
+    const doc = parser.parseFromString(xmlStr, 'application/xml');
+    const paras = Array.from(doc.getElementsByTagName('a:p'));
+    paras.forEach((pEl, pIdx) => {
+      const tNodes = Array.from(pEl.getElementsByTagName('a:t'));
+      const txt = tNodes.map(t => t.textContent).join('').trim();
+      if (txt) {
+        STATE.segments.push({
+          id: idx++,
+          loc: path.replace('ppt/slides/', ''),
+          type: `Slide Text #${pIdx + 1}`,
+          orig: txt,
+          trans: '',
+          xmlPath: path,
+          nodeIndex: pIdx
+        });
+      }
+    });
+  }
+  addLog(`Đã đọc PPTX (${slidePaths.length} slides, ${STATE.segments.length} đoạn).`, 'success');
+}
+
+async function parsePlainOrStructuredText(file) {
+  const text = await file.text();
+  const lines = text.split(/\r?\n/);
+  let idx = 1;
+  lines.forEach((line, lIdx) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    if ((STATE.fileExt === 'srt' || STATE.fileExt === 'vtt') && (/^\d+$/.test(trimmed) || /-->/.test(trimmed))) return;
+    STATE.segments.push({
+      id: idx++,
+      loc: `Dòng ${lIdx + 1}`,
+      type: STATE.fileExt.toUpperCase(),
+      orig: trimmed,
+      trans: '',
+      lineIndex: lIdx
+    });
+  });
+  addLog(`Đã đọc file ${STATE.fileExt.toUpperCase()} (${STATE.segments.length} dòng cần dịch).`, 'success');
+}
+
+// ============================================================================
+// SEGMENT TABLE RENDER & INLINE EDITING
+// ============================================================================
+function renderSegmentTable() {
+  const emptyEl = document.getElementById('segmentEmptyState');
+  const wrapEl = document.getElementById('segmentTableWrap');
+  const tbody = document.getElementById('segmentTableBody');
+  const q = document.getElementById('segSearchInput').value.trim().toLowerCase();
+
+  document.getElementById('segCountBadge').textContent = STATE.segments.length;
+
+  if (!STATE.segments.length) {
+    emptyEl.classList.remove('hidden');
+    wrapEl.classList.add('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  wrapEl.classList.remove('hidden');
+
+  const rows = STATE.segments.filter(s => !q || s.orig.toLowerCase().includes(q) || s.trans.toLowerCase().includes(q));
+  tbody.innerHTML = rows.slice(0, 600).map(s => `
+    <tr class="hover:bg-slate-900/50 transition">
+      <td class="p-2 text-center text-slate-500 mono">${s.id}</td>
+      <td class="p-2 text-[10px] text-slate-400">
+        <div class="font-semibold text-sky-300">${escapeHtml(s.loc)}</div>
+        <div>${escapeHtml(s.type)}</div>
+      </td>
+      <td class="p-2 text-slate-200 align-top whitespace-pre-wrap leading-relaxed">${escapeHtml(s.orig)}</td>
+      <td class="p-2 align-top">
+        <textarea rows="2" onchange="updateSegmentTrans(${s.id}, this.value)" class="w-full bg-slate-900/80 border border-slate-800 focus:border-sky-500 rounded-lg p-1.5 text-xs text-emerald-200 focus:outline-none resize-y">${escapeHtml(s.trans)}</textarea>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateSegmentTrans(id, val) {
+  const seg = STATE.segments.find(s => s.id === id);
+  if (seg) seg.trans = val;
+}
+
+// ============================================================================
+// AI TRANSLATION PIPELINE (BROWSER-SIDE CONCURRENT BATCHES + SERVER MODE)
+// ============================================================================
+async function runTranslationPipeline() {
+  if (!STATE.file) {
+    showToast('Vui lòng chọn tài liệu trước khi dịch!', true);
+    return;
+  }
+  if (STATE.execMode === 'server') {
+    await runServerTranslation();
+    return;
+  }
+  if (!STATE.segments.length) {
+    showToast('Không tìm thấy đoạn văn bản nào để dịch.', true);
+    return;
+  }
+
+  const baseUrl = document.getElementById('baseUrl').value.trim().replace(/\/+$/, '');
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const model = document.getElementById('modelId').value.trim();
+  const preset = document.getElementById('llmPreset').value;
+
+  if (!apiKey && preset !== 'ollama') {
+    showToast('Vui lòng nhập API Key AI!', true);
+    return;
+  }
+
+  STATE.abortController = new AbortController();
+  STATE.tokensIn = 0;
+  STATE.tokensOut = 0;
+  STATE.translatedReady = false;
+
+  const t0 = performance.now();
+  document.getElementById('btnRunTranslate').classList.add('hidden');
+  document.getElementById('btnCancelTranslate').classList.remove('hidden');
+  document.getElementById('progressBox').classList.remove('hidden');
+
+  const targetLang = document.getElementById('targetLang').value;
+  const customPrompt = document.getElementById('customPrompt').value.trim();
+  const glossary = document.getElementById('glossaryText').value.trim();
+  const concurrency = Math.max(1, Math.min(15, parseInt(document.getElementById('concurrency').value) || 4));
+
+  // Chunk segments into batches of ~12 items or ~2200 chars
+  const batches = [];
+  let curBatch = [], curChars = 0;
+  for (const s of STATE.segments) {
+    if (curBatch.length >= 12 || (curChars + s.orig.length > 2200 && curBatch.length > 0)) {
+      batches.push(curBatch);
+      curBatch = [];
+      curChars = 0;
+    }
+    curBatch.push(s);
+    curChars += s.orig.length;
+  }
+  if (curBatch.length) batches.push(curBatch);
+
+  addLog(`Bắt đầu dịch ${STATE.segments.length} phân đoạn (${batches.length} batch, ${concurrency} luồng, model: ${model})...`);
+  let doneBatches = 0;
+  let nextIdx = 0;
+
+  const worker = async () => {
+    while (nextIdx < batches.length) {
+      if (STATE.abortController.signal.aborted) return;
+      const bIdx = nextIdx++;
+      const batch = batches[bIdx];
+      try {
+        await translateBatchWithLlm(batch, { baseUrl, apiKey, model, targetLang, customPrompt, glossary, signal: STATE.abortController.signal });
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        addLog(`Batch #${bIdx + 1} lỗi: ${err.message}`, 'error');
+      }
+      doneBatches++;
+      const pct = Math.round((doneBatches / batches.length) * 100);
+      document.getElementById('progressBar').style.width = `${pct}%`;
+      document.getElementById('progressPct').textContent = `${pct}%`;
+      document.getElementById('progressLabel').textContent = `Đã dịch ${doneBatches}/${batches.length} lô...`;
+      document.getElementById('tokenStats').textContent = `Tokens: ${STATE.tokensIn} in / ${STATE.tokensOut} out`;
+      document.getElementById('timeStats').textContent = `${((performance.now() - t0) / 1000).toFixed(1)}s`;
+      renderSegmentTable();
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, worker));
+
+  document.getElementById('btnRunTranslate').classList.remove('hidden');
+  document.getElementById('btnCancelTranslate').classList.add('hidden');
+
+  if (!STATE.abortController.signal.aborted) {
+    STATE.translatedReady = true;
+    document.getElementById('btnDownloadTranslated').disabled = false;
+    document.getElementById('btnDownloadBilingualHtml').disabled = false;
+    document.getElementById('progressLabel').textContent = 'Hoàn tất dịch tài liệu!';
+    addLog(`Dịch hoàn tất sau ${((performance.now() - t0) / 1000).toFixed(1)}s!`, 'success');
+    showToast('Dịch tài liệu hoàn tất! Bạn có thể kiểm tra và tải file.');
+  } else {
+    document.getElementById('progressLabel').textContent = 'Đã dừng bởi người dùng.';
+    addLog('Tiến trình dịch đã bị hủy.', 'warn');
+  }
+}
+
+async function translateBatchWithLlm(batch, cfg) {
+  const payloadMap = {};
+  batch.forEach(s => { payloadMap[String(s.id)] = s.orig; });
+
+  const sysPrompt = [
+    `You are a professional document translator. Translate all JSON values into ${cfg.targetLang}.`,
+    `Return ONLY a valid JSON object with the exact same numeric keys and translated string values. Do not add markdown fences or explanations.`,
+    cfg.customPrompt ? `Domain instructions: ${cfg.customPrompt}` : '',
+    cfg.glossary ? `Mandatory glossary (Source = Target):\n${cfg.glossary}` : ''
+  ].filter(Boolean).join('\n');
+
+  const resp = await fetch(`${cfg.baseUrl}/chat/completions`, {
+    method: 'POST',
+    signal: cfg.signal,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(cfg.apiKey ? { 'Authorization': `Bearer ${cfg.apiKey}` } : {})
+    },
+    body: JSON.stringify({
+      model: cfg.model,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: sysPrompt },
+        { role: 'user', content: JSON.stringify(payloadMap) }
+      ]
+    })
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 160)}`);
+  }
+
+  const data = await resp.json();
+  if (data.usage) {
+    STATE.tokensIn += data.usage.prompt_tokens || 0;
+    STATE.tokensOut += data.usage.completion_tokens || 0;
+  }
+
+  let content = data.choices?.[0]?.message?.content || '{}';
+  content = content.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+  const parsed = JSON.parse(content);
+  batch.forEach(s => {
+    if (parsed[String(s.id)] !== undefined) {
+      s.trans = String(parsed[String(s.id)]);
+    }
+  });
+}
+
+function cancelTranslation() {
+  if (STATE.abortController) STATE.abortController.abort();
+}
+
+// ============================================================================
+// SERVER MODE (OPTIONAL DOCUTRANSLATE BACKEND)
+// ============================================================================
+async function runServerTranslation() {
+  const serverUrl = document.getElementById('serverUrl').value.trim().replace(/\/+$/, '');
+  const form = new FormData();
+  form.append('file', STATE.file);
+  form.append('base_url', document.getElementById('baseUrl').value.trim());
+  form.append('api_key', document.getElementById('apiKey').value.trim());
+  form.append('model_id', document.getElementById('modelId').value.trim());
+  form.append('to_lang', document.getElementById('targetLang').value);
+  form.append('insert_mode', document.getElementById('insertMode').value);
+  form.append('custom_prompt', document.getElementById('customPrompt').value.trim());
+  form.append('concurrent', document.getElementById('concurrency').value);
+
+  addLog(`Đang gửi file lên DocuTranslate Server (${serverUrl})...`);
+  document.getElementById('progressBox').classList.remove('hidden');
+  document.getElementById('progressLabel').textContent = 'Đang xử lý trên Server...';
+
+  try {
+    const res = await fetch(`${serverUrl}/service/translate`, { method: 'POST', body: form });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const taskId = data.task_id;
+    addLog(`Task ID: ${taskId}`, 'info');
+
+    const poll = setInterval(async () => {
+      const st = await fetch(`${serverUrl}/service/status/${taskId}`).then(r => r.json());
+      document.getElementById('progressLabel').textContent = st.status_message || st.status;
+      if (st.status === 'completed' || st.status === 'success') {
+        clearInterval(poll);
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressPct').textContent = '100%';
+        window.open(`${serverUrl}/service/download/${taskId}/docx`, '_blank');
+        showToast('Server dịch xong! Đang tải file kết quả.');
+      } else if (st.status === 'failed' || st.status === 'error') {
+        clearInterval(poll);
+        showToast('Server báo lỗi khi dịch!', true);
+      }
+    }, 2000);
+  } catch (e) {
+    showToast(`Lỗi kết nối Server: ${e.message}`, true);
+    addLog(`Lỗi Server: ${e.message}`, 'error');
+  }
+}
+
+// ============================================================================
+// EXPORT RECONSTRUCTED / TRANSLATED FILES (PRESERVING LAYOUT)
+// ============================================================================
+async function downloadTranslatedOutput() {
+  const insertMode = document.getElementById('insertMode').value;
+  const baseName = STATE.file.name.replace(/\.[^.]+$/, '');
+  const formatText = (orig, trans) => {
+    if (!trans) return orig;
+    if (insertMode === 'replace') return trans;
+    if (insertMode === 'prepend') return `${trans}\n${orig}`;
+    return `${orig}\n${trans}`;
+  };
+
+  if (STATE.fileExt === 'pdf') {
+    const blob = await buildDocxFromPdfGeo(insertMode);
+    triggerBlobDownload(blob, `${baseName}_Translated_ONLYOFFICE.docx`);
+    return;
+  }
+
+  if (STATE.fileExt === 'docx' && STATE.zipObj) {
+    const zip = await JSZip.loadAsync(STATE.fileBytes);
+    const parser = new DOMParser();
+    const serializer = new XMLSerializer();
+    const byPath = groupBy(STATE.segments, 'xmlPath');
+
+    for (const [path, segs] of Object.entries(byPath)) {
+      const xmlStr = await zip.file(path).async('string');
+      const doc = parser.parseFromString(xmlStr, 'application/xml');
+      const paras = Array.from(doc.getElementsByTagName('w:p'));
+      segs.forEach(s => {
+        const pEl = paras[s.nodeIndex];
+        if (!pEl || !s.trans) return;
+        const tNodes = Array.from(pEl.getElementsByTagName('w:t'));
+        if (!tNodes.length) return;
+        tNodes[0].setAttribute('xml:space', 'preserve');
+        tNodes[0].textContent = formatText(s.orig, s.trans);
+        for (let k = 1; k < tNodes.length; k++) tNodes[k].textContent = '';
+      });
+      zip.file(path, serializer.serializeToString(doc));
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    triggerBlobDownload(blob, `${baseName}_Translated.docx`);
+    return;
+  }
+
+  if (STATE.fileExt === 'xlsx' && STATE.zipObj) {
+    const zip = await JSZip.loadAsync(STATE.fileBytes);
+    const parser = new DOMParser();
+    const serializer = new XMLSerializer();
+    const xmlStr = await zip.file('xl/sharedStrings.xml').async('string');
+    const doc = parser.parseFromString(xmlStr, 'application/xml');
+    const siNodes = Array.from(doc.getElementsByTagName('si'));
+    STATE.segments.forEach(s => {
+      const si = siNodes[s.nodeIndex];
+      if (!si || !s.trans) return;
+      const tNodes = Array.from(si.getElementsByTagName('t'));
+      if (!tNodes.length) return;
+      tNodes[0].setAttribute('xml:space', 'preserve');
+      tNodes[0].textContent = formatText(s.orig, s.trans);
+      for (let k = 1; k < tNodes.length; k++) tNodes[k].textContent = '';
+    });
+    zip.file('xl/sharedStrings.xml', serializer.serializeToString(doc));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    triggerBlobDownload(blob, `${baseName}_Translated.xlsx`);
+    return;
+  }
+
+  if (STATE.fileExt === 'pptx' && STATE.zipObj) {
+    const zip = await JSZip.loadAsync(STATE.fileBytes);
+    const parser = new DOMParser();
+    const serializer = new XMLSerializer();
+    const byPath = groupBy(STATE.segments, 'xmlPath');
+
+    for (const [path, segs] of Object.entries(byPath)) {
+      const xmlStr = await zip.file(path).async('string');
+      const doc = parser.parseFromString(xmlStr, 'application/xml');
+      const paras = Array.from(doc.getElementsByTagName('a:p'));
+      segs.forEach(s => {
+        const pEl = paras[s.nodeIndex];
+        if (!pEl || !s.trans) return;
+        const tNodes = Array.from(pEl.getElementsByTagName('a:t'));
+        if (!tNodes.length) return;
+        tNodes[0].textContent = formatText(s.orig, s.trans);
+        for (let k = 1; k < tNodes.length; k++) tNodes[k].textContent = '';
+      });
+      zip.file(path, serializer.serializeToString(doc));
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    triggerBlobDownload(blob, `${baseName}_Translated.pptx`);
+    return;
+  }
+
+  // Plain text / SRT / MD / HTML
+  const rawText = await STATE.file.text();
+  const lines = rawText.split(/\r?\n/);
+  STATE.segments.forEach(s => {
+    if (s.lineIndex !== undefined && s.trans) {
+      lines[s.lineIndex] = formatText(s.orig, s.trans);
+    }
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  triggerBlobDownload(blob, `${baseName}_Translated.${STATE.fileExt || 'txt'}`);
+}
+
+function downloadBilingualHtmlReport() {
+  const rows = STATE.segments.map(s => `
+    <tr>
+      <td style="padding:8px;border:1px solid #cbd5e1;color:#64748b">${s.id}</td>
+      <td style="padding:8px;border:1px solid #cbd5e1">${escapeHtml(s.loc)}</td>
+      <td style="padding:8px;border:1px solid #cbd5e1">${escapeHtml(s.orig)}</td>
+      <td style="padding:8px;border:1px solid #cbd5e1;color:#0f172a;font-weight:500">${escapeHtml(s.trans)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Báo Cáo Song Ngữ — ${escapeHtml(STATE.file?.name || '')}</title></head>
+  <body style="font-family:system-ui,sans-serif;max-width:1100px;margin:24px auto;padding:0 16px">
+    <h2>Báo Cáo Dịch Song Ngữ: ${escapeHtml(STATE.file?.name || '')}</h2>
+    <p style="color:#475569;font-size:13px">Tạo bởi DocuTranslate × ONLYOFFICE Studio</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:#f1f5f9">
+        <th style="padding:8px;border:1px solid #cbd5e1">#</th>
+        <th style="padding:8px;border:1px solid #cbd5e1">Vị trí</th>
+        <th style="padding:8px;border:1px solid #cbd5e1">Nguyên bản</th>
+        <th style="padding:8px;border:1px solid #cbd5e1">Bản dịch</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  triggerBlobDownload(blob, `${(STATE.file?.name || 'document').replace(/\.[^.]+$/, '')}_SongNgu.html`);
+}
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+function escapeXml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function groupBy(arr, key) {
+  return arr.reduce((acc, item) => {
+    (acc[item[key]] = acc[item[key]] || []).push(item);
+    return acc;
+  }, {});
+}
+
+function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadConfig();
+  addLog('DocuTranslate × ONLYOFFICE Studio sẵn sàng (Chế độ 100% Trình duyệt).', 'success');
+});
+</script>
+</body>
+</html>
