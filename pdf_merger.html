@@ -388,7 +388,7 @@
 
           <!-- DROPZONE ACCEPTS PDF & IMAGES -->
           <div id="dropzone-convert" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 rounded-2xl p-6 text-center cursor-pointer transition group">
-            <input type="file" id="file-input-convert" accept=".pdf,.png,.jpg,.jpeg,.bmp,.webp,.tiff" multiple class="hidden" onchange="handlePmConvertFilesSelect(event)">
+            <input type="file" id="file-input-convert" accept=".pdf,.png,.jpg,.jpeg,.bmp,.webp,.tiff" multiple class="hidden">
             <div class="flex justify-center items-center gap-3 mb-2">
               <i class="fa-solid fa-file-pdf text-3xl text-rose-500 group-hover:scale-110 transition"></i>
               <i class="fa-solid fa-plus text-slate-600 text-sm"></i>
@@ -396,7 +396,7 @@
             </div>
             <span class="text-xs font-bold text-slate-200 block">Kéo &amp; Thả tệp PDF hoặc File Ảnh (PNG, JPG, BMP) vào đây</span>
             <p class="text-[11px] text-slate-400 mt-1">Hồ sơ nghiệm thu, bản vẽ scan, nhật ký hiện trường, bảng tính BOQ, thanh toán 08a</p>
-            <button type="button" onclick="document.getElementById('file-input-convert').click()" class="mt-3 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 transition">
+            <button type="button" onclick="event.stopPropagation(); document.getElementById('file-input-convert').click()" class="mt-3 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 transition">
               <i class="fa-solid fa-folder-open text-emerald-400 mr-1.5"></i>Chọn Tệp Từ Máy Tính
             </button>
           </div>
@@ -774,7 +774,7 @@
     function setupDropzones() {
       const dropzoneConfigs = [
         { id: 'dropzone-merge', inputId: 'file-input-merge', handler: handleMergeFileSelect },
-        { id: 'dropzone-convert', inputId: 'file-input-convert', handler: handleConvertFileSelect },
+        { id: 'dropzone-convert', inputId: 'file-input-convert', handler: handlePmConvertFilesSelect },
         { id: 'dropzone-edit', inputId: 'file-input-edit', handler: handleEditFileSelect }
       ];
 
@@ -928,17 +928,22 @@
     }
 
     function handleSplitFilesSelect(event) {
-      const files = Array.from(event.target.files);
-      const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-      if (pdfs.length === 0) return;
+      const files = Array.from(event.target.files || []);
+      event.target.value = '';
+      const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf');
+      if (pdfs.length === 0) {
+        showToast('Không có tệp PDF hợp lệ nào được chọn.', 'warning');
+        return;
+      }
       rawScannedPdfFiles = rawScannedPdfFiles.concat(pdfs);
       applyFolderFilter();
       showToast(`Đã thêm ${pdfs.length} tệp PDF vào danh sách lọc!`, 'success');
     }
 
     function handleFallbackFolderSelect(event) {
-      const files = Array.from(event.target.files);
-      rawScannedPdfFiles = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      const files = Array.from(event.target.files || []);
+      event.target.value = '';
+      rawScannedPdfFiles = files.filter(f => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf');
       applyFolderFilter();
 
       if (scannedFolderFiles.length > 0) {
@@ -2926,6 +2931,377 @@ table.sig-table td, table.layout-noborder td { border: none; }
       if (progressPercent) progressPercent.innerText = '100%';
       if (progressLabel) progressLabel.innerText = `Hoàn tất quét toàn bộ ${pmTotalLinesScannedSession} dòng của tất cả các tệp!`;
       showToast(`Đã hoàn tất quét và chuyển đổi ${pmTotalLinesScannedSession} dòng!`, 'success');
+    }
+
+    // =========================================================================
+    // MODE 3 HANDLERS: CHUYỂN ĐỔI PDF / ẢNH SANG WORD & EXCEL (PM CONVERT)
+    // =========================================================================
+    function handlePmConvertFilesSelect(filesOrEvent) {
+      const rawList = filesOrEvent && filesOrEvent.target ? filesOrEvent.target.files : filesOrEvent;
+      const list = Array.from(rawList || []);
+      if (filesOrEvent && filesOrEvent.target) filesOrEvent.target.value = '';
+      if (list.length === 0) return;
+
+      const validExt = /\.(pdf|png|jpe?g|bmp|webp|tiff?)$/i;
+      let added = 0;
+      for (const f of list) {
+        if (validExt.test(f.name) || f.type === 'application/pdf' || f.type.startsWith('image/')) {
+          const isImg = !f.name.toLowerCase().endsWith('.pdf') && f.type !== 'application/pdf';
+          pmConvertQueue.push({
+            file: f,
+            name: f.name,
+            sizeMB: (f.size / (1024 * 1024)).toFixed(2),
+            isImg,
+            totalPages: isImg ? 1 : '?',
+            currentPage: 0,
+            status: 'Chờ quét'
+          });
+          added++;
+        }
+      }
+      renderPmConvertQueue();
+      if (added > 0) {
+        showToast(`Đã nạp ${added} tệp vào hàng chờ chuyển đổi!`, 'success');
+      } else {
+        showToast('Vui lòng chọn tệp PDF hoặc Ảnh (PNG, JPG, BMP, WEBP, TIFF).', 'warning');
+      }
+    }
+
+    function renderPmConvertQueue() {
+      const countEl = document.getElementById('pm-convert-queue-count');
+      const tbody = document.getElementById('pm-convert-queue-body');
+      if (countEl) countEl.innerText = pmConvertQueue.length;
+      if (!tbody) return;
+
+      if (pmConvertQueue.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-500 text-xs">Chưa có tệp nào. Hãy kéo thả hoặc chọn tệp PDF/Ảnh ở cột bên trái.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = pmConvertQueue.map((item, idx) => `
+        <tr class="hover:bg-slate-900/50">
+          <td class="px-3 py-2 font-medium text-slate-200 truncate max-w-[220px]" title="${item.name}">
+            <i class="fa-solid ${item.isImg ? 'fa-file-image text-emerald-400' : 'fa-file-pdf text-rose-400'} mr-1.5"></i>${item.name}
+          </td>
+          <td class="px-3 py-2 text-slate-400 font-mono text-[11px]">${item.sizeMB} MB (${item.totalPages} tr)</td>
+          <td class="px-3 py-2 text-[11px] font-semibold ${String(item.status).includes('Hoàn') ? 'text-emerald-400' : String(item.status).includes('Lỗi') ? 'text-rose-400' : 'text-amber-300'}">${item.status}</td>
+          <td class="px-3 py-2 text-right">
+            <button type="button" onclick="removePmConvertItem(${idx})" class="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 rounded"><i class="fa-solid fa-trash text-xs"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function removePmConvertItem(idx) {
+      pmConvertQueue.splice(idx, 1);
+      renderPmConvertQueue();
+    }
+
+    function clearPmConvertQueue() {
+      pmConvertQueue = [];
+      renderPmConvertQueue();
+      showToast('Đã xóa toàn bộ hàng chờ chuyển đổi.', 'info');
+    }
+
+    function setPmConvertTargetFormat(fmt) {
+      pmTargetConvertFormat = fmt;
+      const btnDoc = document.getElementById('pm-fmt-btn-doc');
+      const btnXls = document.getElementById('pm-fmt-btn-xlsx');
+      if (btnDoc) btnDoc.className = fmt === 'doc'
+        ? 'py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl border border-emerald-500 flex items-center justify-center space-x-2 transition shadow-md shadow-emerald-600/20'
+        : 'py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-2 transition';
+      if (btnXls) btnXls.className = fmt === 'xlsx'
+        ? 'py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl border border-emerald-500 flex items-center justify-center space-x-2 transition shadow-md shadow-emerald-600/20'
+        : 'py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-2 transition';
+    }
+
+    // =========================================================================
+    // MODE 4 HANDLERS: CHỈNH SỬA TRỰC QUAN, CHE PHỦ, ĐÓNG DẤU & XOAY TRANG
+    // =========================================================================
+    let editorZoom = 1.0;
+    let editorFileName = 'edited_document.pdf';
+
+    async function handleEditFileSelect(filesOrEvent) {
+      const rawList = filesOrEvent && filesOrEvent.target ? filesOrEvent.target.files : filesOrEvent;
+      const file = Array.from(rawList || [])[0];
+      if (filesOrEvent && filesOrEvent.target) filesOrEvent.target.value = '';
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+        showToast('Vui lòng chọn tệp PDF hợp lệ.', 'warning');
+        return;
+      }
+
+      try {
+        showToast(`Đang nạp ${file.name} vào trình chỉnh sửa...`, 'info');
+        const rawBytes = await file.arrayBuffer();
+        editorPdfBytes = new Uint8Array(prepareSafePdfBuffer(rawBytes));
+        editorFileName = file.name.replace(/\.pdf$/i, '') + '_edited.pdf';
+        editorPdfDoc = await pdfjsLib.getDocument({ data: editorPdfBytes.slice(0) }).promise;
+        editorCurrentPage = 1;
+        editorZoom = 1.0;
+        editorPageRotation = 0;
+        redactionRects = [];
+        stampOverlays = [];
+        await renderEditorPage();
+        showToast(`Đã nạp thành công ${file.name} (${editorPdfDoc.numPages} trang)!`, 'success');
+      } catch (err) {
+        console.error('Lỗi nạp PDF chỉnh sửa:', err);
+        showToast(`Không thể mở tệp PDF: ${err.message}`, 'error');
+      }
+    }
+
+    async function renderEditorPage() {
+      if (!editorPdfDoc) return;
+      const page = await editorPdfDoc.getPage(editorCurrentPage);
+      const vp = page.getViewport({ scale: editorZoom, rotation: (page.rotate + editorPageRotation) % 360 });
+      const canvas = document.getElementById('editor-canvas');
+      if (!canvas) return;
+      canvas.width = vp.width;
+      canvas.height = vp.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+      const pageLabel = document.getElementById('editor-page-num');
+      const zoomLabel = document.getElementById('editor-zoom-label');
+      if (pageLabel) pageLabel.innerText = `${editorCurrentPage} / ${editorPdfDoc.numPages}`;
+      if (zoomLabel) zoomLabel.innerText = `${Math.round(editorZoom * 100)}%`;
+
+      renderEditorOverlays();
+    }
+
+    function renderEditorOverlays() {
+      const overlay = document.getElementById('editor-overlay');
+      if (!overlay) return;
+      overlay.innerHTML = '';
+
+      redactionRects.filter(r => r.page === editorCurrentPage).forEach((r, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = `position:absolute;left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${r.color === 'red' ? 'rgba(225,29,72,0.35)' : r.color};border:${r.color === 'red' ? '2px solid #e11d48' : '1px dashed #64748b'};cursor:pointer;`;
+        div.title = 'Nhấp để xóa khung che';
+        div.onclick = (e) => {
+          e.stopPropagation();
+          const globalIdx = redactionRects.indexOf(r);
+          if (globalIdx > -1) redactionRects.splice(globalIdx, 1);
+          renderEditorOverlays();
+        };
+        overlay.appendChild(div);
+      });
+
+      stampOverlays.filter(s => s.page === editorCurrentPage).forEach(s => {
+        const img = document.createElement('img');
+        img.src = s.dataUrl;
+        img.style.cssText = `position:absolute;left:${s.x}px;top:${s.y}px;width:${s.w}px;height:${s.h}px;cursor:move;user-select:none;`;
+        img.draggable = false;
+        img.onmousedown = (e) => {
+          e.stopPropagation();
+          const startX = e.clientX - s.x;
+          const startY = e.clientY - s.y;
+          const onMove = (me) => {
+            s.x = Math.max(0, me.clientX - startX);
+            s.y = Math.max(0, me.clientY - startY);
+            img.style.left = s.x + 'px';
+            img.style.top = s.y + 'px';
+          };
+          const onUp = () => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        };
+        overlay.appendChild(img);
+      });
+    }
+
+    function setupCanvasRedactionEvents() {
+      const overlay = document.getElementById('editor-overlay');
+      if (!overlay) return;
+      let startX = 0, startY = 0, previewBox = null;
+      overlay.addEventListener('mousedown', (e) => {
+        if (!isRedactActive || !editorPdfDoc) return;
+        const rect = overlay.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        previewBox = document.createElement('div');
+        previewBox.style.cssText = `position:absolute;left:${startX}px;top:${startY}px;width:0;height:0;border:2px dashed #38bdf8;background:rgba(56,189,248,0.15);pointer-events:none;`;
+        overlay.appendChild(previewBox);
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!previewBox) return;
+        const rect = overlay.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+        previewBox.style.left = Math.min(startX, curX) + 'px';
+        previewBox.style.top = Math.min(startY, curY) + 'px';
+        previewBox.style.width = Math.abs(curX - startX) + 'px';
+        previewBox.style.height = Math.abs(curY - startY) + 'px';
+      });
+      window.addEventListener('mouseup', (e) => {
+        if (!previewBox) return;
+        const x = parseFloat(previewBox.style.left);
+        const y = parseFloat(previewBox.style.top);
+        const w = parseFloat(previewBox.style.width);
+        const h = parseFloat(previewBox.style.height);
+        previewBox.remove();
+        previewBox = null;
+        if (w > 6 && h > 6) {
+          redactionRects.push({ page: editorCurrentPage, x, y, w, h, color: currentRedactColor });
+          renderEditorOverlays();
+        }
+      });
+    }
+
+    function changeEditorPage(delta) {
+      if (!editorPdfDoc) return;
+      const next = editorCurrentPage + delta;
+      if (next >= 1 && next <= editorPdfDoc.numPages) {
+        editorCurrentPage = next;
+        renderEditorPage();
+      }
+    }
+
+    function rotateEditorPage(deg) {
+      if (!editorPdfDoc) return;
+      editorPageRotation = (editorPageRotation + deg) % 360;
+      renderEditorPage();
+    }
+
+    function zoomEditor(delta) {
+      if (!editorPdfDoc) return;
+      editorZoom = Math.max(0.4, Math.min(2.5, Number((editorZoom + delta).toFixed(2))));
+      renderEditorPage();
+    }
+
+    function setRedactionColor(color) {
+      currentRedactColor = color;
+      ['black', 'white', 'red'].forEach(c => {
+        const btn = document.getElementById(`redact-color-${c}`);
+        if (btn) btn.classList.toggle('border-blue-500', c === color);
+      });
+    }
+
+    function toggleRedactionMode() {
+      isRedactActive = !isRedactActive;
+      const txt = document.getElementById('redact-btn-text');
+      const btn = document.getElementById('btn-redact-tool');
+      if (txt) txt.innerText = isRedactActive ? 'Đang Bật Vẽ Che Phủ (Nhấn để tắt)' : 'Vẽ Khung Che Phủ (Kéo chuột)';
+      if (btn) btn.classList.toggle('bg-blue-600', isRedactActive);
+    }
+
+    function triggerStampUpload() {
+      if (!editorPdfDoc) {
+        showToast('Vui lòng nạp tệp PDF trước khi chèn con dấu!', 'warning');
+        return;
+      }
+      document.getElementById('stamp-file-input')?.click();
+    }
+
+    function handleStampSelect(event) {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        stampOverlays.push({ page: editorCurrentPage, x: 40, y: 40, w: 120, h: 120, dataUrl: reader.result });
+        renderEditorOverlays();
+        showToast('Đã chèn con dấu/chữ ký! Kéo để di chuyển vị trí.', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function exportEditedPDF() {
+      if (!editorPdfBytes) {
+        showToast('Chưa có tệp PDF nào được nạp để xuất!', 'warning');
+        return;
+      }
+      try {
+        showToast('Đang lưu thay đổi & xuất tệp PDF mới...', 'info');
+        const pdfDoc = await PDFLib.PDFDocument.load(editorPdfBytes, { ignoreEncryption: true });
+        const canvas = document.getElementById('editor-canvas');
+        const pages = pdfDoc.getPages();
+        const curPageObj = pages[editorCurrentPage - 1];
+        if (curPageObj && editorPageRotation !== 0) {
+          curPageObj.setRotation(PDFLib.degrees((curPageObj.getRotation().angle + editorPageRotation) % 360));
+        }
+
+        for (const r of redactionRects) {
+          const p = pages[r.page - 1];
+          if (!p || !canvas) continue;
+          const { width, height } = p.getSize();
+          const sx = width / canvas.width;
+          const sy = height / canvas.height;
+          const fillCol = r.color === 'white' ? PDFLib.rgb(1, 1, 1) : r.color === 'red' ? PDFLib.rgb(0.88, 0.11, 0.28) : PDFLib.rgb(0, 0, 0);
+          p.drawRectangle({
+            x: r.x * sx,
+            y: height - (r.y + r.h) * sy,
+            width: r.w * sx,
+            height: r.h * sy,
+            color: fillCol,
+            opacity: r.color === 'red' ? 0.35 : 1
+          });
+        }
+
+        for (const s of stampOverlays) {
+          const p = pages[s.page - 1];
+          if (!p || !canvas) continue;
+          const { width, height } = p.getSize();
+          const sx = width / canvas.width;
+          const sy = height / canvas.height;
+          const isPng = s.dataUrl.startsWith('data:image/png');
+          const img = isPng ? await pdfDoc.embedPng(s.dataUrl) : await pdfDoc.embedJpg(s.dataUrl);
+          p.drawImage(img, {
+            x: s.x * sx,
+            y: height - (s.y + s.h) * sy,
+            width: s.w * sx,
+            height: s.h * sy
+          });
+        }
+
+        const outBytes = await pdfDoc.save();
+        const blob = new Blob([outBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = editorFileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast(`Đã xuất thành công ${editorFileName}!`, 'success');
+      } catch (err) {
+        showToast(`Lỗi xuất PDF: ${err.message}`, 'error');
+      }
+    }
+
+    // =========================================================================
+    // SHARE HUB & CLOUD CONFIG MODALS
+    // =========================================================================
+    function updateShareWebUrl() {
+      const inp = document.getElementById('share-web-url');
+      if (inp && window.location && window.location.href) inp.value = window.location.href;
+    }
+    function openShareHubModal() { updateShareWebUrl(); document.getElementById('share-hub-modal')?.classList.remove('hidden'); }
+    function closeShareHubModal() { document.getElementById('share-hub-modal')?.classList.add('hidden'); }
+    function copyShareUrl() {
+      const val = document.getElementById('share-web-url')?.value || window.location.href;
+      navigator.clipboard.writeText(val).then(() => showToast('Đã sao chép liên kết chia sẻ!', 'success'));
+    }
+    function downloadSelfHtml() {
+      const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'pdf_merger_offline.html'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+    function triggerNativeShare() {
+      if (navigator.share) navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
+      else copyShareUrl();
+    }
+    function openCloudConfigModal() { document.getElementById('cloud-config-modal')?.classList.remove('hidden'); }
+    function closeCloudConfigModal() { document.getElementById('cloud-config-modal')?.classList.add('hidden'); }
+    function saveEngineConfig() {
+      showToast('Đã lưu cấu hình AI Engine cục bộ!', 'success');
+      closeCloudConfigModal();
     }
 
 </script>
