@@ -748,9 +748,9 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       setupDropzones();
-      setupCanvasRedactionEvents();
-      initSortableMergeQueue();
-      updateShareWebUrl();
+      if (typeof setupCanvasRedactionEvents === 'function') setupCanvasRedactionEvents();
+      if (typeof initSortableMergeQueue === 'function') initSortableMergeQueue();
+      if (typeof updateShareWebUrl === 'function') updateShareWebUrl();
     });
 
     function switchWorkmode(mode) {
@@ -789,7 +789,11 @@
           }
         });
 
-        input.addEventListener('change', (e) => cfg.handler(e.target.files));
+        input.addEventListener('change', (e) => {
+          const picked = Array.from(e.target.files || []);
+          e.target.value = '';
+          if (picked.length > 0) cfg.handler(picked);
+        });
 
         zone.addEventListener('dragover', (e) => {
           e.preventDefault();
@@ -882,14 +886,14 @@
     function prepareSafePdfBuffer(rawArrayBuffer) {
       let uint8 = new Uint8Array(rawArrayBuffer);
       let headerPos = 0;
-      for (let i = 0; i < Math.min(uint8.length, 1024); i++) {
-        if (uint8[i] === 0x25 && uint8[i+1] === 0x50 && uint8[i+2] === 0x44 && uint8[i+3] === 0x56) { // %PDF
+      for (let i = 0; i < Math.min(uint8.length - 4, 2048); i++) {
+        if (uint8[i] === 0x25 && uint8[i+1] === 0x50 && uint8[i+2] === 0x44 && uint8[i+3] === 0x46) { // %PDF
           headerPos = i;
           break;
         }
       }
       if (headerPos > 0) {
-        return uint8.subarray(headerPos).buffer;
+        return uint8.slice(headerPos).buffer;
       }
       return rawArrayBuffer;
     }
@@ -1276,35 +1280,55 @@
     }
 
     async function handleMergeFileSelect(files) {
-      if (!files || files.length === 0) return;
+      const list = Array.from(files || []);
+      if (list.length === 0) return;
       showToast('Đang đọc thông tin tệp...', 'info');
-      for (let f of Array.from(files)) {
-        if (f.name.toLowerCase().endsWith('.pdf')) {
-          await addFileToMergeQueue(f);
+      let added = 0;
+      for (let f of list) {
+        if (f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf') {
+          const ok = await addFileToMergeQueue(f);
+          if (ok) added++;
         }
       }
       renderMergeQueue();
+      if (added > 0) {
+        showToast(`Đã nạp ${added} tệp PDF vào hàng chờ ghép!`, 'success');
+      } else {
+        showToast('Không có tệp PDF hợp lệ nào được chọn.', 'warning');
+      }
     }
 
     async function handleMergeFolderSelect(event) {
-      const files = Array.from(event.target.files);
+      const files = Array.from(event.target.files || []);
+      event.target.value = '';
       if (files.length === 0) return;
       showToast(`Đang quét ${files.length} tệp từ thư mục...`, 'info');
+      let added = 0;
       for (let f of files) {
-        if (f.name.toLowerCase().endsWith('.pdf')) {
-          await addFileToMergeQueue(f);
+        if (f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf') {
+          const ok = await addFileToMergeQueue(f);
+          if (ok) added++;
         }
       }
       renderMergeQueue();
-      showToast('Đã nạp toàn bộ tệp PDF từ thư mục vào danh sách ghép!', 'success');
+      showToast(`Đã nạp ${added} tệp PDF từ thư mục vào danh sách ghép!`, added > 0 ? 'success' : 'warning');
     }
 
     async function addFileToMergeQueue(file) {
       try {
         const rawBytes = await file.arrayBuffer();
         const safeBytes = prepareSafePdfBuffer(rawBytes);
-        const doc = await PDFLib.PDFDocument.load(safeBytes, { ignoreEncryption: true });
-        const pages = doc.getPageCount();
+        let pages = 0;
+        let needsRasterFallback = false;
+        try {
+          const doc = await PDFLib.PDFDocument.load(safeBytes, { ignoreEncryption: true });
+          pages = doc.getPageCount();
+        } catch (pdfLibErr) {
+          console.warn("PDFLib fallback sang PDF.js cho file:", file.name, pdfLibErr);
+          const pdfJsDoc = await pdfjsLib.getDocument({ data: safeBytes.slice(0) }).promise;
+          pages = pdfJsDoc.numPages;
+          needsRasterFallback = true;
+        }
         const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
 
         mergeQueue.push({
@@ -1313,11 +1337,14 @@
           sizeMB: sizeMB,
           pageCount: pages,
           pageRange: '',
-          rotation: 0 // 0, 90, 180, 270
+          rotation: 0, // 0, 90, 180, 270
+          needsRasterFallback
         });
+        return true;
       } catch (err) {
         console.error("Lỗi đọc tệp ghép:", err);
         showToast(`Không thể đọc file ${file.name}: ${err.message}`, 'error');
+        return false;
       }
     }
 
