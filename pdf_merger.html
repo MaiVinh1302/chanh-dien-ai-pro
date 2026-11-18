@@ -15,6 +15,8 @@
   
   <!-- Drag & Drop Sortable Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+  <!-- SheetJS (XLSX) for Excel Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <!-- PDF.js Worker Configuration with file:/// Fallback -->
   <script>
@@ -1330,7 +1332,7 @@
           pages = doc.getPageCount();
         } catch (pdfLibErr) {
           console.warn("PDFLib fallback sang PDF.js cho file:", file.name, pdfLibErr);
-          const pdfJsDoc = await pdfjsLib.getDocument({ data: safeBytes.slice(0) }).promise;
+          const pdfJsDoc = await pdfjsLib.getDocument({ data: safeBytes.slice(0), disableWorker: true }).promise;
           pages = pdfJsDoc.numPages;
           needsRasterFallback = true;
         }
@@ -2985,11 +2987,25 @@ table.sig-table td, table.layout-noborder td { border: none; }
           </td>
           <td class="px-3 py-2 text-slate-400 font-mono text-[11px]">${item.sizeMB} MB (${item.totalPages} tr)</td>
           <td class="px-3 py-2 text-[11px] font-semibold ${String(item.status).includes('Hoàn') ? 'text-emerald-400' : String(item.status).includes('Lỗi') ? 'text-rose-400' : 'text-amber-300'}">${item.status}</td>
-          <td class="px-3 py-2 text-right">
+          <td class="px-3 py-2 text-right whitespace-nowrap">
+            ${item.resultBlob ? `<button type="button" onclick="downloadPmConvertResult(${idx})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded text-[11px] font-bold mr-1"><i class="fa-solid fa-download mr-1"></i>Tải về</button>` : ''}
             <button type="button" onclick="removePmConvertItem(${idx})" class="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 rounded"><i class="fa-solid fa-trash text-xs"></i></button>
           </td>
         </tr>
       `).join('');
+    }
+
+    function downloadPmConvertResult(idx) {
+      const item = pmConvertQueue[idx];
+      if (!item || !item.resultBlob) return;
+      const url = URL.createObjectURL(item.resultBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = item.resultName || (item.name + '.doc');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
     function removePmConvertItem(idx) {
