@@ -126,13 +126,50 @@ export function buildLayoutAdvice(directions: BatTrachDirection[]) {
 
   return [
     { item: "Cửa chính / Hướng nhà", place: `${sinhKhi.direction} (${sinhKhi.star}) hoặc ${dienNien.direction} (${dienNien.star})`, note: "Đón vượng khí, tài lộc và hòa khí gia đạo." },
-    { item: "Phòng ngủ chính & Đầu giường", place: `${thienY.direction} (${thienY.star}) hoặc ${dienNien.direction} (${dienNien.star})`, note: "Tốt cho sức khỏe, giấc ngủ sâu; tránh đầu giường tựa cửa sổ/WC." },
-    { item: "Bếp nấu (Tọa Hung Hướng Cát)", place: `Đặt tại cung ${bad[0]?.direction} (${bad[0]?.star}), mặt bếp quay về ${thienY.direction} (${thienY.star})`, note: "Thiêu đốt khí xấu, hướng về cung tốt để nuôi dưỡng sức khỏe." },
+    { item: "Phòng ngủ chính & Đầu giường", place: `${thienY.direction} (${thienY.star}) hoặc ${dienNien.direction} (${dienNien.star})`, note: "Tốt cho sức khỏe, giấc ngủ sâu; tránh đầu giường tựa cửa sổ/WC hoặc đối diện gương." },
+    { item: "Bếp nấu (Tọa Hung Hướng Cát)", place: `Đặt tại cung ${bad[0]?.direction} (${bad[0]?.star}), mặt bếp quay về ${thienY.direction} (${thienY.star})`, note: "Thiêu đốt khí xấu, hướng về cung tốt; tránh đặt bếp sát bồn rửa (Thủy-Hỏa xung)." },
     { item: "Bàn thờ gia tiên", place: `Tọa tại cung vững, mặt quay về ${phucVi.direction} (${phucVi.star}) hoặc ${sinhKhi.direction}`, note: "Trang nghiêm, yên tĩnh, tránh đối diện cửa WC hoặc dưới xà ngang." },
-    { item: "Bàn làm việc (Nhà & Văn phòng)", place: `Ngồi quay mặt về ${sinhKhi.direction} (${sinhKhi.star}) hoặc ${phucVi.direction} (${phucVi.star})`, note: "Lưng tựa tường vững (Tọa Sơn), tránh ngồi quay lưng ra cửa chính." },
+    { item: "Bàn làm việc Cá nhân / Giám đốc", place: `Ngồi quay mặt về ${sinhKhi.direction} (${sinhKhi.star}) hoặc ${phucVi.direction} (${phucVi.star})`, note: "Lưng tựa tường vững (Tọa Sơn), nhìn bao quát cửa nhưng không đối xung trực diện cửa ra vào." },
+    { item: "Phòng họp & Quầy lễ tân (Văn phòng)", place: `Quầy lễ tân tại ${dienNien.direction} (${dienNien.star}); Phòng họp tại ${phucVi.direction} hoặc ${thienY.direction}`, note: "Lễ tân đón khách cần Minh Đường thoáng; phòng họp cần không khí hòa hợp, ánh sáng đều." },
     { item: "Két sắt / Quầy thu ngân", place: `Góc tài vị thuộc cung ${sinhKhi.direction} hoặc ${thienY.direction}`, note: "Kín đáo, tụ khí, tránh đặt dưới gầm cầu thang hoặc đối diện cửa ra vào." },
     { item: "Nhà vệ sinh / Kho", place: `Đặt tại cung ${bad[3]?.direction} (${bad[3]?.star}) hoặc ${bad[2]?.direction} (${bad[2]?.star})`, note: "Dùng thủy uế trấn áp cung Hung, giữ khô ráo thông thoáng." },
   ];
+}
+
+export function calcAnnualAfflictions(targetYear: number) {
+  // Annual center star: 2024->3, 2025->2, 2026->1, ... (11 - (year - 2000) % 9) % 9
+  const centerStar = ((((2027 - targetYear) % 9) + 9) % 9) || 9; // Check: 2024->3, 2025->2, 2026->1!
+  const annualStars = flyStars(centerStar, true);
+
+  const idx60 = (((targetYear - 4) % 60) + 60) % 60;
+  const branch = BRANCHES[idx60 % 12];
+  const stem = STEMS[idx60 % 10];
+  const oppBranch = BRANCHES[(idx60 + 6) % 12];
+  // Tam Sát theo Tam Hợp năm: Dần Ngọ Tuất -> Bắc (Hợi Tý Sửu); Thân Tý Thìn -> Nam (Tỵ Ngọ Mùi); Tỵ Dậu Sửu -> Đông (Dần Mão Thìn); Hợi Mão Mùi -> Tây (Thân Dậu Tuất)
+  const bMod = idx60 % 12;
+  let tamSatDir = "Bắc (Hợi – Tý – Sửu)";
+  if ([8, 0, 4].includes(bMod)) tamSatDir = "Nam (Tỵ – Ngọ – Mùi)";
+  else if ([5, 9, 1].includes(bMod)) tamSatDir = "Đông (Dần – Mão – Thìn)";
+  else if ([11, 3, 7].includes(bMod)) tamSatDir = "Tây (Thân – Dậu – Tuất)";
+
+  const fiveYellowPalace = Object.entries(annualStars).find(([, s]) => s === 5)?.[0];
+  const twoBlackPalace = Object.entries(annualStars).find(([, s]) => s === 2)?.[0];
+  const oneWhitePalace = Object.entries(annualStars).find(([, s]) => s === 1)?.[0];
+  const ninePurplePalace = Object.entries(annualStars).find(([, s]) => s === 9)?.[0];
+
+  return {
+    targetYear,
+    yearCanChi: `${stem} ${branch}`,
+    centerStar,
+    annualStars,
+    thaiTue: branch,
+    tuePha: oppBranch,
+    tamSatDir,
+    fiveYellowName: PALACE_NAMES[Number(fiveYellowPalace)],
+    twoBlackName: PALACE_NAMES[Number(twoBlackPalace)],
+    oneWhiteName: PALACE_NAMES[Number(oneWhitePalace)],
+    ninePurpleName: PALACE_NAMES[Number(ninePurplePalace)],
+  };
 }
 
 const TRUC_12 = [

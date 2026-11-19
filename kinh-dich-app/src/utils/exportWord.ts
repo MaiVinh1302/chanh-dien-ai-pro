@@ -96,6 +96,24 @@ export async function exportKinhDichWord(params: {
   downloadBlob(blob, `Bao_Cao_Kinh_Dich_${base.id}.docx`);
 }
 
+export async function exportNhanTuongWord(sections: { title: string; body: string }[]) {
+  const doc = new Document({
+    sections: [
+      {
+        children: [
+          new Paragraph({ text: "BÁO CÁO ĐÁNH GIÁ NHÂN TƯỚNG HỌC & CHỈ TAY", heading: HeadingLevel.HEADING_1 }),
+          ...sections.flatMap((s) => [
+            new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
+            new Paragraph(s.body),
+          ]),
+        ],
+      },
+    ],
+  });
+  const blob = await Packer.toBlob(doc);
+  downloadBlob(blob, "Bao_Cao_Nhan_Tuong_Hoc.docx");
+}
+
 export async function exportZiweiWord(zwChart: {
   yearCanChi: string;
   gender: string;

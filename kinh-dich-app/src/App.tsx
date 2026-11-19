@@ -5,8 +5,10 @@ import {
   NHAN_TUONG_DATA,
   STAR_MEANINGS,
   TRIGRAMS,
+  assessNhanTuong,
   buildHexagram,
   buildLayoutAdvice,
+  calcAnnualAfflictions,
   calcBatTrach,
   calcFlyingStars,
   calcTrachNhat,
@@ -18,8 +20,9 @@ import {
   lucHaoForHexagram,
   maiHoaFromNumbers,
 } from "./engine-index.ts";
+import type { TuongAssessmentInput } from "./data/nhanTuong.ts";
 import { TOPIC_LABELS, type TopicKey } from "./engine/interpret.ts";
-import { exportFengShuiWord, exportKinhDichWord, exportZiweiWord } from "./utils/exportWord.ts";
+import { exportFengShuiWord, exportKinhDichWord, exportNhanTuongWord, exportZiweiWord } from "./utils/exportWord.ts";
 import type { DivinationMethod, Hexagram, LineValue } from "./types.ts";
 
 interface HistoryEntry {
@@ -88,15 +91,25 @@ export default function App() {
   const [zwDay, setZwDay] = useState(15);
   const [zwHourIdx, setZwHourIdx] = useState(5);
   const [zwGender, setZwGender] = useState<"Nam" | "Nữ">("Nam");
+  const [zwViewYear, setZwViewYear] = useState(2026);
 
   // Feng Shui tab state
   const [birthYear, setBirthYear] = useState(1990);
   const [gender, setGender] = useState<"Nam" | "Nữ">("Nam");
   const [period, setPeriod] = useState(9);
   const [facingDeg, setFacingDeg] = useState(180);
+  const [fsViewYear, setFsViewYear] = useState(2026);
 
   // Nhan Tuong tab state
   const [tuongCat, setTuongCat] = useState<string>("Tất cả");
+  const [tuongInput, setTuongInput] = useState<TuongAssessmentInput>({
+    thuongDinh: "cao_rong",
+    trungDinh: "mui_thang_quyen_day",
+    haDinh: "cam_day_vung",
+    anDuong: "sang_rong",
+    sinhDao: "sau_ro_rong",
+    triDao: "thang_ro",
+  });
 
   const castDate = useMemo(() => {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -166,14 +179,17 @@ export default function App() {
         lunarDay: zwDay,
         hourBranchIdx: zwHourIdx,
         gender: zwGender,
+        viewYear: zwViewYear,
       }),
-    [zwYear, zwMonth, zwDay, zwHourIdx, zwGender]
+    [zwYear, zwMonth, zwDay, zwHourIdx, zwGender, zwViewYear]
   );
 
   const batTrach = useMemo(() => calcBatTrach(birthYear, gender), [birthYear, gender]);
   const layoutAdvice = useMemo(() => buildLayoutAdvice(batTrach.directions), [batTrach]);
   const flyingStars = useMemo(() => calcFlyingStars(period, facingDeg), [period, facingDeg]);
+  const annualFs = useMemo(() => calcAnnualAfflictions(fsViewYear), [fsViewYear]);
   const fsAnalysis = useMemo(() => detailedFengShuiAnalysis(batTrach, flyingStars), [batTrach, flyingStars]);
+  const tuongReport = useMemo(() => assessNhanTuong(tuongInput), [tuongInput]);
   const trachNhat = useMemo(
     () => calcTrachNhat(castDate.getFullYear(), castDate.getMonth() + 1, castDate.getDate()),
     [castDate]
@@ -536,6 +552,10 @@ export default function App() {
                   <option value="Nữ">Nữ</option>
                 </select>
               </div>
+              <div>
+                <label>Năm xem (Lưu Niên)</label>
+                <input type="number" value={zwViewYear} onChange={(e) => setZwViewYear(Number(e.target.value) || 2026)} />
+              </div>
             </div>
 
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
@@ -579,14 +599,27 @@ export default function App() {
                       </span>
                       <span className="muted">{p.stem} {p.branch}</span>
                     </div>
-                    <div style={{ marginTop: 6 }}>
+                    <div style={{ marginTop: 4 }}>
                       {p.stars.length ? (
                         p.stars.map((s) => (
-                          <div key={s} style={{ fontWeight: 600 }}>{s}</div>
+                          <div key={s} style={{ fontWeight: 700, color: "var(--text)" }}>{s}</div>
                         ))
                       ) : (
                         <span className="muted">(Vô Chính Diệu)</span>
                       )}
+                      {p.auxStars.length > 0 && (
+                        <div style={{ fontSize: "0.75rem", color: "var(--cat)" }}>{p.auxStars.join(", ")}</div>
+                      )}
+                      {p.satStars.length > 0 && (
+                        <div style={{ fontSize: "0.75rem", color: "var(--hung)" }}>{p.satStars.join(", ")}</div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginTop: 4 }} className="muted">
+                      <span>ĐH: {p.daiHan}</span>
+                      <span>
+                        {p.isTuan ? "[Tuần] " : ""}
+                        {p.isLuuThaiTue ? `★${zwViewYear}` : ""}
+                      </span>
                     </div>
                   </div>
                 );
@@ -653,17 +686,28 @@ export default function App() {
             </div>
 
             <div className="card">
-              <h2>3. Trạch Nhật (Ngày {trachNhat.date})</h2>
-              <div>
-                Ngày <strong>{trachNhat.dayCanChi}</strong> · Tháng Tiết Khí <strong>{trachNhat.monthBranch}</strong>
+              <h2>3. Lưu Niên Phi Tinh & Trạch Nhật</h2>
+              <div className="row">
+                <div>
+                  <label>Năm xem Lưu Niên</label>
+                  <input type="number" value={fsViewYear} onChange={(e) => setFsViewYear(Number(e.target.value) || 2026)} />
+                </div>
+                <div>
+                  <label>Sao Trung Cung năm {annualFs.targetYear}</label>
+                  <input readOnly value={`Sao ${annualFs.centerStar} (${annualFs.yearCanChi})`} />
+                </div>
               </div>
-              <div style={{ marginTop: 6 }}>
-                Trực <strong>{trachNhat.truc.name}</strong> ({trachNhat.truc.rating}) ·{" "}
+              <div className="muted" style={{ marginBottom: 8 }}>
+                • Thái Tuế: <strong>{annualFs.thaiTue}</strong> · Tuế Phá: <strong>{annualFs.tuePha}</strong> · Tam Sát: <strong>{annualFs.tamSatDir}</strong><br />
+                • Ngũ Hoàng năm tại: <strong style={{ color: "var(--hung)" }}>{annualFs.fiveYellowName}</strong> · Nhị Hắc: <strong>{annualFs.twoBlackName}</strong><br />
+                • Cửu Tử vượng hỷ: <strong style={{ color: "var(--cat)" }}>{annualFs.ninePurpleName}</strong> · Nhất Bạch: <strong>{annualFs.oneWhiteName}</strong>
+              </div>
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+                Ngày <strong>{trachNhat.dayCanChi}</strong> ({trachNhat.date}) · Tháng <strong>{trachNhat.monthBranch}</strong> · Trực <strong>{trachNhat.truc.name}</strong> ({trachNhat.truc.rating}) ·{" "}
                 <span className={`badge ${trachNhat.hoangDao.type === "Hoàng Đạo" ? "badge-cat" : "badge-hung"}`}>
                   {trachNhat.hoangDao.star} ({trachNhat.hoangDao.type})
                 </span>
               </div>
-              <p className="muted" style={{ marginBottom: 0 }}>{trachNhat.truc.desc}</p>
             </div>
           </div>
 
@@ -720,6 +764,7 @@ export default function App() {
                       <span title="Sơn Tinh">{p.mountainStar}</span>
                       <span className="muted" title="Vận Tinh">[{p.baseStar}]</span>
                       <span style={{ color: "var(--accent)" }} title="Hướng Tinh">{p.facingStar}</span>
+                      <span className="badge badge-kv" title={`Lưu Niên ${annualFs.targetYear}`}>N:{annualFs.annualStars[p.palace]}</span>
                     </div>
                     <div className="muted" style={{ fontSize: "0.72rem" }}>
                       {STAR_MEANINGS[p.facingStar].split(":")[0]}
@@ -743,8 +788,80 @@ export default function App() {
 
       {tab === "tuong" && (
         <div>
+          <div className="grid-2" style={{ marginBottom: 16 }}>
+            <div className="card">
+              <h2>Đánh Giá Nhân Tướng & Chỉ Tay Cá Nhân</h2>
+              <div className="row">
+                <div>
+                  <label>Thượng Đình (Trán, 1–30t)</label>
+                  <select value={tuongInput.thuongDinh} onChange={(e) => setTuongInput({ ...tuongInput, thuongDinh: e.target.value as TuongAssessmentInput["thuongDinh"] })}>
+                    <option value="cao_rong">Cao, rộng, sáng sủa</option>
+                    <option value="trung_binh">Cân đối trung bình</option>
+                    <option value="hep_thap">Hẹp hoặc hơi thấp</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Trung Đình (Mũi & Gò má, 31–50t)</label>
+                  <select value={tuongInput.trungDinh} onChange={(e) => setTuongInput({ ...tuongInput, trungDinh: e.target.value as TuongAssessmentInput["trungDinh"] })}>
+                    <option value="mui_thang_quyen_day">Mũi thẳng, gò má đầy cân xứng</option>
+                    <option value="trung_binh">Hài hòa trung bình</option>
+                    <option value="mui_thap_quyen_yeu">Mũi thấp hoặc má hơi hóp</option>
+                  </select>
+                </div>
+              </div>
+              <div className="row">
+                <div>
+                  <label>Hạ Đình (Cằm & Hàm, 51+t)</label>
+                  <select value={tuongInput.haDinh} onChange={(e) => setTuongInput({ ...tuongInput, haDinh: e.target.value as TuongAssessmentInput["haDinh"] })}>
+                    <option value="cam_day_vung">Cằm đầy đặn, vững chãi</option>
+                    <option value="trung_binh">Cân xứng trung bình</option>
+                    <option value="cam_nhon_ngan">Cằm thon nhọn / ngắn</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Ấn Đường (Giữa 2 lông mày)</label>
+                  <select value={tuongInput.anDuong} onChange={(e) => setTuongInput({ ...tuongInput, anDuong: e.target.value as TuongAssessmentInput["anDuong"] })}>
+                    <option value="sang_rong">Sáng rộng, thoáng</option>
+                    <option value="nhieu_nep_nhan">Hay nhíu / có nếp nhăn</option>
+                  </select>
+                </div>
+              </div>
+              <div className="row">
+                <div>
+                  <label>Chỉ tay Sinh Đạo</label>
+                  <select value={tuongInput.sinhDao} onChange={(e) => setTuongInput({ ...tuongInput, sinhDao: e.target.value as TuongAssessmentInput["sinhDao"] })}>
+                    <option value="sau_ro_rong">Sâu rõ, vòng cung rộng</option>
+                    <option value="mo_dut_doan">Mờ hoặc nhiều nhánh cắt</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Chỉ tay Trí Đạo</label>
+                  <select value={tuongInput.triDao} onChange={(e) => setTuongInput({ ...tuongInput, triDao: e.target.value as TuongAssessmentInput["triDao"] })}>
+                    <option value="thang_ro">Thẳng, rõ nét (Logic)</option>
+                    <option value="cong_thai_am">Cong về gò Thái Âm (Sáng tạo)</option>
+                    <option value="ngan_dut">Ngắn hoặc đứt đoạn</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <h2 style={{ margin: 0 }}>Báo Cáo Luận Giải Nhân Tướng</h2>
+                <button className="btn-ghost" onClick={() => exportNhanTuongWord(tuongReport)}>
+                  ⬇ Tải Word (.docx)
+                </button>
+              </div>
+              {tuongReport.map((s) => (
+                <div key={s.title} style={{ marginBottom: 10 }}>
+                  <strong>{s.title}:</strong> <span className="muted">{s.body}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="card">
-            <h2>Tra Cứu Nhân Tướng Học (Ma Y Thần Tướng) & Chỉ Tay</h2>
+            <h2>Tra Cứu Kiến Thức Ma Y Thần Tướng & Chỉ Tay</h2>
             <p className="muted" style={{ marginTop: 0 }}>
               Nguyên tắc: <strong>Thần &gt; Khí &gt; Hình</strong> · <em>"Hữu tướng tâm sinh, vô tướng tâm diệt"</em> — Luôn xét tổng hòa, không phán đoán phiến diện từ 1 bộ vị đơn lẻ.
             </p>

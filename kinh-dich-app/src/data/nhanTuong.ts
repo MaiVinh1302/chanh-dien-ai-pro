@@ -100,3 +100,55 @@ export const NHAN_TUONG_DATA: NhanTuongItem[] = [
     advice: "Tay trái xem gốc Tiên thiên (trước 30t), tay phải xem Hậu thiên (sau 30t).",
   },
 ];
+
+export interface TuongAssessmentInput {
+  thuongDinh: "cao_rong" | "trung_binh" | "hep_thap";
+  trungDinh: "mui_thang_quyen_day" | "trung_binh" | "mui_thap_quyen_yeu";
+  haDinh: "cam_day_vung" | "trung_binh" | "cam_nhon_ngan";
+  anDuong: "sang_rong" | "nhieu_nep_nhan";
+  sinhDao: "sau_ro_rong" | "mo_dut_doan";
+  triDao: "thang_ro" | "cong_thai_am" | "ngan_dut";
+}
+
+export function assessNhanTuong(input: TuongAssessmentInput) {
+  const sections: { title: string; body: string }[] = [];
+
+  const tdNotes: string[] = [];
+  if (input.thuongDinh === "cao_rong") tdNotes.push("Thượng đình cao rộng: Tư duy nhạy bén, tiền vận (1–30 tuổi) dễ gặp thuận lợi học vấn.");
+  else if (input.thuongDinh === "hep_thap") tdNotes.push("Thượng đình hẹp/thấp: Thời trẻ tự lập vất vả hơn, cần tích lũy tri thức bền bỉ.");
+  else tdNotes.push("Thượng đình cân đối: Tiền vận ổn định.");
+
+  if (input.trungDinh === "mui_thang_quyen_day") tdNotes.push("Trung đình đầy đặn (mũi thẳng, gò má cân): Trung vận (31–50 tuổi) có thực lực gầy dựng sự nghiệp và giữ uy tín.");
+  else if (input.trungDinh === "mui_thap_quyen_yeu") tdNotes.push("Trung đình mỏng: Nên chú trọng hợp tác đồng đội, tránh ôm đồm một mình.");
+  else tdNotes.push("Trung đình hài hòa: Trung vận tiến bước chắc chắn.");
+
+  if (input.haDinh === "cam_day_vung") tdNotes.push("Hạ đình đầy vững: Hậu vận (51+ tuổi) an nhàn, tích lũy bền vững.");
+  else if (input.haDinh === "cam_nhon_ngan") tdNotes.push("Hạ đình thon nhỏ: Nên chuẩn bị quỹ tài chính và sức khỏe sớm cho hậu vận.");
+  else tdNotes.push("Hạ đình cân xứng: Hậu vận bình ổn.");
+
+  sections.push({ title: "1. Tổng hợp Tam Đình & Vận trình 3 chặng đời", body: tdNotes.join(" ") });
+
+  sections.push({
+    title: "2. Thần khí Ấn Đường & Tài Bạch",
+    body: input.anDuong === "sang_rong"
+      ? "Ấn Đường sáng rộng: Tâm tính cởi mở, quyết đoán thông suốt, dễ thu hút quý nhân."
+      : "Ấn Đường hay nhíu/có nếp nhăn: Dễ lo âu suy nghĩ nhiều; nên tập hít thở sâu, giảm căng thẳng để khai thông vận khí.",
+  });
+
+  const ctNotes: string[] = [];
+  ctNotes.push(
+    input.sinhDao === "sau_ro_rong"
+      ? "Sinh đạo sâu rõ vòng rộng: Nền tảng thể lực và sức bền tốt."
+      : "Sinh đạo mờ/nhiều nhánh: Cần chú ý ngủ nghỉ điều độ và rèn luyện thể chất."
+  );
+  if (input.triDao === "thang_ro") ctNotes.push("Trí đạo thẳng rõ: Tư duy logic, thực tế, hợp quản trị – kỹ thuật – tài chính.");
+  else if (input.triDao === "cong_thai_am") ctNotes.push("Trí đạo cong về gò Thái Âm: Giàu trí tưởng tượng, trực giác, hợp sáng tạo – nghệ thuật – chiến lược.");
+  else ctNotes.push("Trí đạo ngắn/đứt đoạn: Nên rèn tính tập trung và ghi chép có hệ thống.");
+
+  sections.push({ title: "3. Phân tích Chỉ Tay (Sinh Đạo & Trí Đạo)", body: ctNotes.join(" ") });
+  sections.push({
+    title: "4. Khuyến nghị Tu Dưỡng ('Tâm sinh tướng')",
+    body: "Nhân tướng và chỉ tay thay đổi theo thói quen sống và tâm tính. Giữ tâm bình tĩnh, rèn sức khỏe và làm việc có kỷ luật sẽ tự nhiên cải thiện khí sắc và vận trình.",
+  });
+  return sections;
+}
