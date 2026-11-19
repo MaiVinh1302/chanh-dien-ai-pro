@@ -175,3 +175,47 @@ export function calcTrachNhat(year: number, month: number, day: number) {
     stem: STEMS[cc.stemIdx],
   };
 }
+
+export function detailedFengShuiAnalysis(
+  batTrach: { cungPhi: string; element: string; group: string; directions: BatTrachDirection[] },
+  flyingStars: ReturnType<typeof calcFlyingStars>
+) {
+  const facingDir = flyingStars.facing.direction;
+  const matchDir = batTrach.directions.find((d) => d.direction === facingDir);
+  const facingPalace = flyingStars.palaces.find((p) => p.isFacing)!;
+  const sittingPalace = flyingStars.palaces.find((p) => p.isSitting)!;
+
+  const remedies: string[] = [];
+  for (const p of flyingStars.palaces) {
+    if (p.facingStar === 5 || p.mountainStar === 5) {
+      remedies.push(`${p.name}: Có Ngũ Hoàng (Thổ) — giữ yên tĩnh, tránh động thổ; dùng Kim tĩnh (chuông gió đồng 6 ống hoặc hồ lô đồng) để tiết Thổ.`);
+    } else if (p.facingStar === 2) {
+      remedies.push(`${p.name}: Có Nhị Hắc (Thổ) ở Hướng tinh — dùng vật phẩm Kim (đồng xu cổ, đồ kim loại tròn) để hóa giải bệnh phù.`);
+    } else if (p.facingStar === 3) {
+      remedies.push(`${p.name}: Có Tam Bích (Mộc) ở Hướng tinh — dùng ánh sáng ấm hoặc thảm đỏ (Hỏa) để tiết Mộc khí thị phi.`);
+    }
+  }
+
+  return [
+    {
+      title: "1. Đánh giá Hướng Nhà theo Bát Trạch Gia Chủ",
+      body: matchDir
+        ? `Nhà hướng ${facingDir} (Sơn ${flyingStars.facing.name}) gặp cung ${matchDir.palace} – sao ${matchDir.star} (${matchDir.rating}, ${matchDir.type}) đối với gia chủ Cung ${batTrach.cungPhi} (${batTrach.group}). ${
+            matchDir.type === "Cát"
+              ? "Hướng nhà hợp mệnh trạch, thuận lợi đón cát khí tự nhiên."
+              : "Hướng nhà chưa hợp cung phi Bát Trạch; nên ưu tiên xoay hướng Bếp, Bàn thờ và Bàn làm việc về các cung Sinh Khí / Thiên Y để cân bằng."
+          }`
+        : `Gia chủ thuộc ${batTrach.group} (${batTrach.cungPhi} – ${batTrach.element}).`,
+    },
+    {
+      title: `2. Giải mã Huyền Không Phi Tinh Vận ${flyingStars.period}`,
+      body: `Cách cục: ${flyingStars.pattern}. Tại cung Hướng (${facingPalace.name}) có cặp Sơn ${facingPalace.mountainStar} – Hướng ${facingPalace.facingStar} (${STAR_MEANINGS[facingPalace.facingStar]}). Tại cung Tọa (${sittingPalace.name}) có cặp Sơn ${sittingPalace.mountainStar} – Hướng ${sittingPalace.facingStar}. ${
+        flyingStars.boundaryWarning ? `Cảnh báo: Độ số đang sát ${flyingStars.boundaryWarning}, cần đo lại bằng la bàn chính xác.` : ""
+      }`,
+    },
+    {
+      title: "3. Hóa giải Ngũ Hành các cung có Hung Tinh",
+      body: remedies.length ? remedies.join(" ") : "Các cung trọng yếu không phạm Ngũ Hoàng/Nhị Hắc trực tiếp ở hướng; duy trì không gian thông thoáng, sạch sẽ.",
+    },
+  ];
+}

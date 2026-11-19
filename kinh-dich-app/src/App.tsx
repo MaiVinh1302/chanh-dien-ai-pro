@@ -13,10 +13,13 @@ import {
   calcZiweiChart,
   castThiSach,
   castThreeCoins,
+  detailedFengShuiAnalysis,
   interpretHexagram,
   lucHaoForHexagram,
   maiHoaFromNumbers,
 } from "./engine-index.ts";
+import { TOPIC_LABELS, type TopicKey } from "./engine/interpret.ts";
+import { exportFengShuiWord, exportKinhDichWord, exportZiweiWord } from "./utils/exportWord.ts";
 import type { DivinationMethod, Hexagram, LineValue } from "./types.ts";
 
 interface HistoryEntry {
@@ -68,6 +71,7 @@ function HexagramBars({ lines, moving }: { lines: number[]; moving?: number[] })
 export default function App() {
   const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "fengshui" | "tuong">("cast");
   const [method, setMethod] = useState<DivinationMethod>("thi_sach");
+  const [topic, setTopic] = useState<TopicKey>("career");
   const [question, setQuestion] = useState("Công việc và định hướng sắp tới");
   const [dateStr, setDateStr] = useState(() => new Date().toISOString().slice(0, 10));
   const [mhNums, setMhNums] = useState<[number, number, number]>([18, 25, 9]);
@@ -108,6 +112,7 @@ export default function App() {
     () =>
       interpretHexagram({
         question,
+        topic,
         base: built.base,
         changed: built.changed,
         mutual: built.mutual,
@@ -115,7 +120,7 @@ export default function App() {
         chuHyRule: built.chuHyRule,
         lucHao,
       }),
-    [question, built, lucHao]
+    [question, topic, built, lucHao]
   );
 
   const handleCast = () => {
@@ -168,6 +173,7 @@ export default function App() {
   const batTrach = useMemo(() => calcBatTrach(birthYear, gender), [birthYear, gender]);
   const layoutAdvice = useMemo(() => buildLayoutAdvice(batTrach.directions), [batTrach]);
   const flyingStars = useMemo(() => calcFlyingStars(period, facingDeg), [period, facingDeg]);
+  const fsAnalysis = useMemo(() => detailedFengShuiAnalysis(batTrach, flyingStars), [batTrach, flyingStars]);
   const trachNhat = useMemo(
     () => calcTrachNhat(castDate.getFullYear(), castDate.getMonth() + 1, castDate.getDate()),
     [castDate]
@@ -211,6 +217,13 @@ export default function App() {
           <div>
             <div className="card">
               <h2>Thiết lập Gieo Quẻ</h2>
+              <label>Chủ đề câu hỏi (Chọn Dụng Thần tự động)</label>
+              <select value={topic} onChange={(e) => setTopic(e.target.value as TopicKey)}>
+                {Object.entries(TOPIC_LABELS).map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
+              </select>
+
               <label>Câu hỏi / Vấn đề cần soi xét</label>
               <textarea rows={2} value={question} onChange={(e) => setQuestion(e.target.value)} />
 
@@ -401,7 +414,24 @@ export default function App() {
             </div>
 
             <div className="card">
-              <h2>{interp.headline}</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>{interp.headline}</h2>
+                <button
+                  className="btn-ghost"
+                  onClick={() =>
+                    exportKinhDichWord({
+                      question,
+                      base: built.base,
+                      changed: built.changed,
+                      mutual: built.mutual,
+                      lucHao,
+                      interp,
+                    })
+                  }
+                >
+                  ⬇ Tải Word (.docx)
+                </button>
+              </div>
               <p style={{ marginTop: 0 }}>{interp.overview}</p>
               {interp.sections.map((s) => (
                 <div key={s.title} style={{ marginBottom: 10 }}>
@@ -518,7 +548,12 @@ export default function App() {
           </div>
 
           <div className="card">
-            <h2>Mệnh Bàn 12 Cung (14 Chính Tinh & Tứ Hóa)</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <h2 style={{ margin: 0 }}>Mệnh Bàn 12 Cung (14 Chính Tinh & Tứ Hóa)</h2>
+              <button className="btn-ghost" onClick={() => exportZiweiWord(zwChart)}>
+                ⬇ Tải Word (.docx)
+              </button>
+            </div>
             <div className="ziwei-grid">
               {ZIWEI_GRID_BRANCHES.map((bIdx, i) => {
                 if (bIdx === -1) {
@@ -556,6 +591,14 @@ export default function App() {
                   </div>
                 );
               })}
+            </div>
+            <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+              <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Bình Giải Chi Tiết Lá Số</h3>
+              {zwChart.detailedAnalysis.map((s) => (
+                <div key={s.title} style={{ marginBottom: 8 }}>
+                  <strong>{s.title}:</strong> <span className="muted">{s.body}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -626,7 +669,22 @@ export default function App() {
 
           <div>
             <div className="card">
-              <h2>Tư Vấn Hướng Nhà & Bày Trí Đồ Đạc (Nhà Ở & Văn Phòng)</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>Tư Vấn Hướng Nhà & Bày Trí Đồ Đạc (Nhà Ở & Văn Phòng)</h2>
+                <button
+                  className="btn-ghost"
+                  onClick={() =>
+                    exportFengShuiWord({
+                      batTrach,
+                      flyingStars,
+                      layoutAdvice,
+                      analysis: fsAnalysis,
+                    })
+                  }
+                >
+                  ⬇ Tải Word (.docx)
+                </button>
+              </div>
               <table>
                 <thead>
                   <tr>
@@ -669,6 +727,15 @@ export default function App() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="card">
+              <h2>Bình Giải & Hóa Giải Chi Tiết</h2>
+              {fsAnalysis.map((s) => (
+                <div key={s.title} style={{ marginBottom: 10 }}>
+                  <strong>{s.title}:</strong> <span className="muted">{s.body}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

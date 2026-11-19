@@ -145,6 +145,48 @@ export function calcZiweiChart(params: {
     ? menhPalace.rawStars.map((s) => `${s}: ${STAR_TRAITS[s]}`).join(" ")
     : "Mệnh Vô Chính Diệu: Linh hoạt, dễ thích nghi, cần xem thêm cung Thiên Di đối chiếu.";
 
+  const quanPalace = palaces.find((p) => p.cung === "Quan Lộc")!;
+  const taiPalace = palaces.find((p) => p.cung === "Tài Bạch")!;
+  const phuPalace = palaces.find((p) => p.cung === "Phu Thê")!;
+  const tatPalace = palaces.find((p) => p.cung === "Tật Ách")!;
+
+  const THAN_DESC: Record<string, string> = {
+    "Mệnh": "Thân Mệnh đồng cung: Tự lực cánh sinh, tính cách nhất quán từ trẻ đến già, tự quyết định vận mệnh.",
+    "Phúc Đức": "Thân cư Phúc Đức: Trọng đời sống tinh thần, gia tộc và phúc đức; hậu vận hướng về an nhiên, tâm linh.",
+    "Quan Lộc": "Thân cư Quan Lộc: Đặt sự nghiệp và công danh làm trọng tâm nửa đời sau, nhiệt huyết với công việc.",
+    "Thiên Di": "Thân cư Thiên Di: Hợp đi xa, giao thương, mở rộng quan hệ bên ngoài; càng năng động càng dễ thành đạt.",
+    "Tài Bạch": "Thân cư Tài Bạch: Nhạy bén với tài chính, kinh doanh, coi trọng độc lập kinh tế.",
+    "Phu Thê": "Thân cư Phu Thê: Gia đình và người phối ngẫu có ảnh hưởng lớn đến định hướng cuộc đời.",
+  };
+
+  const describePalace = (p: typeof menhPalace, emptyNote: string) =>
+    p.rawStars.length
+      ? `${p.stars.join(", ")} — ${p.rawStars.map((s) => STAR_TRAITS[s]).join(" ")}`
+      : emptyNote;
+
+  const detailedAnalysis = [
+    {
+      title: "1. Bản Mệnh, Cục Số & Cư Thân",
+      body: `Tuổi ${yearStem} ${yearBranch} (${napAm}), ${cucName}. ${THAN_DESC[palaces[thanIdx].cung] ?? ""}`,
+    },
+    {
+      title: "2. Tính cách & Nền tảng (Cung Mệnh)",
+      body: `Cung Mệnh tại ${BRANCHES[menhIdx]}: ${mainTraitSummary}`,
+    },
+    {
+      title: "3. Công danh & Sự nghiệp (Cung Quan Lộc)",
+      body: `Cung Quan Lộc tại ${quanPalace.branch}: ${describePalace(quanPalace, "Vô Chính Diệu tại Quan Lộc: Hợp làm đa ngành, tư vấn hoặc linh hoạt thay đổi môi trường.")}`,
+    },
+    {
+      title: "4. Tài lộc & Quản trị dòng tiền (Cung Tài Bạch)",
+      body: `Cung Tài Bạch tại ${taiPalace.branch}: ${describePalace(taiPalace, "Vô Chính Diệu tại Tài Bạch: Tài lộc đến từ sự khéo léo, hợp tác; nên giữ kỷ luật chi tiêu.")}`,
+    },
+    {
+      title: "5. Gia đạo & Sức khỏe (Phu Thê – Tật Ách)",
+      body: `Phu Thê (${phuPalace.branch}): ${phuPalace.stars.join(", ") || "Vô Chính Diệu"}. Tật Ách (${tatPalace.branch}): ${tatPalace.stars.join(", ") || "Vô Chính Diệu"}. Tứ Hóa Can Năm: Hóa Lộc (${loc}) mang cơ hội, Hóa Quyền (${quyen}) tăng uy tín, Hóa Khoa (${khoa}) giải ách/học vấn, Hóa Kỵ (${ky}) là điểm cần tu dưỡng và phòng thị phi.`,
+    },
+  ];
+
   return {
     yearCanChi: `${yearStem} ${yearBranch}`,
     gender,
@@ -156,5 +198,6 @@ export function calcZiweiChart(params: {
     tuHoa: { loc, quyen, khoa, ky },
     palaces,
     mainTraitSummary,
+    detailedAnalysis,
   };
 }
