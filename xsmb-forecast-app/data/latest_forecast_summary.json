@@ -1,0 +1,205 @@
+{
+  "sync_info": {
+    "checked": true,
+    "updated": false,
+    "added_count": 0,
+    "added_dates": [],
+    "last_checked_at": "19/11/2026 14:36:07",
+    "latest_data_date": "2026-11-18",
+    "expected_date": "2026-11-18",
+    "status": "Chưa có kết quả ngày mới (mới nhất vẫn là 18/11/2026)"
+  },
+  "based_on_date": "2026-11-18",
+  "total_records": 200,
+  "forecasts": {
+    "de_2so": {
+      "label": "2 số cuối Giải Đặc Biệt (Đề: 00–99)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 46,
+          "lower_80": 11.2,
+          "upper_80": 81.4
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 49,
+          "lower_80": 10.2,
+          "upper_80": 90.66
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 44,
+          "lower_80": 5.16,
+          "upper_80": 86.16
+        }
+      ]
+    },
+    "dau_de": {
+      "label": "Chữ số Đầu Giải Đặc Biệt (0–9)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 4,
+          "lower_80": 0.66,
+          "upper_80": 7.69
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 4,
+          "lower_80": 0.66,
+          "upper_80": 8.41
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 4,
+          "lower_80": 0.23,
+          "upper_80": 8.04
+        }
+      ]
+    },
+    "duoi_de": {
+      "label": "Chữ số Đuôi Giải Đặc Biệt (0–9)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 4,
+          "lower_80": 0.82,
+          "upper_80": 7.87
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 5,
+          "lower_80": 0.85,
+          "upper_80": 8.38
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 4,
+          "lower_80": 0.44,
+          "upper_80": 8.19
+        }
+      ]
+    },
+    "tong_de": {
+      "label": "Tổng 2 số cuối Giải Đặc Biệt (0–18)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 9,
+          "lower_80": 3.97,
+          "upper_80": 13.59
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 9,
+          "lower_80": 3.38,
+          "upper_80": 15.39
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 9,
+          "lower_80": 2.36,
+          "upper_80": 14.9
+        }
+      ]
+    },
+    "loto_mean": {
+      "label": "Trung bình cộng 27 giải Loto (0–99)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 48.57,
+          "lower_80": 41.98,
+          "upper_80": 55.16
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 49.51,
+          "lower_80": 41.35,
+          "upper_80": 57.67
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 50.74,
+          "lower_80": 41.48,
+          "upper_80": 60.01
+        }
+      ]
+    },
+    "even_count": {
+      "label": "Số lượng Loto Chẵn trong ngày (0–27)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 14,
+          "lower_80": 10.68,
+          "upper_80": 17.08
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 14,
+          "lower_80": 9.6,
+          "upper_80": 17.53
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 14,
+          "lower_80": 9.98,
+          "upper_80": 18.97
+        }
+      ]
+    },
+    "high_count": {
+      "label": "Số lượng Loto Tài >= 50 trong ngày (0–27)",
+      "model": "Ensemble (SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta)",
+      "next_3_days": [
+        {
+          "date_vn": "19/11/2026",
+          "weekday_vn": "Thứ 5",
+          "forecast": 13,
+          "lower_80": 9.86,
+          "upper_80": 16.04
+        },
+        {
+          "date_vn": "20/11/2026",
+          "weekday_vn": "Thứ 6",
+          "forecast": 13,
+          "lower_80": 9.57,
+          "upper_80": 17.23
+        },
+        {
+          "date_vn": "21/11/2026",
+          "weekday_vn": "Thứ 7",
+          "forecast": 14,
+          "lower_80": 9.62,
+          "upper_80": 18.33
+        }
+      ]
+    }
+  }
+}

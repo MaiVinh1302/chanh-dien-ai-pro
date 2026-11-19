@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XSMB Forecast AI - Dự Báo Chuỗi Thời Gian &amp; Thống Kê Loto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .glass-card { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.55); }
+    .tab-btn.active { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.7); color: #fff; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/85 backdrop-blur-md px-6 py-3.5 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <a href="index.html" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Trang chủ</span>
+        </a>
+        <div class="bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-chart-area text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-sm text-white">XSMB FORECAST AI</span>
+            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold px-2 py-0.5 rounded-full">Auto-Sync 18:45 Daily</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Phân tích Chuỗi Thời Gian Cổ Điển (SARIMA • Holt-Winters • Theta • Ensemble)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 text-xs">
+        <span id="syncBadge" class="px-3 py-1.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-300">
+          <i class="fa-solid fa-rotate mr-1 text-cyan-400"></i> Đang tải dữ liệu...
+        </span>
+        <a href="https://xosodaiphat.com/xsmb-xo-so-mien-bac.html" target="_blank" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg font-semibold transition">
+          Nguồn XSMB <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 flex-1 w-full space-y-6">
+
+    <!-- SCIENTIFIC DISCLAIMER -->
+    <div class="glass-card rounded-xl p-4 border-l-4 border-l-cyan-500 text-xs text-slate-300 leading-relaxed flex items-start space-x-3">
+      <i class="fa-solid fa-flask text-cyan-400 text-base mt-0.5"></i>
+      <div>
+        <strong class="text-white">Lưu ý khoa học:</strong> Kết quả quay thưởng XSMB là các biến cố ngẫu nhiên độc lập theo quy luật xác suất. Các mô hình chuỗi thời gian cổ điển (ARIMA/SARIMA, Holt-Winters, Theta Seasonal) dùng để mô phỏng xu hướng, đánh giá sai số (Backtest) và thống kê lịch sử (tần suất, loto gan) phục vụ nghiên cứu tham khảo, không đảm bảo kết quả trúng thưởng.
+      </div>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div class="glass-card rounded-xl p-4">
+        <div class="text-[11px] text-slate-400 uppercase font-semibold">Tổng kỳ lịch sử</div>
+        <div id="kpiTotal" class="text-2xl font-black text-white mt-1">--</div>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <div class="text-[11px] text-slate-400 uppercase font-semibold">Kỳ mới nhất</div>
+        <div id="kpiDate" class="text-2xl font-black text-cyan-400 mt-1">--</div>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <div class="text-[11px] text-slate-400 uppercase font-semibold">Giải Đặc Biệt</div>
+        <div id="kpiGdb" class="text-2xl font-black text-amber-400 mt-1 tracking-wider">--</div>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <div class="text-[11px] text-slate-400 uppercase font-semibold">2 Số Cuối GĐB</div>
+        <div id="kpiDe" class="text-2xl font-black text-emerald-400 mt-1">--</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 col-span-2 sm:col-span-1">
+        <div class="text-[11px] text-slate-400 uppercase font-semibold">TB 27 Giải Loto</div>
+        <div id="kpiMean" class="text-2xl font-black text-purple-400 mt-1">--</div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="glass-card rounded-xl p-4 grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Chỉ số mục tiêu dự báo</label>
+        <select id="targetSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"></select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Mô hình chuỗi thời gian</label>
+        <select id="modelSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <option value="forecast_raw">Ensemble (ARIMA + Holt-Winters + Theta)</option>
+          <option value="arima">ARIMA / SARIMA (Tự động chọn AIC)</option>
+          <option value="holt_winters">Holt-Winters Exponential Smoothing</option>
+          <option value="theta">Theta Seasonal (7 ngày)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Số ngày dự báo tới: <span id="horizonLabel" class="text-cyan-400 font-bold">14</span> ngày</label>
+        <input id="horizonSlider" type="range" min="3" max="30" value="14" class="w-full accent-indigo-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Lịch sử hiển thị: <span id="histLabel" class="text-cyan-400 font-bold">90</span> ngày</label>
+        <input id="histSlider" type="range" min="30" max="200" step="10" value="90" class="w-full accent-indigo-500">
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="flex flex-wrap gap-2">
+      <button class="tab-btn active px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/60 text-xs font-semibold transition" data-tab="tab-forecast">📈 Dự báo Các Ngày Tiếp Theo</button>
+      <button class="tab-btn px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/60 text-xs font-semibold transition" data-tab="tab-backtest">🧪 Kiểm thử Mô hình (Backtest)</button>
+      <button class="tab-btn px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/60 text-xs font-semibold transition" data-tab="tab-loto">🔥 Tần suất &amp; Loto Gan (00–99)</button>
+      <button class="tab-btn px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/60 text-xs font-semibold transition" data-tab="tab-history">🗂️ Dữ liệu Lịch sử 27 Giải</button>
+    </div>
+
+    <!-- TAB 1: FORECAST -->
+    <section id="tab-forecast" class="tab-panel space-y-5">
+      <div class="glass-card rounded-xl p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 id="fcTitle" class="text-base font-bold text-white">Biểu đồ Dự báo</h2>
+            <p id="fcMeta" class="text-xs text-slate-400"></p>
+          </div>
+          <button id="btnDownloadCsv" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold transition">
+            <i class="fa-solid fa-download mr-1"></i> Tải bảng dự báo (.csv)
+          </button>
+        </div>
+        <div id="forecastChart" class="w-full h-[420px]"></div>
+      </div>
+
+      <div class="glass-card rounded-xl p-5 overflow-x-auto">
+        <h3 class="text-sm font-bold text-white mb-3">Bảng số liệu dự kiến chi tiết theo từng ngày</h3>
+        <table class="w-full text-xs text-left">
+          <thead class="text-slate-400 border-b border-slate-800 uppercase text-[11px]">
+            <tr>
+              <th class="py-2 px-3">Ngày</th>
+              <th class="py-2 px-3">Thứ</th>
+              <th class="py-2 px-3">Dự báo (Làm tròn)</th>
+              <th class="py-2 px-3">Kỳ vọng</th>
+              <th class="py-2 px-3">Cận dưới (80%)</th>
+              <th class="py-2 px-3">Cận trên (80%)</th>
+              <th class="py-2 px-3">ARIMA</th>
+              <th class="py-2 px-3">Holt-Winters</th>
+              <th class="py-2 px-3">Theta</th>
+            </tr>
+          </thead>
+          <tbody id="fcTableBody" class="divide-y divide-slate-800/60"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 2: BACKTEST -->
+    <section id="tab-backtest" class="tab-panel hidden space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="glass-card rounded-xl p-5 overflow-x-auto">
+          <h3 class="text-sm font-bold text-white mb-3">Bảng Sai Số Kiểm Thử (14 ngày gần nhất)</h3>
+          <table class="w-full text-xs text-left">
+            <thead class="text-slate-400 border-b border-slate-800 text-[11px] uppercase">
+              <tr>
+                <th class="py-2 px-2">Mô hình</th>
+                <th class="py-2 px-2">MAE</th>
+                <th class="py-2 px-2">RMSE</th>
+              </tr>
+            </thead>
+            <tbody id="btMetricsBody" class="divide-y divide-slate-800/60"></tbody>
+          </table>
+        </div>
+        <div class="glass-card rounded-xl p-5 lg:col-span-2">
+          <h3 class="text-sm font-bold text-white mb-3">So sánh Thực tế vs Dự báo (Holdout 14 ngày)</h3>
+          <div id="backtestChart" class="w-full h-[340px]"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: LOTO 00-99 -->
+    <section id="tab-loto" class="tab-panel hidden space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="glass-card rounded-xl p-5">
+          <h3 class="text-sm font-bold text-rose-400 mb-3">🔥 Top 10 Số Về Nhiều Nhất</h3>
+          <table class="w-full text-xs text-left">
+            <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-1.5">Số</th><th>Số nháy</th><th>30 ngày</th><th>G.ĐB</th></tr></thead>
+            <tbody id="lotoHotBody" class="divide-y divide-slate-800/60"></tbody>
+          </table>
+        </div>
+        <div class="glass-card rounded-xl p-5">
+          <h3 class="text-sm font-bold text-amber-400 mb-3">⏳ Top 10 Loto Gan Lâu Nhất</h3>
+          <table class="w-full text-xs text-left">
+            <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-1.5">Số</th><th>Gan hiện tại</th><th>Max gan</th><th>Tổng nháy</th></tr></thead>
+            <tbody id="lotoGanBody" class="divide-y divide-slate-800/60"></tbody>
+          </table>
+        </div>
+        <div class="glass-card rounded-xl p-5">
+          <h3 class="text-sm font-bold text-cyan-400 mb-3">🎯 Top 10 Điểm Chú Ý Thống Kê</h3>
+          <table class="w-full text-xs text-left">
+            <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-1.5">Số</th><th>Điểm</th><th>Gan (ngày)</th><th>Chênh KV</th></tr></thead>
+            <tbody id="lotoScoreBody" class="divide-y divide-slate-800/60"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="glass-card rounded-xl p-5">
+        <h3 class="text-sm font-bold text-white mb-3">🗺️ Bản đồ nhiệt Số ngày Gan hiện tại (00–99)</h3>
+        <div id="lotoHeatmap" class="w-full h-[460px]"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: HISTORY -->
+    <section id="tab-history" class="tab-panel hidden space-y-5">
+      <div class="glass-card rounded-xl p-5 space-y-4 overflow-x-auto">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="text-sm font-bold text-white">Dữ liệu Lịch sử 27 Giải XSMB</h3>
+          <input id="historyFilter" type="text" placeholder="Lọc theo ngày (vd: 18/11/2026)..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <table class="w-full text-xs text-left">
+          <thead class="text-slate-400 border-b border-slate-800 uppercase text-[11px]">
+            <tr>
+              <th class="py-2 px-2">Ngày</th>
+              <th class="py-2 px-2">Giải ĐB</th>
+              <th class="py-2 px-2">Đề</th>
+              <th class="py-2 px-2">Tổng</th>
+              <th class="py-2 px-2">TB Loto</th>
+              <th class="py-2 px-2">Chẵn/27</th>
+              <th class="py-2 px-2">Tài/27</th>
+              <th class="py-2 px-2">27 Số Loto</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody" class="divide-y divide-slate-800/60"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let PAYLOAD = null;
+
+    const plotDarkLayout = {
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(15,23,42,0.4)",
+      font: { color: "#cbd5e1", size: 11 },
+      xaxis: { gridcolor: "rgba(51,65,85,0.4)" },
+      yaxis: { gridcolor: "rgba(51,65,85,0.4)" },
+      margin: { l: 45, r: 20, t: 30, b: 40 },
+      hovermode: "x unified",
+      legend: { orientation: "h", y: 1.12, x: 0 }
+    };
+
+    // Tab switching
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.add("hidden"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.remove("hidden");
+        window.dispatchEvent(new Event("resize"));
+      });
+    });
+
+    async function init() {
+      const res = await fetch("xsmb-forecast-app/data/xsmb_web_payload.json?t=" + Date.now());
+      PAYLOAD = await res.json();
+
+      // KPIs
+      const hist = PAYLOAD.history;
+      const latest = hist[hist.length - 1];
+      document.getElementById("kpiTotal").textContent = PAYLOAD.total_records + " ngày";
+      document.getElementById("kpiDate").textContent = latest.date_vn;
+      document.getElementById("kpiGdb").textContent = String(latest.gdb).padStart(5, "0");
+      document.getElementById("kpiDe").textContent = String(latest.de_str).padStart(2, "0");
+      document.getElementById("kpiMean").textContent = Number(latest.loto_mean).toFixed(2);
+
+      document.getElementById("syncBadge").innerHTML =
+        `<i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> Cập nhật đến ${latest.date_vn} (${PAYLOAD.sync_info.last_checked_at || ""})`;
+
+      // Populate targetSelect
+      const sel = document.getElementById("targetSelect");
+      Object.entries(PAYLOAD.target_config).forEach(([k, v]) => {
+        const opt = document.createElement("option");
+        opt.value = k;
+        opt.textContent = v.label;
+        sel.appendChild(opt);
+      });
+
+      renderAll();
+      renderLotoStats();
+      renderHistoryTable("");
+    }
+
+    function renderAll() {
+      if (!PAYLOAD) return;
+      const target = document.getElementById("targetSelect").value;
+      const modelKey = document.getElementById("modelSelect").value;
+      const horizon = Number(document.getElementById("horizonSlider").value);
+      const histDays = Number(document.getElementById("histSlider").value);
+      document.getElementById("horizonLabel").textContent = horizon;
+      document.getElementById("histLabel").textContent = histDays;
+
+      const fcObj = PAYLOAD.forecasts[target];
+      const fcRows = fcObj.rows.slice(0, horizon);
+      const histSlice = PAYLOAD.history.slice(-histDays);
+      const cfg = PAYLOAD.target_config[target];
+
+      document.getElementById("fcTitle").textContent = `Dự báo ${horizon} ngày tới: ${cfg.label}`;
+      document.getElementById("fcMeta").textContent =
+        `Mô hình: ${fcObj.meta.model_desc} | Huấn luyện: ${fcObj.meta.train_days} ngày (đến ${fcObj.meta.last_date}) | TB lịch sử: ${fcObj.meta.hist_mean} (±${fcObj.meta.hist_std})`;
+
+      // Forecast Chart
+      const traces = [
+        {
+          x: histSlice.map(r => r.date),
+          y: histSlice.map(r => r[target]),
+          mode: "lines+markers",
+          name: "Thực tế lịch sử",
+          line: { color: "#38bdf8", width: 2 },
+          marker: { size: 4 }
+        },
+        {
+          x: [...fcRows.map(r => r.date), ...fcRows.slice().reverse().map(r => r.date)],
+          y: [...fcRows.map(r => r.upper_80), ...fcRows.slice().reverse().map(r => r.lower_80)],
+          fill: "toself",
+          fillcolor: "rgba(251, 146, 60, 0.16)",
+          line: { color: "transparent" },
+          name: "Khoảng tin cậy 80%",
+          hoverinfo: "skip"
+        },
+        {
+          x: fcRows.map(r => r.date),
+          y: fcRows.map(r => r[modelKey]),
+          mode: "lines+markers",
+          name: "Dự báo kỳ vọng",
+          line: { color: "#fb923c", width: 3, dash: "dash" },
+          marker: { size: 7, symbol: "diamond" }
+        }
+      ];
+      Plotly.newPlot("forecastChart", traces, { ...plotDarkLayout }, { responsive: true });
+
+      // Forecast Table
+      const tbody = document.getElementById("fcTableBody");
+      tbody.innerHTML = fcRows.map(r => {
+        const val = cfg.is_int ? Math.round(r[modelKey]) : Number(r[modelKey]).toFixed(2);
+        return `<tr class="hover:bg-slate-800/40">
+          <td class="py-2 px-3 font-semibold text-white">${r.date_vn}</td>
+          <td class="py-2 px-3 text-slate-300">${r.weekday_vn}</td>
+          <td class="py-2 px-3 font-bold text-amber-400">${val}</td>
+          <td class="py-2 px-3 text-slate-300">${Number(r[modelKey]).toFixed(2)}</td>
+          <td class="py-2 px-3 text-slate-400">${r.lower_80}</td>
+          <td class="py-2 px-3 text-slate-400">${r.upper_80}</td>
+          <td class="py-2 px-3 text-cyan-300">${r.arima}</td>
+          <td class="py-2 px-3 text-indigo-300">${r.holt_winters}</td>
+          <td class="py-2 px-3 text-emerald-300">${r.theta}</td>
+        </tr>`;
+      }).join("");
+
+      // Backtest
+      const bt = PAYLOAD.backtests[target];
+      document.getElementById("btMetricsBody").innerHTML = bt.metrics.map(m =>
+        `<tr class="hover:bg-slate-800/40">
+          <td class="py-2 px-2 font-medium text-white">${m.Mo_hinh}</td>
+          <td class="py-2 px-2 text-cyan-300 font-semibold">${m.MAE}</td>
+          <td class="py-2 px-2 text-amber-300 font-semibold">${m.RMSE}</td>
+        </tr>`
+      ).join("");
+
+      const btTraces = [
+        { x: bt.rows.map(r => r.date), y: bt.rows.map(r => r.Thuc_te), mode: "lines+markers", name: "Thực tế", line: { color: "#f8fafc", width: 2.5 } },
+        { x: bt.rows.map(r => r.date), y: bt.rows.map(r => r.ARIMA), mode: "lines", name: "ARIMA", line: { dash: "dot", color: "#38bdf8" } },
+        { x: bt.rows.map(r => r.date), y: bt.rows.map(r => r.Holt_Winters), mode: "lines", name: "Holt-Winters", line: { dash: "dash", color: "#a78bfa" } },
+        { x: bt.rows.map(r => r.date), y: bt.rows.map(r => r.Theta), mode: "lines", name: "Theta", line: { dash: "dashdot", color: "#34d399" } },
+        { x: bt.rows.map(r => r.date), y: bt.rows.map(r => r.Ensemble), mode: "lines+markers", name: "Ensemble", line: { color: "#fb923c", width: 2.5 } }
+      ];
+      Plotly.newPlot("backtestChart", btTraces, { ...plotDarkLayout }, { responsive: true });
+    }
+
+    function renderLotoStats() {
+      const stats = PAYLOAD.loto_stats;
+      const hot = [...stats].sort((a, b) => b.So_nhay - a.So_nhay).slice(0, 10);
+      const gan = [...stats].sort((a, b) => b.Gan_hien_tai - a.Gan_hien_tai).slice(0, 10);
+      const score = [...stats].sort((a, b) => b.Diem_chu_y - a.Diem_chu_y).slice(0, 10);
+
+      document.getElementById("lotoHotBody").innerHTML = hot.map(r =>
+        `<tr><td class="py-1.5 font-bold text-rose-300">${r.So}</td><td>${r.So_nhay}</td><td>${r.Nhay_30_ngay}</td><td>${r.Ve_G_DB}</td></tr>`
+      ).join("");
+      document.getElementById("lotoGanBody").innerHTML = gan.map(r =>
+        `<tr><td class="py-1.5 font-bold text-amber-300">${r.So}</td><td>${r.Gan_hien_tai} ngày</td><td>${r.Max_gan}</td><td>${r.So_nhay}</td></tr>`
+      ).join("");
+      document.getElementById("lotoScoreBody").innerHTML = score.map(r =>
+        `<tr><td class="py-1.5 font-bold text-cyan-300">${r.So}</td><td>${r.Diem_chu_y}</td><td>${r.Gan_hien_tai}</td><td>${r.Chenh_ky_vong}</td></tr>`
+      ).join("");
+
+      const z = [];
+      const text = [];
+      for (let r = 0; r < 10; r++) {
+        const rowZ = [], rowT = [];
+        for (let c = 0; c < 10; c++) {
+          const item = stats[r * 10 + c];
+          rowZ.push(item.Gan_hien_tai);
+          rowT.push(`${item.So}<br>(${item.Gan_hien_tai}d)`);
+        }
+        z.push(rowZ);
+        text.push(rowT);
+      }
+      Plotly.newPlot("lotoHeatmap", [{
+        z,
+        x: Array.from({ length: 10 }, (_, i) => `Đuôi ${i}`),
+        y: Array.from({ length: 10 }, (_, i) => `Đầu ${i}`),
+        text,
+        texttemplate: "%{text}",
+        type: "heatmap",
+        colorscale: "YlOrRd"
+      }], {
+        ...plotDarkLayout,
+        yaxis: { autorange: "reversed" },
+        margin: { l: 60, r: 20, t: 20, b: 40 }
+      }, { responsive: true });
+    }
+
+    function renderHistoryTable(query) {
+      const q = query.trim();
+      const rows = PAYLOAD.history.slice().reverse().filter(r => !q || r.date_vn.includes(q)).slice(0, 100);
+      document.getElementById("historyBody").innerHTML = rows.map(r =>
+        `<tr class="hover:bg-slate-800/40">
+          <td class="py-2 px-2 font-semibold text-white whitespace-nowrap">${r.date_vn}</td>
+          <td class="py-2 px-2 font-bold text-amber-400">${r.gdb}</td>
+          <td class="py-2 px-2 font-bold text-emerald-400">${r.de_str}</td>
+          <td class="py-2 px-2">${r.tong_de}</td>
+          <td class="py-2 px-2">${r.loto_mean}</td>
+          <td class="py-2 px-2">${r.even_count}</td>
+          <td class="py-2 px-2">${r.high_count}</td>
+          <td class="py-2 px-2 text-slate-400 font-mono text-[11px]">${r.loto_27}</td>
+        </tr>`
+      ).join("");
+    }
+
+    document.getElementById("targetSelect").addEventListener("change", renderAll);
+    document.getElementById("modelSelect").addEventListener("change", renderAll);
+    document.getElementById("horizonSlider").addEventListener("input", renderAll);
+    document.getElementById("histSlider").addEventListener("input", renderAll);
+    document.getElementById("historyFilter").addEventListener("input", e => renderHistoryTable(e.target.value));
+
+    document.getElementById("btnDownloadCsv").addEventListener("click", () => {
+      if (!PAYLOAD) return;
+      const target = document.getElementById("targetSelect").value;
+      const horizon = Number(document.getElementById("horizonSlider").value);
+      const rows = PAYLOAD.forecasts[target].rows.slice(0, horizon);
+      const header = "Ngay,Thu,Du_bao_lam_tron,Ky_vong,Can_duoi_80,Can_tren_80,ARIMA,Holt_Winters,Theta\n";
+      const body = rows.map(r => `${r.date_vn},${r.weekday_vn},${r.forecast},${r.forecast_raw},${r.lower_80},${r.upper_80},${r.arima},${r.holt_winters},${r.theta}`).join("\n");
+      const blob = new Blob(["\uFEFF" + header + body], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `xsmb_forecast_${target}_${horizon}d.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    init();
+  </script>
+</body>
+</html>
