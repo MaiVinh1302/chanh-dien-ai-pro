@@ -76,6 +76,22 @@ const TRANG_SINH_12 = [
 // Khởi Tràng Sinh theo Cục: Thủy(2)->Thân(8), Mộc(3)->Hợi(11), Kim(4)->Tỵ(5), Thổ(5)->Thân(8), Hỏa(6)->Dần(2)
 const TRANG_SINH_START: Record<number, number> = { 2: 8, 3: 11, 4: 5, 5: 8, 6: 2 };
 
+const THAI_TUE_12 = [
+  "Thái Tuế", "Thiếu Dương", "Tang Môn", "Thiếu Âm", "Quan Phù", "Tử Phù",
+  "Tuế Phá", "Long Đức", "Bạch Hổ", "Phúc Đức", "Điếu Khách", "Trực Phù",
+];
+const BAC_SY_12 = [
+  "Bác Sỹ", "Lực Sỹ", "Thanh Long", "Tiểu Hao", "Tướng Quân", "Tấu Thư",
+  "Phi Liêm", "Hỷ Thần", "Bệnh Phù", "Đại Hao", "Phục Binh", "Quan Phủ",
+];
+
+function tieuHanStart(yearBranchIdx: number): number {
+  if ([2, 6, 10].includes(yearBranchIdx)) return 4; // Dần Ngọ Tuất -> Thìn
+  if ([8, 0, 4].includes(yearBranchIdx)) return 10; // Thân Tý Thìn -> Tuất
+  if ([5, 9, 1].includes(yearBranchIdx)) return 7; // Tỵ Dậu Sửu -> Mùi
+  return 1; // Hợi Mão Mùi -> Sửu
+}
+
 // Mệnh Chủ (theo Chi cung Mệnh) & Thân Chủ (theo Chi năm sinh)
 const MENH_CHU_BY_BRANCH = ["Tham Lang", "Cự Môn", "Lộc Tồn", "Văn Khúc", "Liêm Trinh", "Vũ Khúc", "Phá Quân", "Vũ Khúc", "Liêm Trinh", "Văn Khúc", "Lộc Tồn", "Cự Môn"];
 const THAN_CHU_BY_BRANCH = ["Linh Tinh", "Thiên Tướng", "Thiên Lương", "Thiên Đồng", "Văn Xương", "Thiên Cơ", "Hỏa Tinh", "Thiên Tướng", "Thiên Lương", "Thiên Đồng", "Văn Xương", "Thiên Cơ"];
@@ -333,6 +349,23 @@ export function calcZiweiChart(params: ZiweiInput) {
   const luuHoaMap: Record<string, string> = { [lLoc]: "L.Lộc", [lQuyen]: "L.Quyền", [lKhoa]: "L.Khoa", [lKy]: "L.Kỵ" };
   const tuoiMu = viewYear - lunarYear + 1;
 
+  // Lưu Lộc Tồn, Lưu Kình/Đà, Lưu Thiên Mã
+  const luuLocIdx = LOC_TON_IDX[viewStem];
+  const luuMaIdx = thienMaBranch(luuThaiTueBranchIdx);
+  const luuStarsByBranch: Record<number, string[]> = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i, []]));
+  luuStarsByBranch[luuLocIdx].push("L.Lộc Tồn");
+  luuStarsByBranch[(luuLocIdx + 1) % 12].push("L.Kình");
+  luuStarsByBranch[(luuLocIdx + 11) % 12].push("L.Đà");
+  luuStarsByBranch[luuMaIdx].push("L.Mã");
+
+  // Tiểu Hạn năm xem (Nam thuận, Nữ nghịch từ cung khởi Tiểu Hạn)
+  const thStart = tieuHanStart(yearBranchIdx);
+  const thStep = (((tuoiMu - 1) % 12) + 12) % 12;
+  const tieuHanIdx = isMale ? (thStart + thStep) % 12 : (((thStart - thStep) % 12) + 12) % 12;
+
+  // Đẩu Quân (Tháng 1 Lưu Nguyệt): từ Lưu Thái Tuế nghịch tới tháng sinh, thuận tới giờ sinh
+  const dauQuanIdx = (((luuThaiTueBranchIdx - (lunarMonth - 1) + hourBranchIdx) % 12) + 12) % 12;
+
   const tsStart = TRANG_SINH_START[cucNum];
 
   const palaces = Array.from({ length: 12 }, (_, bIdx) => {
@@ -341,6 +374,9 @@ export function calcZiweiChart(params: ZiweiInput) {
     const daiHanStep = clockwise ? ((bIdx - menhIdx + 12) % 12) : ((menhIdx - bIdx + 12) % 12);
     const daiHanStart = cucNum + daiHanStep * 10;
     const tsOffset = clockwise ? ((bIdx - tsStart + 12) % 12) : ((tsStart - bIdx + 12) % 12);
+    const thaiTueStar = THAI_TUE_12[((bIdx - yearBranchIdx) % 12 + 12) % 12];
+    const bsOffset = clockwise ? ((bIdx - locIdx + 12) % 12) : ((locIdx - bIdx + 12) % 12);
+    const bacSyStar = BAC_SY_12[bsOffset];
     const stars = mainByBranch[bIdx].map((s) => {
       const br = BRIGHTNESS[s]?.[bIdx] ?? "B";
       const tags = [hoaMap[s], luuHoaMap[s]].filter(Boolean);
@@ -355,12 +391,16 @@ export function calcZiweiChart(params: ZiweiInput) {
       isTuan: tuanSet.has(bIdx),
       isTriet: trietSet.has(bIdx),
       isLuuThaiTue: bIdx === luuThaiTueBranchIdx,
+      isTieuHan: bIdx === tieuHanIdx,
+      thaiTueStar,
+      bacSyStar,
       trangSinh: TRANG_SINH_12[tsOffset],
       daiHan: `${daiHanStart}–${daiHanStart + 9}`,
       daiHanStart,
       stars,
       auxStars: auxByBranch[bIdx],
       satStars: satByBranch[bIdx],
+      luuStars: luuStarsByBranch[bIdx],
       rawStars: mainByBranch[bIdx],
     };
   });
@@ -391,6 +431,23 @@ export function calcZiweiChart(params: ZiweiInput) {
   const tatPalace = palaces.find((p) => p.cung === "Tật Ách")!;
   const currentDaiHan = palaces.find((p) => tuoiMu >= p.daiHanStart && tuoiMu <= p.daiHanStart + 9);
   const luuThaiTuePalace = palaces[luuThaiTueBranchIdx];
+  const tieuHanPalace = palaces[tieuHanIdx];
+
+  // Lưu Nguyệt 12 Tháng Âm Lịch trong năm xem
+  const monthlyForecast = Array.from({ length: 12 }, (_, mIdx) => {
+    const pIdx = (dauQuanIdx + mIdx) % 12;
+    const pal = palaces[pIdx];
+    const hasLoc = pal.rawStars.includes(lLoc) || pal.auxStars.includes(lLoc) || pal.luuStars.includes("L.Lộc Tồn");
+    const hasKy = pal.rawStars.includes(lKy) || pal.satStars.length >= 2 || pal.luuStars.includes("L.Kình");
+    const rating = hasLoc && !hasKy ? "Thuận lợi" : hasKy && !hasLoc ? "Thận trọng" : "Bình hòa";
+    return {
+      month: mIdx + 1,
+      cung: pal.cung,
+      branch: pal.branch,
+      rating,
+      note: `${pal.cung} (${pal.branch}): ${pal.stars.slice(0, 2).join(", ") || "Vô Chính Diệu"}${pal.luuStars.length ? ` · ${pal.luuStars.join(", ")}` : ""}`,
+    };
+  });
 
   // Phi Tinh Tứ Hóa theo Thiên Can từng cung (Flying Star)
   const findStarPalace = (starName: string) =>
@@ -469,8 +526,8 @@ export function calcZiweiChart(params: ZiweiInput) {
       }`,
     },
     {
-      title: `4. Đại Hạn & Lưu Niên ${viewYear} (${viewStem} ${BRANCHES[luuThaiTueBranchIdx]}, ${tuoiMu} tuổi mụ)`,
-      body: `Đại Hạn: ${currentDaiHan ? `${currentDaiHan.daiHan} tuổi tại cung ${currentDaiHan.cung} (${currentDaiHan.branch})` : "—"}. Lưu Thái Tuế ${viewYear} tại ${luuThaiTuePalace.cung} (${luuThaiTuePalace.branch}). Lưu Tứ Hóa: L.Lộc (${lLoc}), L.Quyền (${lQuyen}), L.Khoa (${lKhoa}), L.Kỵ (${lKy}). ${
+      title: `4. Đại Hạn, Tiểu Hạn & Lưu Niên ${viewYear} (${viewStem} ${BRANCHES[luuThaiTueBranchIdx]}, ${tuoiMu} tuổi mụ)`,
+      body: `Đại Hạn: ${currentDaiHan ? `${currentDaiHan.daiHan} tuổi tại cung ${currentDaiHan.cung} (${currentDaiHan.branch})` : "—"}. Tiểu Hạn năm ${viewYear}: cung ${tieuHanPalace.cung} (${tieuHanPalace.branch}). Lưu Thái Tuế tại ${luuThaiTuePalace.cung} (${luuThaiTuePalace.branch}). Lưu Tứ Hóa: L.Lộc (${lLoc}), L.Quyền (${lQuyen}), L.Khoa (${lKhoa}), L.Kỵ (${lKy}). ${
         diepGia.length ? `Điệp Gia Tứ Hóa: ${diepGia.join("; ")}.` : ""
       }`,
     },
@@ -502,6 +559,7 @@ export function calcZiweiChart(params: ZiweiInput) {
     patterns,
     palaces,
     allPalaceReadings,
+    monthlyForecast,
     mainTraitSummary,
     detailedAnalysis,
   };

@@ -207,6 +207,7 @@ export async function exportZiweiWord(
       cung: string; branch: string; meaning: string; mainText: string;
       sanFangText: string; flyText: string;
     }[];
+    monthlyForecast?: { month: number; cung: string; branch: string; rating: string; note: string }[];
     detailedAnalysis: { title: string; body: string }[];
   },
   synastry?: { modeLabel: string; summary: string; targetCompare: string; tuHoaInteraction: string } | null
@@ -244,6 +245,15 @@ export async function exportZiweiWord(
                   new Paragraph(`• Chính tinh: ${r.mainText} | Tam phương: ${r.sanFangText}`),
                   new Paragraph(`• Phi Tinh Tứ Hóa: ${r.flyText}`),
                 ]),
+              ]
+            : []),
+          ...(zwChart.monthlyForecast
+            ? [
+                new Paragraph({ text: "Dự báo Lưu Nguyệt 12 Tháng Âm Lịch", heading: HeadingLevel.HEADING_2 }),
+                makeTable(
+                  ["Tháng ÂL", "Cung / Chi", "Đánh giá", "Chi tiết"],
+                  zwChart.monthlyForecast.map((m) => [`Tháng ${m.month}`, `${m.cung} (${m.branch})`, m.rating, m.note])
+                ),
               ]
             : []),
           ...(synastry

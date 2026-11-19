@@ -818,12 +818,19 @@ export default function App() {
                       {p.satStars.length > 0 && (
                         <div style={{ fontSize: "0.74rem", color: "var(--hung)" }}>{p.satStars.join(", ")}</div>
                       )}
+                      {p.luuStars.length > 0 && (
+                        <div style={{ fontSize: "0.72rem", color: "var(--accent)" }}>{p.luuStars.join(", ")}</div>
+                      )}
+                      <div style={{ fontSize: "0.7rem" }} className="muted">
+                        {p.thaiTueStar} · {p.bacSyStar}
+                      </div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", marginTop: 4 }} className="muted">
                       <span>{p.trangSinh} · ĐH {p.daiHan}</span>
                       <span>
                         {p.isTuan ? "[Tuần]" : ""}
                         {p.isTriet ? "[Triệt]" : ""}
+                        {p.isTieuHan ? "[TH]" : ""}
                         {p.isLuuThaiTue ? `★${zwViewYear}` : ""}
                       </span>
                     </div>
@@ -868,6 +875,21 @@ export default function App() {
                   <strong>{s.title}:</strong> <span className="muted">{s.body}</span>
                 </div>
               ))}
+
+              <h3 style={{ margin: "14px 0 8px", color: "var(--accent)" }}>Dự Báo Lưu Nguyệt 12 Tháng Âm Lịch (Năm {zwViewYear})</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 6 }}>
+                {zwChart.monthlyForecast.map((m) => (
+                  <div key={m.month} style={{ background: "var(--panel-2)", border: "1px solid var(--border)", borderRadius: 6, padding: 6, fontSize: "0.76rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+                      <span>Tháng {m.month} AL</span>
+                      <span className={`badge ${m.rating === "Thuận lợi" ? "badge-cat" : m.rating === "Thận trọng" ? "badge-hung" : "badge-kv"}`}>
+                        {m.rating}
+                      </span>
+                    </div>
+                    <div className="muted" style={{ marginTop: 3 }}>{m.note}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
