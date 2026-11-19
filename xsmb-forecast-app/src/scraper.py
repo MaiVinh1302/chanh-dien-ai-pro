@@ -178,6 +178,138 @@ def fetch_xsmb_data(source_key: str = "200_ngay", timeout: int = 25) -> pd.DataF
     return parse_xsmb_html(resp.text)
 
 
+def parse_minhngoc_html(html: str) -> pd.DataFrame:
+    """Parse HTML từ minhngoc.net.vn (div.box_kqxs) thành DataFrame chuẩn hóa."""
+    soup = BeautifulSoup(html, "lxml")
+    boxes = soup.select("div.box_kqxs")
+    rows: List[Dict] = []
+
+    cls_map = [
+        ("G.ĐB", "giaidb"),
+        ("G.1", "giai1"),
+        ("G.2", "giai2"),
+        ("G.3", "giai3"),
+        ("G.4", "giai4"),
+        ("G.5", "giai5"),
+        ("G.6", "giai6"),
+        ("G.7", "giai7"),
+    ]
+
+    for box in boxes:
+        ngay_el = box.select_one(".ngay")
+        if not ngay_el:
+            continue
+        m = re.search(r"(\d{2}/\d{2}/\d{4})", ngay_el.get_text(" ", strip=True))
+        if not m:
+            continue
+        date_str = m.group(1)
+
+        prizes: Dict[str, List[str]] = {}
+        for label, cls in cls_map:
+            nums = [
+                re.sub(r"\D", "", x.get_text(strip=True))
+                for x in box.select(f".{cls} div")
+                if re.sub(r"\D", "", x.get_text(strip=True))
+            ]
+            prizes[label] = nums
+
+        gdb_list = prizes.get("G.ĐB", [])
+        if not gdb_list or len(gdb_list[0]) < 2:
+            continue
+        gdb = gdb_list[0]
+
+        all_numbers: List[str] = []
+        for label, _ in cls_map:
+            for item in prizes.get(label, []):
+                if len(item) >= 2:
+                    all_numbers.append(item)
+
+        if not all_numbers:
+            continue
+
+        loto_27 = [num[-2:].zfill(2) for num in all_numbers]
+        loto_ints = [int(x) for x in loto_27]
+
+        de_2so = int(gdb[-2:])
+        dau_de = de_2so // 10
+        duoi_de = de_2so % 10
+        tong_de = dau_de + duoi_de
+
+        try:
+            dt = datetime.strptime(date_str, "%d/%m/%Y").date()
+        except ValueError:
+            continue
+
+        rows.append(
+            {
+                "date": dt.isoformat(),
+                "date_vn": date_str,
+                "weekday": dt.strftime("%A"),
+                "gdb": gdb,
+                "de_2so": de_2so,
+                "de_str": f"{de_2so:02d}",
+                "dau_de": dau_de,
+                "duoi_de": duoi_de,
+                "tong_de": tong_de,
+                "g1": ",".join(prizes.get("G.1", [])),
+                "g2": ",".join(prizes.get("G.2", [])),
+                "g3": ",".join(prizes.get("G.3", [])),
+                "g4": ",".join(prizes.get("G.4", [])),
+                "g5": ",".join(prizes.get("G.5", [])),
+                "g6": ",".join(prizes.get("G.6", [])),
+                "g7": ",".join(prizes.get("G.7", [])),
+                "loto_27": ",".join(loto_27),
+                "loto_count": len(loto_ints),
+                "loto_mean": round(sum(loto_ints) / max(len(loto_ints), 1), 2),
+                "loto_sum": sum(loto_ints),
+                "even_count": sum(1 for x in loto_ints if x % 2 == 0),
+                "high_count": sum(1 for x in loto_ints if x >= 50),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["date"] = pd.to_datetime(df["date"])
+    return df.drop_duplicates(subset=["date"]).sort_values("date").reset_index(drop=True)
+
+
+def fetch_xsmb_minhngoc(target_date: Optional[date] = None, timeout: int = 20) -> pd.DataFrame:
+    """Tải 7 kỳ XSMB quanh `target_date` (hoặc mới nhất) từ minhngoc.net.vn."""
+    if target_date is None:
+        url = "https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac.html"
+    else:
+        url = f"https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac/{target_date.strftime('%d-%m-%Y')}.html"
+    resp = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
+    resp.raise_for_status()
+    resp.encoding = "utf-8"
+    return parse_minhngoc_html(resp.text)
+
+
+def fetch_minhngoc_history_days(days: int = 365) -> pd.DataFrame:
+    """Tải dữ liệu lịch sử sâu (mỗi request lấy 7 ngày) từ minhngoc.net.vn và hợp nhất vào cache."""
+    cached = load_cached_data()
+    cur_dt = now_vn().date()
+    frames = [cached] if not cached.empty else []
+
+    steps = max(1, (days + 6) // 7)
+    for i in range(steps):
+        ref = cur_dt - timedelta(days=i * 7)
+        try:
+            part = fetch_xsmb_minhngoc(target_date=ref)
+            if not part.empty:
+                frames.append(part)
+        except Exception:
+            continue
+
+    if not frames:
+        return pd.DataFrame()
+    merged = pd.concat(frames, ignore_index=True)
+    merged = merged.drop_duplicates(subset=["date"], keep="last").sort_values("date").reset_index(drop=True)
+    _save_cache(merged)
+    return merged
+
+
 def _save_cache(df: pd.DataFrame) -> None:
     if df.empty:
         return
@@ -292,10 +424,26 @@ def smart_auto_sync(
         }
         return cached_df, info
 
-    # Tiến hành fetch nhanh 7 kỳ mới nhất
+    # Tiến hành fetch nhanh 7 kỳ mới nhất (Dual-Source: xosodaiphat.com + fallback minhngoc.net.vn)
+    fresh_df = pd.DataFrame()
+    err_msg = None
     try:
         fresh_df = fetch_xsmb_data(source_key="moi_nhat")
     except Exception as exc:
+        err_msg = str(exc)
+
+    existing_dates = set(cached_df["date"].dt.date)
+    if fresh_df.empty or fresh_df[~fresh_df["date"].dt.date.isin(existing_dates)].empty:
+        try:
+            mn_df = fetch_xsmb_minhngoc()
+            if not mn_df.empty:
+                fresh_df = pd.concat([fresh_df, mn_df], ignore_index=True) if not fresh_df.empty else mn_df
+                fresh_df = fresh_df.drop_duplicates(subset=["date"], keep="last")
+        except Exception as exc2:
+            if fresh_df.empty and err_msg:
+                err_msg = f"{err_msg} | MinhNgoc: {exc2}"
+
+    if fresh_df.empty and err_msg:
         info = {
             "checked": True,
             "updated": False,
@@ -304,7 +452,7 @@ def smart_auto_sync(
             "last_checked_at": current_vn.strftime("%d/%m/%Y %H:%M:%S"),
             "latest_data_date": last_data_date.isoformat(),
             "expected_date": expected_date.isoformat(),
-            "status": f"Lỗi kết nối khi kiểm tra cập nhật: {exc}",
+            "status": f"Lỗi kết nối khi kiểm tra cập nhật: {err_msg}",
         }
         _write_sync_state(info)
         return cached_df, info
