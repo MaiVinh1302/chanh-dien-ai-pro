@@ -1,4 +1,4 @@
-"""Các mô hình phân tích chuỗi thời gian cổ điển, Hệ Xám (Grey Theory GM(1,1), GRA) & Fourier Ridge."""
+"""Các mô hình phân tích chuỗi thời gian cổ điển, Hệ Xám (GM(1,1), RL-FGM, GRA) & Fourier Ridge."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.linalg import solve_triangular, toeplitz
+from scipy.special import gamma
 from statsmodels.tsa.forecasting.theta import ThetaModel
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -181,12 +183,7 @@ def forecast_theta_seasonal(series: pd.Series, horizon: int, target_col: str) ->
 def forecast_grey_gm11(
     series: pd.Series, horizon: int, target_col: str, window: int = 21
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Mô hình Hệ Xám GM(1,1) (Grey System Theory) trên cửa sổ trượt gần nhất:
-    1) Dịch dương + Tích lũy 1-AGO làm mượt nhiễu
-    2) Giải phương trình vi phân xám bằng bình phương tối thiểu (OLS)
-    3) Khôi phục IAGO có giới hạn hệ số phát triển `a` chống bùng nổ
-    """
+    """Mô hình Hệ Xám GM(1,1) trên cửa sổ trượt gần nhất."""
     vals = series.to_numpy(dtype=float)[-min(window, len(series)) :]
     n = len(vals)
     if n < 5:
@@ -202,7 +199,6 @@ def forecast_grey_gm11(
     x0 = vals + shift
     x1 = np.cumsum(x0)
 
-    # Corrected background sequence z1
     z1 = 0.5 * x1[1:] + 0.5 * x1[:-1]
     B = np.column_stack([-z1, np.ones(n - 1)])
     Y = x0[1:]
@@ -213,7 +209,6 @@ def forecast_grey_gm11(
     except Exception:
         a, b = 0.0, float(np.mean(x0))
 
-    # Kẹp hệ số phát triển a để đảm bảo ổn định trên chuỗi ngẫu nhiên
     a = float(np.clip(a, -0.08, 0.08))
     if abs(a) < 1e-6:
         in_sample_x0 = np.full(n, float(np.mean(x0)))
@@ -241,6 +236,101 @@ def forecast_grey_gm11(
     )
 
 
+def _rl_matrix(length: int, order: float) -> np.ndarray:
+    """Ma trận tích lũy phân số Riemann-Liouville (RL-FGM, Xu et al. 2026 / python-GreyTheory)."""
+    if order == 0:
+        return np.eye(length)
+    j = np.arange(1, length + 1, dtype=float)
+    weights = np.empty(length)
+    weights[0] = 1.0 / gamma(order + 1.0)
+    weights[1:] = j[1:] ** order * (-np.expm1(order * np.log1p(-1.0 / j[1:]))) / gamma(order + 1.0)
+    return toeplitz(weights, np.r_[weights[0], np.zeros(length - 1)])
+
+
+def _fit_rl_fgm_fixed(vals_pos: np.ndarray, order: float) -> Tuple[float, float, float]:
+    """Khớp RL-FGM với bậc phân số `order` cố định."""
+    rl_mat = _rl_matrix(len(vals_pos), order)
+    acc = rl_mat @ vals_pos
+    deriv = np.diff(acc)
+    bg = 0.5 * (acc[1:] + acc[:-1])
+    design = np.column_stack([-bg, np.ones(len(bg))])
+    coeffs, _, _, _ = np.linalg.lstsq(design, deriv, rcond=None)
+    a = float(np.clip(coeffs[0], -0.08, 0.08))
+    b = float(coeffs[1])
+    return float(acc[0]), a, b
+
+
+def _predict_rl_fgm_fixed(initial: float, a: float, b: float, total_len: int, order: float) -> np.ndarray:
+    t = np.arange(total_len, dtype=float)
+    if abs(a) < 1e-8:
+        factor = t * (1.0 - a * t / 2.0 + (a * t) ** 2 / 6.0)
+    else:
+        factor = -np.expm1(-a * t) / a
+    acc_hat = initial + (b - a * initial) * factor
+    rl_mat = _rl_matrix(total_len, order)
+    return solve_triangular(rl_mat, acc_hat, lower=True)
+
+
+def forecast_rl_fgm(
+    series: pd.Series,
+    horizon: int,
+    target_col: str,
+    window: int = 28,
+    orders: Tuple[float, ...] = (0.25, 0.5, 0.75, 1.0, 1.25),
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    """
+    Riemann-Liouville Fractional-Order Grey Model (RL-FGM):
+    Tự động chọn bậc tích lũy phân số tối ưu trên tập validation nội bộ.
+    """
+    vals = series.to_numpy(dtype=float)[-min(window, len(series)) :]
+    n = len(vals)
+    if n < 8:
+        p, lo, hi = forecast_grey_gm11(series, horizon, target_col)
+        return p, lo, hi, 1.0
+
+    shift = abs(float(np.min(vals))) + 20.0
+    vals_pos = vals + shift
+    holdout = min(5, max(2, n // 5))
+    train_pos = vals_pos[:-holdout]
+    val_actual = vals[-holdout:]
+
+    best_order = 1.0
+    best_rmse = float("inf")
+    for ord_cand in orders:
+        try:
+            init_v, a_v, b_v = _fit_rl_fgm_fixed(train_pos, ord_cand)
+            pred_all = _predict_rl_fgm_fixed(init_v, a_v, b_v, n, ord_cand) - shift
+            if not np.isfinite(pred_all).all():
+                continue
+            rmse = float(np.sqrt(np.mean((pred_all[-holdout:] - val_actual) ** 2)))
+            if rmse < best_rmse:
+                best_rmse = rmse
+                best_order = ord_cand
+        except Exception:
+            continue
+
+    try:
+        init_f, a_f, b_f = _fit_rl_fgm_fixed(vals_pos, best_order)
+        full_hat = _predict_rl_fgm_fixed(init_f, a_f, b_f, n + horizon, best_order) - shift
+        if not np.isfinite(full_hat).all():
+            raise ValueError("non-finite RL-FGM output")
+        in_sample = full_hat[:n]
+        pred = full_hat[n:]
+        resid_std = float(np.std(vals - in_sample))
+    except Exception:
+        p, lo, hi = forecast_grey_gm11(series, horizon, target_col)
+        return p, lo, hi, 1.0
+
+    steps = np.arange(1, horizon + 1)
+    margin = 1.28 * resid_std * np.sqrt(1.0 + 0.03 * steps)
+    return (
+        _clip_series(pred, target_col),
+        _clip_series(pred - margin, target_col),
+        _clip_series(pred + margin, target_col),
+        best_order,
+    )
+
+
 def _fourier_design_matrix(t: np.ndarray, periods: Tuple[int, ...] = (7, 14, 30)) -> np.ndarray:
     cols = [np.ones_like(t, dtype=float), t / max(float(np.max(t)), 1.0)]
     for p in periods:
@@ -259,7 +349,7 @@ def forecast_fourier_ridge(
     X_train = _fourier_design_matrix(t_train)
 
     reg = alpha * np.eye(X_train.shape[1])
-    reg[0, 0] = 0.0  # Không phạt hệ số chặn
+    reg[0, 0] = 0.0
     w = np.linalg.solve(X_train.T @ X_train + reg, X_train.T @ y)
 
     y_fit = X_train @ w
@@ -280,9 +370,10 @@ def forecast_fourier_ridge(
 
 def _compute_inverse_rmse_weights(series: pd.Series, target_col: str) -> Dict[str, float]:
     """Tính trọng số tối ưu theo nghịch đảo RMSE trên cửa sổ validation ngắn gần nhất."""
+    keys = ["arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge"]
     val_days = min(10, max(5, len(series) // 10))
     if len(series) <= val_days + 21:
-        return {"arima": 0.2, "holt_winters": 0.2, "theta": 0.2, "grey_gm11": 0.2, "fourier_ridge": 0.2}
+        return {k: 1.0 / len(keys) for k in keys}
 
     train = series.iloc[:-val_days]
     actual = series.iloc[-val_days:].to_numpy()
@@ -291,6 +382,7 @@ def _compute_inverse_rmse_weights(series: pd.Series, target_col: str) -> Dict[st
     p_hw, _, _ = forecast_holt_winters(train, val_days, target_col)
     p_th, _, _ = forecast_theta_seasonal(train, val_days, target_col)
     p_gm, _, _ = forecast_grey_gm11(train, val_days, target_col)
+    p_rl, _, _, _ = forecast_rl_fgm(train, val_days, target_col)
     p_fr, _, _ = forecast_fourier_ridge(train, val_days, target_col)
 
     preds = {
@@ -298,6 +390,7 @@ def _compute_inverse_rmse_weights(series: pd.Series, target_col: str) -> Dict[st
         "holt_winters": p_hw,
         "theta": p_th,
         "grey_gm11": p_gm,
+        "rl_fgm": p_rl,
         "fourier_ridge": p_fr,
     }
     inv_scores = {}
@@ -324,6 +417,7 @@ def run_forecast(
     hw_pred, hw_lo, hw_hi = forecast_holt_winters(series, horizon, target_col)
     th_pred, th_lo, th_hi = forecast_theta_seasonal(series, horizon, target_col)
     gm_pred, gm_lo, gm_hi = forecast_grey_gm11(series, horizon, target_col)
+    rl_pred, rl_lo, rl_hi, rl_order = forecast_rl_fgm(series, horizon, target_col)
     fr_pred, fr_lo, fr_hi = forecast_fourier_ridge(series, horizon, target_col)
 
     weights = _compute_inverse_rmse_weights(series, target_col)
@@ -332,6 +426,7 @@ def run_forecast(
         + weights["holt_winters"] * hw_pred
         + weights["theta"] * th_pred
         + weights["grey_gm11"] * gm_pred
+        + weights["rl_fgm"] * rl_pred
         + weights["fourier_ridge"] * fr_pred,
         target_col,
     )
@@ -340,6 +435,7 @@ def run_forecast(
         + weights["holt_winters"] * hw_lo
         + weights["theta"] * th_lo
         + weights["grey_gm11"] * gm_lo
+        + weights["rl_fgm"] * rl_lo
         + weights["fourier_ridge"] * fr_lo,
         target_col,
     )
@@ -348,6 +444,7 @@ def run_forecast(
         + weights["holt_winters"] * hw_hi
         + weights["theta"] * th_hi
         + weights["grey_gm11"] * gm_hi
+        + weights["rl_fgm"] * rl_hi
         + weights["fourier_ridge"] * fr_hi,
         target_col,
     )
@@ -357,12 +454,13 @@ def run_forecast(
         "holt_winters": (hw_pred, hw_lo, hw_hi, "Holt-Winters (ETS)"),
         "theta": (th_pred, th_lo, th_hi, "Theta Seasonal (7d)"),
         "grey_gm11": (gm_pred, gm_lo, gm_hi, "Grey System GM(1,1) Rolling"),
+        "rl_fgm": (rl_pred, rl_lo, rl_hi, f"RL-FGM Fractional Grey (order={rl_order})"),
         "fourier_ridge": (fr_pred, fr_lo, fr_hi, "Fourier Harmonic Ridge"),
         "ensemble": (
             ens_pred,
             ens_lo,
             ens_hi,
-            f"Weighted Ensemble ({arima_desc} + ETS + Theta + GM(1,1) + Fourier)",
+            f"Weighted Ensemble (6 mô hình: {arima_desc} + ETS + Theta + GM(1,1) + RL-FGM(r={rl_order}) + Fourier)",
         ),
     }
     pred, lo, hi, used_desc = mapping.get(model_choice, mapping["ensemble"])
@@ -383,6 +481,7 @@ def run_forecast(
             "holt_winters": np.round(hw_pred, 2),
             "theta": np.round(th_pred, 2),
             "grey_gm11": np.round(gm_pred, 2),
+            "rl_fgm": np.round(rl_pred, 2),
             "fourier_ridge": np.round(fr_pred, 2),
         }
     )
@@ -393,6 +492,7 @@ def run_forecast(
         "last_date": last_date.strftime("%d/%m/%Y"),
         "hist_mean": round(float(series.mean()), 2),
         "hist_std": round(float(series.std()), 2),
+        "rl_fgm_order": rl_order,
         "weights": {k: round(v, 3) for k, v in weights.items()},
     }
     return out, meta
@@ -411,6 +511,7 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
     hw_pred, _, _ = forecast_holt_winters(train, test_days, target_col)
     th_pred, _, _ = forecast_theta_seasonal(train, test_days, target_col)
     gm_pred, _, _ = forecast_grey_gm11(train, test_days, target_col)
+    rl_pred, _, _, rl_order = forecast_rl_fgm(train, test_days, target_col)
     fr_pred, _, _ = forecast_fourier_ridge(train, test_days, target_col)
 
     weights = _compute_inverse_rmse_weights(train, target_col)
@@ -419,6 +520,7 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
         + weights["holt_winters"] * hw_pred
         + weights["theta"] * th_pred
         + weights["grey_gm11"] * gm_pred
+        + weights["rl_fgm"] * rl_pred
         + weights["fourier_ridge"] * fr_pred,
         target_col,
     )
@@ -433,6 +535,7 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
             "Holt_Winters": np.round(hw_pred, 2),
             "Theta": np.round(th_pred, 2),
             "Grey_GM11": np.round(gm_pred, 2),
+            "RL_FGM": np.round(rl_pred, 2),
             "Fourier_Ridge": np.round(fr_pred, 2),
             "Ensemble": np.round(ens_pred, 2),
         }
@@ -444,6 +547,7 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
         ("Holt-Winters (ETS)", "Holt_Winters"),
         ("Theta Seasonal", "Theta"),
         ("Grey GM(1,1) Rolling", "Grey_GM11"),
+        (f"RL-FGM (r={rl_order})", "RL_FGM"),
         ("Fourier Ridge", "Fourier_Ridge"),
         ("Weighted Ensemble", "Ensemble"),
     ]:
@@ -516,8 +620,6 @@ def analyze_loto_00_99(df: pd.DataFrame, window: int = 200) -> pd.DataFrame:
 
     res = pd.DataFrame(stats_rows)
 
-    # Grey Relational Analysis (GRA) với hệ số phân biệt rho = 0.5
-    # Tiêu chí mong muốn: Gan_hien_tai cao, Gan_ratio cao, mức hụt (-Chenh_ky_vong) cao
     def _minmax(col: np.ndarray) -> np.ndarray:
         mn, mx = float(np.min(col)), float(np.max(col))
         if mx - mn < 1e-9:
@@ -528,7 +630,6 @@ def analyze_loto_00_99(df: pd.DataFrame, window: int = 200) -> pd.DataFrame:
     n_ratio = _minmax(res["Gan_ratio"].to_numpy(dtype=float))
     n_deficit = _minmax(-res["Chenh_ky_vong"].to_numpy(dtype=float))
 
-    # Vector chuẩn lý tưởng là [1, 1, 1] -> khoảng cách delta = 1 - normalized
     deltas = np.column_stack([1.0 - n_gan, 1.0 - n_ratio, 1.0 - n_deficit])
     d_min = float(np.min(deltas))
     d_max = float(np.max(deltas))

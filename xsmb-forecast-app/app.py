@@ -113,13 +113,14 @@ with st.sidebar:
 
     model_choice = st.selectbox(
         "Mô hình chuỗi thời gian",
-        options=["ensemble", "arima", "holt_winters", "theta", "grey_gm11", "fourier_ridge"],
+        options=["ensemble", "arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge"],
         format_func=lambda k: {
-            "ensemble": "Weighted Ensemble (5 mô hình theo nghịch đảo RMSE)",
+            "ensemble": "Weighted Ensemble (6 mô hình theo nghịch đảo RMSE)",
             "arima": "ARIMA / SARIMA (Tự động chọn theo AIC)",
             "holt_winters": "Exponential Smoothing (Holt-Winters 7 ngày)",
             "theta": "Theta Seasonal (Phân rã xu hướng & mùa vụ)",
             "grey_gm11": "Grey System GM(1,1) Rolling (Lý thuyết Hệ Xám)",
+            "rl_fgm": "RL-FGM Fractional Grey (Tích lũy phân số Riemann-Liouville)",
             "fourier_ridge": "Fourier Harmonic Ridge (Sóng điều hòa 7/14/30d)",
         }[k],
         index=0,
@@ -235,6 +236,7 @@ with tab1:
             "holt_winters",
             "theta",
             "grey_gm11",
+            "rl_fgm",
             "fourier_ridge",
         ]
     ].rename(
@@ -249,6 +251,7 @@ with tab1:
             "holt_winters": "Holt-Winters",
             "theta": "Theta",
             "grey_gm11": "Grey GM(1,1)",
+            "rl_fgm": "RL-FGM",
             "fourier_ridge": "Fourier Ridge",
         }
     )
@@ -283,6 +286,7 @@ with tab2:
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Holt_Winters"], mode="lines", name="Holt-Winters", line=dict(dash="dash")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Theta"], mode="lines", name="Theta", line=dict(dash="dashdot")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Grey_GM11"], mode="lines", name="Grey GM(1,1)", line=dict(dash="dot")))
+        fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["RL_FGM"], mode="lines", name="RL-FGM", line=dict(dash="dashdot")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Fourier_Ridge"], mode="lines", name="Fourier Ridge", line=dict(dash="dash")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Ensemble"], mode="lines+markers", name="Ensemble", line=dict(color="#ff7f0e", width=2.5)))
         fig_bt.update_layout(
