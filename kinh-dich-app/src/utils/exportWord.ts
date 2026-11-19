@@ -147,6 +147,43 @@ export async function exportNhanTuongWord(
   downloadBlob(blob, "Bao_Cao_Nhan_Tuong_Hoc.docx");
 }
 
+export async function exportBaziWord(
+  bazi: {
+    dayMaster: string;
+    strengthLabel: string;
+    dungThanAdvice: string;
+    pillars: { label: string; stem: string; branch: string; stemElement: string; branchElement: string; tenGod: string; hiddenStems: { stem: string; tenGod: string }[] }[];
+  },
+  compat: { personA: string; personB: string; relation: string; verdict: string }
+) {
+  const doc = new Document({
+    sections: [
+      {
+        children: [
+          new Paragraph({ text: "BÁO CÁO BÁT TỰ (TỨ TRỤ) & HỢP TUỔI", heading: HeadingLevel.HEADING_1 }),
+          new Paragraph(`Nhật Chủ: ${bazi.dayMaster} — Trạng thái: ${bazi.strengthLabel}`),
+          new Paragraph(`Dụng Thần Bát Tự gợi ý: ${bazi.dungThanAdvice}`),
+          new Paragraph({ text: "Bảng Tứ Trụ & Thập Thần", heading: HeadingLevel.HEADING_2 }),
+          makeTable(
+            ["Trụ", "Can Chi", "Thập Thần", "Tàng Can"],
+            bazi.pillars.map((p) => [
+              p.label,
+              `${p.stem} ${p.branch} (${p.stemElement}/${p.branchElement})`,
+              p.tenGod,
+              p.hiddenStems.map((h) => `${h.stem} (${h.tenGod})`).join(", "),
+            ])
+          ),
+          new Paragraph({ text: "Đối chiếu Hợp Tuổi / Đối Tác", heading: HeadingLevel.HEADING_2 }),
+          new Paragraph(`${compat.personA} ↔ ${compat.personB}: ${compat.relation}`),
+          new Paragraph(compat.verdict),
+        ],
+      },
+    ],
+  });
+  const blob = await Packer.toBlob(doc);
+  downloadBlob(blob, "Bao_Cao_Bat_Tu_Hop_Tuoi.docx");
+}
+
 export async function exportZiweiWord(zwChart: {
   yearCanChi: string;
   gender: string;

@@ -10,3 +10,4 @@ export * from "./engine/interpret.ts";
 export * from "./engine/batTrach.ts";
 export * from "./engine/huyenKhong.ts";
 export * from "./engine/ziweiLite.ts";
+export * from "./engine/bazi.ts";

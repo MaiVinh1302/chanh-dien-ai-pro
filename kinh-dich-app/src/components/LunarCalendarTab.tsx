@@ -8,6 +8,23 @@ interface Props {
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
+const LY_THUAN_PHONG = [
+  { name: "Không Vong", type: "Hung", desc: "Dễ trắc trở giấy tờ, cầu tài bất lợi" },
+  { name: "Đại An", type: "Cát", desc: "Rất tốt, bình an, cầu tài hướng Tây/Nam" },
+  { name: "Tốc Hỷ", type: "Cát", desc: "Tin vui tới nhanh, gặp đối tác thuận lợi" },
+  { name: "Lưu Niên", type: "Bình", desc: "Chậm chắc, tránh nóng vội hay tranh cãi" },
+  { name: "Xích Khẩu", type: "Hung", desc: "Dễ thị phi, tranh chấp, nên thận trọng lời nói" },
+  { name: "Tiểu Cát", type: "Cát", desc: "Rất tốt, buôn bán có lời, hòa hợp" },
+];
+const KHAC_SLOTS = [
+  { khac: 1, label: "23–01h & 11–13h" },
+  { khac: 2, label: "01–03h & 13–15h" },
+  { khac: 3, label: "03–05h & 15–17h" },
+  { khac: 4, label: "05–07h & 17–19h" },
+  { khac: 5, label: "07–09h & 19–21h" },
+  { khac: 6, label: "09–11h & 21–23h" },
+];
+
 export function LunarCalendarTab({ onSelectDateForApp }: Props) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -96,6 +113,23 @@ export function LunarCalendarTab({ onSelectDateForApp }: Props) {
             <div>• <strong>Ý nghĩa Trực:</strong> {selectedTrachNhat.truc.desc}</div>
             <div style={{ marginTop: 6 }}>
               • <strong>Giờ Hoàng Đạo:</strong> {selectedInfo.goodHours.join(", ")}
+            </div>
+            <div style={{ marginTop: 8, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+              <strong>Giờ Xuất Hành Lý Thuần Phong (Tiểu Lục Nhâm):</strong>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4, fontSize: "0.78rem" }}>
+                {KHAC_SLOTS.map((k) => {
+                  const rem = (selectedInfo.lunar.day + selectedInfo.lunar.month + k.khac - 2) % 6;
+                  const cung = LY_THUAN_PHONG[rem];
+                  return (
+                    <div key={k.khac}>
+                      <strong>{k.label}:</strong>{" "}
+                      <span style={{ color: cung.type === "Cát" ? "var(--cat)" : cung.type === "Hung" ? "var(--hung)" : "var(--gold)" }}>
+                        {cung.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <button

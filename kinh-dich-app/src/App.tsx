@@ -10,11 +10,13 @@ import {
   buildLayoutAdvice,
   calcAnnualAfflictions,
   calcBatTrach,
+  calcBaziChart,
   calcFlyingStars,
   calcTrachNhat,
   calcZiweiChart,
   castThiSach,
   castThreeCoins,
+  compareAges,
   detailedFengShuiAnalysis,
   interpretHexagram,
   lucHaoForHexagram,
@@ -24,7 +26,7 @@ import { LunarCalendarTab } from "./components/LunarCalendarTab.tsx";
 import { MediaUploadPanel, type UploadedMedia } from "./components/MediaUploadPanel.tsx";
 import type { TuongAssessmentInput } from "./data/nhanTuong.ts";
 import { TOPIC_LABELS, type TopicKey } from "./engine/interpret.ts";
-import { exportFengShuiWord, exportKinhDichWord, exportNhanTuongWord, exportZiweiWord } from "./utils/exportWord.ts";
+import { exportBaziWord, exportFengShuiWord, exportKinhDichWord, exportNhanTuongWord, exportZiweiWord } from "./utils/exportWord.ts";
 import type { DivinationMethod, Hexagram, LineValue } from "./types.ts";
 
 interface HistoryEntry {
@@ -74,7 +76,7 @@ function HexagramBars({ lines, moving }: { lines: number[]; moving?: number[] })
 }
 
 export default function App() {
-  const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "fengshui" | "tuong" | "lunar">("cast");
+  const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "bazi" | "fengshui" | "tuong" | "lunar">("cast");
   const [method, setMethod] = useState<DivinationMethod>("thi_sach");
   const [topic, setTopic] = useState<TopicKey>("career");
   const [question, setQuestion] = useState("Công việc và định hướng sắp tới");
@@ -114,6 +116,11 @@ export default function App() {
   });
   const [fsMedia, setFsMedia] = useState<UploadedMedia | null>(null);
   const [tuongMedia, setTuongMedia] = useState<UploadedMedia | null>(null);
+
+  // Bazi & Compatibility state (Solar birth date)
+  const [bzDate, setBzDate] = useState("1990-06-15");
+  const [bzHourIdx, setBzHourIdx] = useState(5);
+  const [partnerYear, setPartnerYear] = useState(1992);
 
   const castDate = useMemo(() => {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -194,6 +201,14 @@ export default function App() {
   const annualFs = useMemo(() => calcAnnualAfflictions(fsViewYear), [fsViewYear]);
   const fsAnalysis = useMemo(() => detailedFengShuiAnalysis(batTrach, flyingStars), [batTrach, flyingStars]);
   const tuongReport = useMemo(() => assessNhanTuong(tuongInput), [tuongInput]);
+  const baziChart = useMemo(() => {
+    const [y, m, d] = bzDate.split("-").map(Number);
+    return calcBaziChart(y || 1990, m || 6, d || 15, bzHourIdx);
+  }, [bzDate, bzHourIdx]);
+  const ageCompat = useMemo(() => {
+    const y = Number(bzDate.split("-")[0]) || 1990;
+    return compareAges(y, partnerYear);
+  }, [bzDate, partnerYear]);
   const trachNhat = useMemo(
     () => calcTrachNhat(castDate.getFullYear(), castDate.getMonth() + 1, castDate.getDate()),
     [castDate]
@@ -222,6 +237,9 @@ export default function App() {
           </button>
           <button className={`tab-btn ${tab === "ziwei" ? "active" : ""}`} onClick={() => setTab("ziwei")}>
             Tử Vi Đẩu Số
+          </button>
+          <button className={`tab-btn ${tab === "bazi" ? "active" : ""}`} onClick={() => setTab("bazi")}>
+            Bát Tự & Hợp Tuổi
           </button>
           <button className={`tab-btn ${tab === "fengshui" ? "active" : ""}`} onClick={() => setTab("fengshui")}>
             Phong Thủy & Bày Trí
@@ -639,6 +657,80 @@ export default function App() {
                   <strong>{s.title}:</strong> <span className="muted">{s.body}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "bazi" && (
+        <div className="grid-2">
+          <div>
+            <div className="card">
+              <h2>Lập Lá Số Bát Tự (Tứ Trụ Tử Bình)</h2>
+              <label>Ngày sinh Dương lịch (tính theo Tiết Khí)</label>
+              <input type="date" value={bzDate} onChange={(e) => setBzDate(e.target.value)} />
+              <label>Giờ sinh (Địa Chi)</label>
+              <select value={bzHourIdx} onChange={(e) => setBzHourIdx(Number(e.target.value))}>
+                {BRANCHES.map((b, i) => (
+                  <option key={b} value={i}>Giờ {b}</option>
+                ))}
+              </select>
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                <div><strong>Nhật Chủ:</strong> <span style={{ color: "var(--gold)" }}>{baziChart.dayMaster}</span></div>
+                <div><strong>Trạng thái:</strong> {baziChart.strengthLabel}</div>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  <strong>Dụng Thần cân bằng:</strong> {baziChart.dungThanAdvice}
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h2>Đối Chiếu Hợp Tuổi / Đối Tác</h2>
+              <label>Năm sinh đối tác / người phối ngẫu / xông đất</label>
+              <input type="number" min={1920} max={2050} value={partnerYear} onChange={(e) => setPartnerYear(Number(e.target.value) || 1992)} />
+              <div><strong>{ageCompat.personA}</strong> ↔ <strong>{ageCompat.personB}</strong></div>
+              <div style={{ marginTop: 6, color: "var(--gold)", fontWeight: 700 }}>{ageCompat.relation}</div>
+              <p className="muted" style={{ marginBottom: 0 }}>{ageCompat.verdict}</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <h2 style={{ margin: 0 }}>Bảng Tứ Trụ, Thập Thần & Tàng Can</h2>
+              <button className="btn-ghost" onClick={() => exportBaziWord(baziChart, ageCompat)}>
+                ⬇ Tải Word (.docx)
+              </button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Trụ</th>
+                  <th>Thiên Can (Thập Thần)</th>
+                  <th>Địa Chi</th>
+                  <th>Tàng Can (Ẩn)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baziChart.pillars.map((p) => (
+                  <tr key={p.label}>
+                    <td><strong>{p.label}</strong></td>
+                    <td>{p.stem} ({p.stemElement}) · <span style={{ color: "var(--gold)" }}>{p.tenGod}</span></td>
+                    <td>{p.branch} ({p.branchElement})</td>
+                    <td className="muted">{p.hiddenStems.map((h) => `${h.stem} (${h.tenGod})`).join(", ")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+              <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Phân Bổ Ngũ Hành (Tứ Trụ + Lệnh Tháng)</h3>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {Object.entries(baziChart.counts).map(([el, val]) => (
+                  <span key={el} className="badge badge-kv" style={{ fontSize: "0.85rem", padding: "4px 10px" }}>
+                    {el}: <strong>{val}</strong>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
