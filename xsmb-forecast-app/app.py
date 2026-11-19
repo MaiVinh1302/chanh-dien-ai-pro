@@ -113,12 +113,14 @@ with st.sidebar:
 
     model_choice = st.selectbox(
         "Mô hình chuỗi thời gian",
-        options=["ensemble", "arima", "holt_winters", "theta"],
+        options=["ensemble", "arima", "holt_winters", "theta", "grey_gm11", "fourier_ridge"],
         format_func=lambda k: {
-            "ensemble": "Ensemble (Tổ hợp ARIMA + Holt-Winters + Theta)",
+            "ensemble": "Weighted Ensemble (5 mô hình theo nghịch đảo RMSE)",
             "arima": "ARIMA / SARIMA (Tự động chọn theo AIC)",
             "holt_winters": "Exponential Smoothing (Holt-Winters 7 ngày)",
             "theta": "Theta Seasonal (Phân rã xu hướng & mùa vụ)",
+            "grey_gm11": "Grey System GM(1,1) Rolling (Lý thuyết Hệ Xám)",
+            "fourier_ridge": "Fourier Harmonic Ridge (Sóng điều hòa 7/14/30d)",
         }[k],
         index=0,
     )
@@ -222,7 +224,19 @@ with tab1:
 
     st.markdown("#### Bảng số liệu dự kiến chi tiết theo từng ngày")
     display_fc = fc_df[
-        ["date_vn", "weekday_vn", "forecast", "forecast_raw", "lower_80", "upper_80", "arima", "holt_winters", "theta"]
+        [
+            "date_vn",
+            "weekday_vn",
+            "forecast",
+            "forecast_raw",
+            "lower_80",
+            "upper_80",
+            "arima",
+            "holt_winters",
+            "theta",
+            "grey_gm11",
+            "fourier_ridge",
+        ]
     ].rename(
         columns={
             "date_vn": "Ngày",
@@ -234,6 +248,8 @@ with tab1:
             "arima": "ARIMA",
             "holt_winters": "Holt-Winters",
             "theta": "Theta",
+            "grey_gm11": "Grey GM(1,1)",
+            "fourier_ridge": "Fourier Ridge",
         }
     )
     st.dataframe(display_fc, use_container_width=True, hide_index=True)
@@ -266,6 +282,8 @@ with tab2:
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["ARIMA"], mode="lines", name="ARIMA", line=dict(dash="dot")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Holt_Winters"], mode="lines", name="Holt-Winters", line=dict(dash="dash")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Theta"], mode="lines", name="Theta", line=dict(dash="dashdot")))
+        fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Grey_GM11"], mode="lines", name="Grey GM(1,1)", line=dict(dash="dot")))
+        fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Fourier_Ridge"], mode="lines", name="Fourier Ridge", line=dict(dash="dash")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Ensemble"], mode="lines+markers", name="Ensemble", line=dict(color="#ff7f0e", width=2.5)))
         fig_bt.update_layout(
             height=380,

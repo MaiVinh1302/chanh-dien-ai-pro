@@ -1,4 +1,4 @@
-"""Các mô hình phân tích chuỗi thời gian cổ điển & thống kê Loto XSMB."""
+"""Các mô hình phân tích chuỗi thời gian cổ điển, Hệ Xám (Grey Theory GM(1,1), GRA) & Fourier Ridge."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 warnings.filterwarnings("ignore")
 
 FORECAST_LOG_PATH = Path(__file__).resolve().parent.parent / "data" / "forecast_log.csv"
-
 
 TARGET_CONFIG = {
     "de_2so": {
@@ -121,13 +120,11 @@ def forecast_arima(series: pd.Series, horizon: int, target_col: str) -> Tuple[np
 
     fc = best_fit.get_forecast(steps=horizon)
     pred = fc.predicted_mean.to_numpy()
-    ci = fc.conf_int(alpha=0.20).to_numpy()  # 80% CI
-    lower = ci[:, 0]
-    upper = ci[:, 1]
+    ci = fc.conf_int(alpha=0.20).to_numpy()
     return (
         _clip_series(pred, target_col),
-        _clip_series(lower, target_col),
-        _clip_series(upper, target_col),
+        _clip_series(ci[:, 0], target_col),
+        _clip_series(ci[:, 1], target_col),
         best_desc,
     )
 
@@ -151,7 +148,7 @@ def forecast_holt_winters(series: pd.Series, horizon: int, target_col: str) -> T
         resid_std = float(series.std())
 
     steps = np.arange(1, horizon + 1)
-    margin = 1.28 * resid_std * np.sqrt(1 + 0.05 * steps)
+    margin = 1.28 * resid_std * np.sqrt(1 + 0.04 * steps)
     return (
         _clip_series(pred, target_col),
         _clip_series(pred - margin, target_col),
@@ -160,7 +157,7 @@ def forecast_holt_winters(series: pd.Series, horizon: int, target_col: str) -> T
 
 
 def forecast_theta_seasonal(series: pd.Series, horizon: int, target_col: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Dự báo bằng Theta Model kết hợp thành phần mùa vụ tuần (tương tự cấu trúc Prophet nhẹ)."""
+    """Dự báo bằng Theta Model kết hợp thành phần mùa vụ tuần."""
     try:
         model = ThetaModel(series, period=7 if len(series) >= 21 else 1, deseasonalize=len(series) >= 21)
         fit = model.fit()
@@ -181,6 +178,137 @@ def forecast_theta_seasonal(series: pd.Series, horizon: int, target_col: str) ->
     )
 
 
+def forecast_grey_gm11(
+    series: pd.Series, horizon: int, target_col: str, window: int = 21
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Mô hình Hệ Xám GM(1,1) (Grey System Theory) trên cửa sổ trượt gần nhất:
+    1) Dịch dương + Tích lũy 1-AGO làm mượt nhiễu
+    2) Giải phương trình vi phân xám bằng bình phương tối thiểu (OLS)
+    3) Khôi phục IAGO có giới hạn hệ số phát triển `a` chống bùng nổ
+    """
+    vals = series.to_numpy(dtype=float)[-min(window, len(series)) :]
+    n = len(vals)
+    if n < 5:
+        mean_val = np.full(horizon, float(np.mean(vals)))
+        std_val = float(np.std(vals))
+        return (
+            _clip_series(mean_val, target_col),
+            _clip_series(mean_val - 1.28 * std_val, target_col),
+            _clip_series(mean_val + 1.28 * std_val, target_col),
+        )
+
+    shift = abs(float(np.min(vals))) + 20.0
+    x0 = vals + shift
+    x1 = np.cumsum(x0)
+
+    # Corrected background sequence z1
+    z1 = 0.5 * x1[1:] + 0.5 * x1[:-1]
+    B = np.column_stack([-z1, np.ones(n - 1)])
+    Y = x0[1:]
+
+    try:
+        params, _, _, _ = np.linalg.lstsq(B, Y, rcond=None)
+        a, b = float(params[0]), float(params[1])
+    except Exception:
+        a, b = 0.0, float(np.mean(x0))
+
+    # Kẹp hệ số phát triển a để đảm bảo ổn định trên chuỗi ngẫu nhiên
+    a = float(np.clip(a, -0.08, 0.08))
+    if abs(a) < 1e-6:
+        in_sample_x0 = np.full(n, float(np.mean(x0)))
+        fut_x0 = np.full(horizon, float(np.mean(x0)))
+    else:
+        ratio = b / a
+        k_all = np.arange(0, n + horizon, dtype=float)
+        x1_hat = (x0[0] - ratio) * np.exp(-a * k_all) + ratio
+        x0_hat = np.empty_like(x1_hat)
+        x0_hat[0] = x0[0]
+        x0_hat[1:] = np.diff(x1_hat)
+        in_sample_x0 = x0_hat[:n]
+        fut_x0 = x0_hat[n:]
+
+    pred = fut_x0 - shift
+    resid = vals - (in_sample_x0 - shift)
+    resid_std = float(np.std(resid)) if len(resid) > 1 else float(series.std())
+    steps = np.arange(1, horizon + 1)
+    margin = 1.28 * resid_std * np.sqrt(1 + 0.03 * steps)
+
+    return (
+        _clip_series(pred, target_col),
+        _clip_series(pred - margin, target_col),
+        _clip_series(pred + margin, target_col),
+    )
+
+
+def _fourier_design_matrix(t: np.ndarray, periods: Tuple[int, ...] = (7, 14, 30)) -> np.ndarray:
+    cols = [np.ones_like(t, dtype=float), t / max(float(np.max(t)), 1.0)]
+    for p in periods:
+        cols.append(np.sin(2.0 * np.pi * t / p))
+        cols.append(np.cos(2.0 * np.pi * t / p))
+    return np.column_stack(cols)
+
+
+def forecast_fourier_ridge(
+    series: pd.Series, horizon: int, target_col: str, alpha: float = 5.0
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Hồi quy Ridge trên cơ sở sóng điều hòa Fourier (chu kỳ 7, 14, 30 ngày) + xu hướng."""
+    y = series.to_numpy(dtype=float)
+    n = len(y)
+    t_train = np.arange(n, dtype=float)
+    X_train = _fourier_design_matrix(t_train)
+
+    reg = alpha * np.eye(X_train.shape[1])
+    reg[0, 0] = 0.0  # Không phạt hệ số chặn
+    w = np.linalg.solve(X_train.T @ X_train + reg, X_train.T @ y)
+
+    y_fit = X_train @ w
+    resid_std = float(np.std(y - y_fit)) if n > 2 else float(series.std())
+
+    t_fut = np.arange(n, n + horizon, dtype=float)
+    X_fut = _fourier_design_matrix(t_fut)
+    pred = X_fut @ w
+
+    steps = np.arange(1, horizon + 1)
+    margin = 1.28 * resid_std * np.sqrt(1 + 0.02 * steps)
+    return (
+        _clip_series(pred, target_col),
+        _clip_series(pred - margin, target_col),
+        _clip_series(pred + margin, target_col),
+    )
+
+
+def _compute_inverse_rmse_weights(series: pd.Series, target_col: str) -> Dict[str, float]:
+    """Tính trọng số tối ưu theo nghịch đảo RMSE trên cửa sổ validation ngắn gần nhất."""
+    val_days = min(10, max(5, len(series) // 10))
+    if len(series) <= val_days + 21:
+        return {"arima": 0.2, "holt_winters": 0.2, "theta": 0.2, "grey_gm11": 0.2, "fourier_ridge": 0.2}
+
+    train = series.iloc[:-val_days]
+    actual = series.iloc[-val_days:].to_numpy()
+
+    p_ar, _, _, _ = forecast_arima(train, val_days, target_col)
+    p_hw, _, _ = forecast_holt_winters(train, val_days, target_col)
+    p_th, _, _ = forecast_theta_seasonal(train, val_days, target_col)
+    p_gm, _, _ = forecast_grey_gm11(train, val_days, target_col)
+    p_fr, _, _ = forecast_fourier_ridge(train, val_days, target_col)
+
+    preds = {
+        "arima": p_ar,
+        "holt_winters": p_hw,
+        "theta": p_th,
+        "grey_gm11": p_gm,
+        "fourier_ridge": p_fr,
+    }
+    inv_scores = {}
+    for k, p in preds.items():
+        rmse = float(np.sqrt(np.mean((actual - p) ** 2)))
+        inv_scores[k] = 1.0 / max(rmse, 1e-3)
+
+    total = sum(inv_scores.values())
+    return {k: v / total for k, v in inv_scores.items()}
+
+
 def run_forecast(
     df: pd.DataFrame,
     target_col: str,
@@ -195,16 +323,47 @@ def run_forecast(
     arima_pred, arima_lo, arima_hi, arima_desc = forecast_arima(series, horizon, target_col)
     hw_pred, hw_lo, hw_hi = forecast_holt_winters(series, horizon, target_col)
     th_pred, th_lo, th_hi = forecast_theta_seasonal(series, horizon, target_col)
+    gm_pred, gm_lo, gm_hi = forecast_grey_gm11(series, horizon, target_col)
+    fr_pred, fr_lo, fr_hi = forecast_fourier_ridge(series, horizon, target_col)
 
-    ens_pred = _clip_series((arima_pred + hw_pred + th_pred) / 3.0, target_col)
-    ens_lo = _clip_series((arima_lo + hw_lo + th_lo) / 3.0, target_col)
-    ens_hi = _clip_series((arima_hi + hw_hi + th_hi) / 3.0, target_col)
+    weights = _compute_inverse_rmse_weights(series, target_col)
+    ens_pred = _clip_series(
+        weights["arima"] * arima_pred
+        + weights["holt_winters"] * hw_pred
+        + weights["theta"] * th_pred
+        + weights["grey_gm11"] * gm_pred
+        + weights["fourier_ridge"] * fr_pred,
+        target_col,
+    )
+    ens_lo = _clip_series(
+        weights["arima"] * arima_lo
+        + weights["holt_winters"] * hw_lo
+        + weights["theta"] * th_lo
+        + weights["grey_gm11"] * gm_lo
+        + weights["fourier_ridge"] * fr_lo,
+        target_col,
+    )
+    ens_hi = _clip_series(
+        weights["arima"] * arima_hi
+        + weights["holt_winters"] * hw_hi
+        + weights["theta"] * th_hi
+        + weights["grey_gm11"] * gm_hi
+        + weights["fourier_ridge"] * fr_hi,
+        target_col,
+    )
 
     mapping = {
         "arima": (arima_pred, arima_lo, arima_hi, arima_desc),
         "holt_winters": (hw_pred, hw_lo, hw_hi, "Holt-Winters (ETS)"),
         "theta": (th_pred, th_lo, th_hi, "Theta Seasonal (7d)"),
-        "ensemble": (ens_pred, ens_lo, ens_hi, f"Ensemble ({arima_desc} + ETS + Theta)"),
+        "grey_gm11": (gm_pred, gm_lo, gm_hi, "Grey System GM(1,1) Rolling"),
+        "fourier_ridge": (fr_pred, fr_lo, fr_hi, "Fourier Harmonic Ridge"),
+        "ensemble": (
+            ens_pred,
+            ens_lo,
+            ens_hi,
+            f"Weighted Ensemble ({arima_desc} + ETS + Theta + GM(1,1) + Fourier)",
+        ),
     }
     pred, lo, hi, used_desc = mapping.get(model_choice, mapping["ensemble"])
 
@@ -223,6 +382,8 @@ def run_forecast(
             "arima": np.round(arima_pred, 2),
             "holt_winters": np.round(hw_pred, 2),
             "theta": np.round(th_pred, 2),
+            "grey_gm11": np.round(gm_pred, 2),
+            "fourier_ridge": np.round(fr_pred, 2),
         }
     )
 
@@ -232,6 +393,7 @@ def run_forecast(
         "last_date": last_date.strftime("%d/%m/%Y"),
         "hist_mean": round(float(series.mean()), 2),
         "hist_std": round(float(series.std()), 2),
+        "weights": {k: round(v, 3) for k, v in weights.items()},
     }
     return out, meta
 
@@ -248,7 +410,18 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
     arima_pred, _, _, arima_desc = forecast_arima(train, test_days, target_col)
     hw_pred, _, _ = forecast_holt_winters(train, test_days, target_col)
     th_pred, _, _ = forecast_theta_seasonal(train, test_days, target_col)
-    ens_pred = _clip_series((arima_pred + hw_pred + th_pred) / 3.0, target_col)
+    gm_pred, _, _ = forecast_grey_gm11(train, test_days, target_col)
+    fr_pred, _, _ = forecast_fourier_ridge(train, test_days, target_col)
+
+    weights = _compute_inverse_rmse_weights(train, target_col)
+    ens_pred = _clip_series(
+        weights["arima"] * arima_pred
+        + weights["holt_winters"] * hw_pred
+        + weights["theta"] * th_pred
+        + weights["grey_gm11"] * gm_pred
+        + weights["fourier_ridge"] * fr_pred,
+        target_col,
+    )
 
     actual = test.to_numpy()
     compare_df = pd.DataFrame(
@@ -259,6 +432,8 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
             "ARIMA": np.round(arima_pred, 2),
             "Holt_Winters": np.round(hw_pred, 2),
             "Theta": np.round(th_pred, 2),
+            "Grey_GM11": np.round(gm_pred, 2),
+            "Fourier_Ridge": np.round(fr_pred, 2),
             "Ensemble": np.round(ens_pred, 2),
         }
     )
@@ -268,7 +443,9 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
         (arima_desc, "ARIMA"),
         ("Holt-Winters (ETS)", "Holt_Winters"),
         ("Theta Seasonal", "Theta"),
-        ("Ensemble (Tổ hợp)", "Ensemble"),
+        ("Grey GM(1,1) Rolling", "Grey_GM11"),
+        ("Fourier Ridge", "Fourier_Ridge"),
+        ("Weighted Ensemble", "Ensemble"),
     ]:
         err = actual - compare_df[col].to_numpy()
         mae = float(np.mean(np.abs(err)))
@@ -280,13 +457,12 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
 
 
 def analyze_loto_00_99(df: pd.DataFrame, window: int = 200) -> pd.DataFrame:
-    """Phân tích tần suất xuất hiện và Loto gan cho 100 cặp số 00–99."""
+    """Phân tích tần suất, Loto gan và chấm điểm GRA (Grey Relational Analysis) cho 00–99."""
     sub = df.sort_values("date").tail(window).reset_index(drop=True)
     total_days = len(sub)
     if total_days == 0:
         return pd.DataFrame()
 
-    # Chuẩn bị list set các số loto mỗi ngày
     day_sets: List[set] = []
     day_lists: List[List[str]] = []
     for s in sub["loto_27"].astype(str):
@@ -304,14 +480,12 @@ def analyze_loto_00_99(df: pd.DataFrame, window: int = 200) -> pd.DataFrame:
         freq_30 = sum(lst.count(code) for lst in day_lists[-30:]) if total_days >= 30 else freq_all
         de_hits = sum(1 for d in de_list if d == code)
 
-        # Tính số ngày gan hiện tại (tính từ cuối lên)
         current_gan = 0
         for st in reversed(day_sets):
             if code in st:
                 break
             current_gan += 1
 
-        # Tính max gan trong window
         max_gan = 0
         cur = 0
         for st in day_sets:
@@ -322,12 +496,9 @@ def analyze_loto_00_99(df: pd.DataFrame, window: int = 200) -> pd.DataFrame:
                 cur += 1
         max_gan = max(max_gan, cur)
 
-        # Kỳ vọng lý thuyết: 27 lần quay / 100 số => trung bình mỗi ngày xuất hiện ~0.27 lần,
-        # xác suất về ít nhất 1 nháy trong ngày ~ 1 - (99/100)^27 ≈ 23.77%
         expected_freq = 0.27 * total_days
         deviation = freq_all - expected_freq
-        # Điểm chú ý thống kê (kết hợp gan hiện tại và độ hụt tần suất)
-        score = round(current_gan * 0.65 + max(0.0, -deviation) * 0.35, 2)
+        gan_ratio = current_gan / max(max_gan, 1)
 
         stats_rows.append(
             {
@@ -339,11 +510,34 @@ def analyze_loto_00_99(df: pd.DataFrame, window: int = 200) -> pd.DataFrame:
                 "Gan_hien_tai": current_gan,
                 "Max_gan": max_gan,
                 "Chenh_ky_vong": round(deviation, 2),
-                "Diem_chu_y": score,
+                "Gan_ratio": round(gan_ratio, 3),
             }
         )
 
-    return pd.DataFrame(stats_rows)
+    res = pd.DataFrame(stats_rows)
+
+    # Grey Relational Analysis (GRA) với hệ số phân biệt rho = 0.5
+    # Tiêu chí mong muốn: Gan_hien_tai cao, Gan_ratio cao, mức hụt (-Chenh_ky_vong) cao
+    def _minmax(col: np.ndarray) -> np.ndarray:
+        mn, mx = float(np.min(col)), float(np.max(col))
+        if mx - mn < 1e-9:
+            return np.zeros_like(col)
+        return (col - mn) / (mx - mn)
+
+    n_gan = _minmax(res["Gan_hien_tai"].to_numpy(dtype=float))
+    n_ratio = _minmax(res["Gan_ratio"].to_numpy(dtype=float))
+    n_deficit = _minmax(-res["Chenh_ky_vong"].to_numpy(dtype=float))
+
+    # Vector chuẩn lý tưởng là [1, 1, 1] -> khoảng cách delta = 1 - normalized
+    deltas = np.column_stack([1.0 - n_gan, 1.0 - n_ratio, 1.0 - n_deficit])
+    d_min = float(np.min(deltas))
+    d_max = float(np.max(deltas))
+    rho = 0.5
+    grc = (d_min + rho * d_max) / (deltas + rho * d_max + 1e-9)
+    gra_grade = np.mean(grc, axis=1)
+
+    res["Diem_chu_y"] = np.round(gra_grade * 100.0, 2)
+    return res
 
 
 def save_forecast_snapshot(

@@ -75,6 +75,8 @@ def main(force_check: bool = True) -> None:
                 "arima",
                 "holt_winters",
                 "theta",
+                "grey_gm11",
+                "fourier_ridge",
             ]
         ].to_dict("records")
 
