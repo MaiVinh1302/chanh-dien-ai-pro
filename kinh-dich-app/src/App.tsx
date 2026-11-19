@@ -1,15 +1,22 @@
 import { useMemo, useState } from "react";
 import {
+  BRANCHES,
   HEXAGRAMS,
+  NHAN_TUONG_DATA,
+  STAR_MEANINGS,
   TRIGRAMS,
   buildHexagram,
+  buildLayoutAdvice,
+  calcBatTrach,
+  calcFlyingStars,
+  calcTrachNhat,
+  calcZiweiChart,
   castThiSach,
   castThreeCoins,
   interpretHexagram,
   lucHaoForHexagram,
   maiHoaFromNumbers,
 } from "./engine-index.ts";
-import { calcBatTrach } from "./engine/batTrach.ts";
 import type { DivinationMethod, Hexagram, LineValue } from "./types.ts";
 
 interface HistoryEntry {
@@ -23,6 +30,8 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "chanh_dien_kinh_dich_history_v1";
+// Traditional 4x4 ZiWei grid order (Tỵ top-left, Thân top-right, Hợi bottom-right, Dần bottom-left)
+const ZIWEI_GRID_BRANCHES = [5, 6, 7, 8, 4, -1, 9, 3, 10, 2, 1, 0, 11];
 
 function loadHistory(): HistoryEntry[] {
   try {
@@ -57,7 +66,7 @@ function HexagramBars({ lines, moving }: { lines: number[]; moving?: number[] })
 }
 
 export default function App() {
-  const [tab, setTab] = useState<"cast" | "lookup" | "fengshui">("cast");
+  const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "fengshui" | "tuong">("cast");
   const [method, setMethod] = useState<DivinationMethod>("thi_sach");
   const [question, setQuestion] = useState("Công việc và định hướng sắp tới");
   const [dateStr, setDateStr] = useState(() => new Date().toISOString().slice(0, 10));
@@ -69,9 +78,21 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [selectedHex, setSelectedHex] = useState<Hexagram>(HEXAGRAMS[0]);
 
-  // Bat Trach state
+  // ZiWei tab state
+  const [zwYear, setZwYear] = useState(1990);
+  const [zwMonth, setZwMonth] = useState(5);
+  const [zwDay, setZwDay] = useState(15);
+  const [zwHourIdx, setZwHourIdx] = useState(5);
+  const [zwGender, setZwGender] = useState<"Nam" | "Nữ">("Nam");
+
+  // Feng Shui tab state
   const [birthYear, setBirthYear] = useState(1990);
   const [gender, setGender] = useState<"Nam" | "Nữ">("Nam");
+  const [period, setPeriod] = useState(9);
+  const [facingDeg, setFacingDeg] = useState(180);
+
+  // Nhan Tuong tab state
+  const [tuongCat, setTuongCat] = useState<string>("Tất cả");
 
   const castDate = useMemo(() => {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -132,15 +153,38 @@ export default function App() {
     );
   }, [query]);
 
+  const zwChart = useMemo(
+    () =>
+      calcZiweiChart({
+        lunarYear: zwYear,
+        lunarMonth: zwMonth,
+        lunarDay: zwDay,
+        hourBranchIdx: zwHourIdx,
+        gender: zwGender,
+      }),
+    [zwYear, zwMonth, zwDay, zwHourIdx, zwGender]
+  );
+
   const batTrach = useMemo(() => calcBatTrach(birthYear, gender), [birthYear, gender]);
+  const layoutAdvice = useMemo(() => buildLayoutAdvice(batTrach.directions), [batTrach]);
+  const flyingStars = useMemo(() => calcFlyingStars(period, facingDeg), [period, facingDeg]);
+  const trachNhat = useMemo(
+    () => calcTrachNhat(castDate.getFullYear(), castDate.getMonth() + 1, castDate.getDate()),
+    [castDate]
+  );
+
+  const filteredTuong = useMemo(
+    () => (tuongCat === "Tất cả" ? NHAN_TUONG_DATA : NHAN_TUONG_DATA.filter((x) => x.category === tuongCat)),
+    [tuongCat]
+  );
 
   return (
     <div className="container">
       <header className="header">
         <div>
-          <h1 className="title">☯ Chánh Điện Dịch Đạo — Kinh Dịch & Lục Hào</h1>
+          <h1 className="title">☯ Chánh Điện Dịch Đạo — Lý Số & Phong Thủy Toàn Diện</h1>
           <p className="subtitle">
-            Engine tất định: Chu Dịch Đại Toàn · Lục Hào Kinh Phòng · Mai Hoa Dịch Số · Bát Trạch
+            Kinh Dịch · Lục Hào · Tử Vi Đẩu Số · Bát Trạch & Huyền Không Vận 9 · Nhân Tướng Học
           </p>
         </div>
         <div className="tabs">
@@ -148,10 +192,16 @@ export default function App() {
             Gieo Quẻ & Lục Hào
           </button>
           <button className={`tab-btn ${tab === "lookup" ? "active" : ""}`} onClick={() => setTab("lookup")}>
-            Tra Cứu 64 Quẻ
+            64 Quẻ
+          </button>
+          <button className={`tab-btn ${tab === "ziwei" ? "active" : ""}`} onClick={() => setTab("ziwei")}>
+            Tử Vi Đẩu Số
           </button>
           <button className={`tab-btn ${tab === "fengshui" ? "active" : ""}`} onClick={() => setTab("fengshui")}>
-            Bát Trạch Cung Phi
+            Phong Thủy & Bày Trí
+          </button>
+          <button className={`tab-btn ${tab === "tuong" ? "active" : ""}`} onClick={() => setTab("tuong")}>
+            Nhân Tướng & Chỉ Tay
           </button>
         </div>
       </header>
@@ -420,59 +470,237 @@ export default function App() {
         </div>
       )}
 
-      {tab === "fengshui" && (
+      {tab === "ziwei" && (
         <div className="grid-2">
           <div className="card">
-            <h2>Tính Cung Phi Bát Trạch</h2>
-            <label>Năm sinh (Âm lịch)</label>
-            <input
-              type="number"
-              min={1900}
-              max={2100}
-              value={birthYear}
-              onChange={(e) => setBirthYear(Number(e.target.value) || 1990)}
-            />
-            <label>Giới tính</label>
-            <select value={gender} onChange={(e) => setGender(e.target.value as "Nam" | "Nữ")}>
-              <option value="Nam">Nam</option>
-              <option value="Nữ">Nữ</option>
-            </select>
-            <div style={{ marginTop: 8 }}>
+            <h2>Thông tin Lập Lá Số Tử Vi (Âm Lịch)</h2>
+            <div className="row">
               <div>
-                Cung Phi: <strong style={{ color: "var(--gold)" }}>{batTrach.cungPhi}</strong> ({batTrach.element})
+                <label>Năm sinh (AL)</label>
+                <input type="number" value={zwYear} onChange={(e) => setZwYear(Number(e.target.value) || 1990)} />
               </div>
-              <div className="muted">Nhóm mệnh: {batTrach.group}</div>
+              <div>
+                <label>Tháng (AL)</label>
+                <input type="number" min={1} max={12} value={zwMonth} onChange={(e) => setZwMonth(Math.min(12, Math.max(1, Number(e.target.value) || 1)))} />
+              </div>
+              <div>
+                <label>Ngày (AL)</label>
+                <input type="number" min={1} max={30} value={zwDay} onChange={(e) => setZwDay(Math.min(30, Math.max(1, Number(e.target.value) || 1)))} />
+              </div>
+            </div>
+            <div className="row">
+              <div>
+                <label>Giờ sinh (Địa Chi)</label>
+                <select value={zwHourIdx} onChange={(e) => setZwHourIdx(Number(e.target.value))}>
+                  {BRANCHES.map((b, i) => (
+                    <option key={b} value={i}>
+                      Giờ {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label>Giới tính</label>
+                <select value={zwGender} onChange={(e) => setZwGender(e.target.value as "Nam" | "Nữ")}>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+              <div><strong>Can Chi:</strong> {zwChart.yearCanChi} ({zwChart.gender})</div>
+              <div><strong>Bản Mệnh:</strong> {zwChart.napAm}</div>
+              <div><strong>Cục Số:</strong> {zwChart.cucName}</div>
+              <div><strong>Thân cư:</strong> {zwChart.thanCung} ({zwChart.thanBranch})</div>
+              <div className="muted" style={{ marginTop: 8 }}>{zwChart.mainTraitSummary}</div>
             </div>
           </div>
 
           <div className="card">
-            <h2>8 Hướng Cát Hung (Bát Trạch Minh Cảnh)</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Hướng</th>
-                  <th>Cung</th>
-                  <th>Sao Du Niên</th>
-                  <th>Mức độ</th>
-                  <th>Cát / Hung</th>
-                </tr>
-              </thead>
-              <tbody>
-                {batTrach.directions.map((d) => (
-                  <tr key={d.direction}>
-                    <td><strong>{d.direction}</strong></td>
-                    <td>{d.palace}</td>
-                    <td>{d.star}</td>
-                    <td>{d.rating}</td>
-                    <td>
-                      <span className={`badge ${d.type === "Cát" ? "badge-cat" : "badge-hung"}`}>
-                        {d.type}
+            <h2>Mệnh Bàn 12 Cung (14 Chính Tinh & Tứ Hóa)</h2>
+            <div className="ziwei-grid">
+              {ZIWEI_GRID_BRANCHES.map((bIdx, i) => {
+                if (bIdx === -1) {
+                  return (
+                    <div className="zw-center" key={`center-${i}`}>
+                      <div style={{ color: "var(--gold)", fontWeight: 700, fontSize: "1.05rem", marginBottom: 6 }}>
+                        THIÊN BÀN TỬ VI
+                      </div>
+                      <div className="muted">Năm: {zwChart.yearCanChi} · {zwChart.napAm}</div>
+                      <div className="muted">Cục: {zwChart.cucName} · Mệnh tại {zwChart.menhBranch}</div>
+                      <div style={{ marginTop: 8, fontSize: "0.82rem" }}>
+                        <strong>Tứ Hóa Can Năm:</strong> Lộc ({zwChart.tuHoa.loc}) · Quyền ({zwChart.tuHoa.quyen}) · Khoa ({zwChart.tuHoa.khoa}) · Kỵ ({zwChart.tuHoa.ky})
+                      </div>
+                    </div>
+                  );
+                }
+                const p = zwChart.palaces[bIdx];
+                return (
+                  <div className={`zw-cell ${p.cung === "Mệnh" ? "menh" : ""}`} key={p.branch}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+                      <span style={{ color: p.cung === "Mệnh" ? "var(--gold)" : "var(--accent)" }}>
+                        {p.cung} {p.isThan ? "(Thân)" : ""}
                       </span>
-                    </td>
+                      <span className="muted">{p.stem} {p.branch}</span>
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      {p.stars.length ? (
+                        p.stars.map((s) => (
+                          <div key={s} style={{ fontWeight: 600 }}>{s}</div>
+                        ))
+                      ) : (
+                        <span className="muted">(Vô Chính Diệu)</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "fengshui" && (
+        <div className="grid-2">
+          <div>
+            <div className="card">
+              <h2>1. Cung Phi Bát Trạch (Gia Chủ)</h2>
+              <div className="row">
+                <div>
+                  <label>Năm sinh (Âm lịch)</label>
+                  <input type="number" min={1900} max={2100} value={birthYear} onChange={(e) => setBirthYear(Number(e.target.value) || 1990)} />
+                </div>
+                <div>
+                  <label>Giới tính</label>
+                  <select value={gender} onChange={(e) => setGender(e.target.value as "Nam" | "Nữ")}>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                Cung Phi: <strong style={{ color: "var(--gold)" }}>{batTrach.cungPhi}</strong> ({batTrach.element}) ·{" "}
+                <span className="muted">{batTrach.group}</span>
+              </div>
+            </div>
+
+            <div className="card">
+              <h2>2. La Kinh Huyền Không Phi Tinh</h2>
+              <div className="row">
+                <div>
+                  <label>Vận (1–9, hiện tại Vận 9)</label>
+                  <input type="number" min={1} max={9} value={period} onChange={(e) => setPeriod(Math.min(9, Math.max(1, Number(e.target.value) || 9)))} />
+                </div>
+                <div>
+                  <label>Độ số Hướng nhà (0–360°)</label>
+                  <input type="number" min={0} max={359.9} step="0.5" value={facingDeg} onChange={(e) => setFacingDeg(Number(e.target.value) || 0)} />
+                </div>
+              </div>
+              <div className="muted">
+                Tọa <strong>{flyingStars.sitting.name}</strong> ({flyingStars.sitting.direction}) — Hướng{" "}
+                <strong>{flyingStars.facing.name}</strong> ({flyingStars.facing.direction}) · {flyingStars.facing.yuanLong} Nguyên Long ({flyingStars.facing.polarity})
+              </div>
+              {flyingStars.boundaryWarning && (
+                <div style={{ marginTop: 6 }}>
+                  <span className="badge badge-hung">Cảnh báo: {flyingStars.boundaryWarning}</span>
+                </div>
+              )}
+              <div style={{ marginTop: 8, color: "var(--gold)", fontWeight: 600 }}>{flyingStars.pattern}</div>
+            </div>
+
+            <div className="card">
+              <h2>3. Trạch Nhật (Ngày {trachNhat.date})</h2>
+              <div>
+                Ngày <strong>{trachNhat.dayCanChi}</strong> · Tháng Tiết Khí <strong>{trachNhat.monthBranch}</strong>
+              </div>
+              <div style={{ marginTop: 6 }}>
+                Trực <strong>{trachNhat.truc.name}</strong> ({trachNhat.truc.rating}) ·{" "}
+                <span className={`badge ${trachNhat.hoangDao.type === "Hoàng Đạo" ? "badge-cat" : "badge-hung"}`}>
+                  {trachNhat.hoangDao.star} ({trachNhat.hoangDao.type})
+                </span>
+              </div>
+              <p className="muted" style={{ marginBottom: 0 }}>{trachNhat.truc.desc}</p>
+            </div>
+          </div>
+
+          <div>
+            <div className="card">
+              <h2>Tư Vấn Hướng Nhà & Bày Trí Đồ Đạc (Nhà Ở & Văn Phòng)</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hạng mục</th>
+                    <th>Hướng / Vị trí đề xuất</th>
+                    <th>Nguyên tắc & Lưu ý</th>
                   </tr>
+                </thead>
+                <tbody>
+                  {layoutAdvice.map((row) => (
+                    <tr key={row.item}>
+                      <td><strong>{row.item}</strong></td>
+                      <td style={{ color: "var(--gold)" }}>{row.place}</td>
+                      <td className="muted">{row.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="card">
+              <h2>Tinh Bàn Huyền Không 9 Cung (Vận {flyingStars.period})</h2>
+              <p className="muted" style={{ marginTop: 0 }}>
+                Mỗi ô hiển thị: <strong>Sơn Tinh (trái)</strong> · Vận Tinh (giữa) · <strong>Hướng Tinh (phải)</strong>. Nam ở trên, Bắc ở dưới.
+              </p>
+              <div className="grid-3x3">
+                {flyingStars.palaces.map((p) => (
+                  <div key={p.palace} className={`palace-cell ${p.isFacing || p.isSitting ? "highlight" : ""}`}>
+                    <div className="muted" style={{ fontSize: "0.75rem" }}>
+                      {p.name} {p.isFacing ? "★HƯỚNG" : p.isSitting ? "▲TỌA" : ""}
+                    </div>
+                    <div className="stars-row">
+                      <span title="Sơn Tinh">{p.mountainStar}</span>
+                      <span className="muted" title="Vận Tinh">[{p.baseStar}]</span>
+                      <span style={{ color: "var(--accent)" }} title="Hướng Tinh">{p.facingStar}</span>
+                    </div>
+                    <div className="muted" style={{ fontSize: "0.72rem" }}>
+                      {STAR_MEANINGS[p.facingStar].split(":")[0]}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "tuong" && (
+        <div>
+          <div className="card">
+            <h2>Tra Cứu Nhân Tướng Học (Ma Y Thần Tướng) & Chỉ Tay</h2>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Nguyên tắc: <strong>Thần &gt; Khí &gt; Hình</strong> · <em>"Hữu tướng tâm sinh, vô tướng tâm diệt"</em> — Luôn xét tổng hòa, không phán đoán phiến diện từ 1 bộ vị đơn lẻ.
+            </p>
+            <div className="tabs">
+              {["Tất cả", "Tam Đình", "Ngũ Nhạc", "12 Cung Khuôn Mặt", "Tam Tài Tuyến", "Bát Gò Bàn Tay"].map((c) => (
+                <button key={c} className={`tab-btn ${tuongCat === c ? "active" : ""}`} onClick={() => setTuongCat(c)}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="hex-grid">
+            {filteredTuong.map((item) => (
+              <div className="card" key={item.id} style={{ marginBottom: 0 }}>
+                <div className="muted" style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>{item.category}</div>
+                <h3 style={{ margin: "4px 0 8px" }}>{item.name}</h3>
+                <div className="muted" style={{ marginBottom: 6 }}><strong>Vị trí:</strong> {item.position}</div>
+                <div style={{ fontSize: "0.88rem", marginBottom: 6 }}><strong>Ý nghĩa:</strong> {item.meaning}</div>
+                <div style={{ fontSize: "0.86rem", color: "var(--cat)", marginBottom: 6 }}><strong>Tướng tốt:</strong> {item.goodSign}</div>
+                <div className="muted" style={{ fontSize: "0.84rem" }}><strong>Khuyến nghị:</strong> {item.advice}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
