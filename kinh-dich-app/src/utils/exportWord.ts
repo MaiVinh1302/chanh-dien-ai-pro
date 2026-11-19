@@ -1,6 +1,7 @@
 import {
   Document,
   HeadingLevel,
+  ImageRun,
   Packer,
   Paragraph,
   Table,
@@ -9,7 +10,35 @@ import {
   TextRun,
   WidthType,
 } from "docx";
+import type { UploadedMedia } from "../components/MediaUploadPanel.tsx";
 import type { Hexagram, Interpretation, LucHaoResult } from "../types.ts";
+
+function buildMediaParagraphs(media?: UploadedMedia | null): Paragraph[] {
+  if (!media) return [];
+  const out: Paragraph[] = [
+    new Paragraph({ text: `Tài liệu đính kèm: ${media.name}`, heading: HeadingLevel.HEADING_2 }),
+  ];
+  if (media.note) {
+    out.push(new Paragraph(`Ghi chú: ${media.note}`));
+  }
+  if (!media.isPdf && media.bytes) {
+    const imgType = media.mime.includes("png") ? "png" : "jpg";
+    out.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: media.bytes,
+            transformation: { width: 420, height: 300 },
+            type: imgType,
+          }),
+        ],
+      })
+    );
+  } else if (media.isPdf) {
+    out.push(new Paragraph("(Đính kèm file PDF — xem trực tiếp trên ứng dụng web)."));
+  }
+  return out;
+}
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -96,7 +125,10 @@ export async function exportKinhDichWord(params: {
   downloadBlob(blob, `Bao_Cao_Kinh_Dich_${base.id}.docx`);
 }
 
-export async function exportNhanTuongWord(sections: { title: string; body: string }[]) {
+export async function exportNhanTuongWord(
+  sections: { title: string; body: string }[],
+  media?: UploadedMedia | null
+) {
   const doc = new Document({
     sections: [
       {
@@ -106,6 +138,7 @@ export async function exportNhanTuongWord(sections: { title: string; body: strin
             new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
             new Paragraph(s.body),
           ]),
+          ...buildMediaParagraphs(media),
         ],
       },
     ],
@@ -163,8 +196,9 @@ export async function exportFengShuiWord(params: {
   flyingStars: { period: number; facingDeg: number; facing: { name: string; direction: string }; sitting: { name: string; direction: string }; pattern: string };
   layoutAdvice: { item: string; place: string; note: string }[];
   analysis: { title: string; body: string }[];
+  media?: UploadedMedia | null;
 }) {
-  const { batTrach, flyingStars, layoutAdvice, analysis } = params;
+  const { batTrach, flyingStars, layoutAdvice, analysis, media } = params;
   const doc = new Document({
     sections: [
       {
@@ -186,6 +220,7 @@ export async function exportFengShuiWord(params: {
             new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
             new Paragraph(s.body),
           ]),
+          ...buildMediaParagraphs(media),
         ],
       },
     ],

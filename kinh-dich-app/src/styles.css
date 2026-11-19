@@ -113,3 +113,12 @@ th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
   border-radius: 10px; padding: 14px; display: flex; flex-direction: column; justify-content: center;
 }
 @media (max-width: 720px) { .zw-center { grid-column: auto; grid-row: auto; } }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-head { text-align: center; font-size: 0.8rem; color: var(--muted); font-weight: 700; padding: 4px 0; }
+.cal-cell {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px; min-height: 62px; cursor: pointer;
+}
+.cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+.cal-cell.selected { border-color: var(--gold); background: var(--gold-soft); }

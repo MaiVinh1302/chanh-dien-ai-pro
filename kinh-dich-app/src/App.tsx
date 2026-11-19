@@ -20,6 +20,8 @@ import {
   lucHaoForHexagram,
   maiHoaFromNumbers,
 } from "./engine-index.ts";
+import { LunarCalendarTab } from "./components/LunarCalendarTab.tsx";
+import { MediaUploadPanel, type UploadedMedia } from "./components/MediaUploadPanel.tsx";
 import type { TuongAssessmentInput } from "./data/nhanTuong.ts";
 import { TOPIC_LABELS, type TopicKey } from "./engine/interpret.ts";
 import { exportFengShuiWord, exportKinhDichWord, exportNhanTuongWord, exportZiweiWord } from "./utils/exportWord.ts";
@@ -72,7 +74,7 @@ function HexagramBars({ lines, moving }: { lines: number[]; moving?: number[] })
 }
 
 export default function App() {
-  const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "fengshui" | "tuong">("cast");
+  const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "fengshui" | "tuong" | "lunar">("cast");
   const [method, setMethod] = useState<DivinationMethod>("thi_sach");
   const [topic, setTopic] = useState<TopicKey>("career");
   const [question, setQuestion] = useState("Công việc và định hướng sắp tới");
@@ -110,6 +112,8 @@ export default function App() {
     sinhDao: "sau_ro_rong",
     triDao: "thang_ro",
   });
+  const [fsMedia, setFsMedia] = useState<UploadedMedia | null>(null);
+  const [tuongMedia, setTuongMedia] = useState<UploadedMedia | null>(null);
 
   const castDate = useMemo(() => {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -224,6 +228,9 @@ export default function App() {
           </button>
           <button className={`tab-btn ${tab === "tuong" ? "active" : ""}`} onClick={() => setTab("tuong")}>
             Nhân Tướng & Chỉ Tay
+          </button>
+          <button className={`tab-btn ${tab === "lunar" ? "active" : ""}`} onClick={() => setTab("lunar")}>
+            Lịch Vạn Niên
           </button>
         </div>
       </header>
@@ -723,6 +730,7 @@ export default function App() {
                       flyingStars,
                       layoutAdvice,
                       analysis: fsAnalysis,
+                      media: fsMedia,
                     })
                   }
                 >
@@ -782,6 +790,15 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            <MediaUploadPanel
+              title="4. Tải Ảnh / PDF Mặt Bằng Nhà Ở & Văn Phòng"
+              acceptHint="Hỗ trợ ảnh (.png, .jpg) hoặc file .pdf bản vẽ mặt bằng. Ảnh sẽ tự động phủ La Kinh xoay theo độ số hướng nhà."
+              overlayMode="compass"
+              compassDeg={facingDeg}
+              media={fsMedia}
+              onChange={setFsMedia}
+            />
           </div>
         </div>
       )}
@@ -848,7 +865,7 @@ export default function App() {
             <div className="card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <h2 style={{ margin: 0 }}>Báo Cáo Luận Giải Nhân Tướng</h2>
-                <button className="btn-ghost" onClick={() => exportNhanTuongWord(tuongReport)}>
+                <button className="btn-ghost" onClick={() => exportNhanTuongWord(tuongReport, tuongMedia)}>
                   ⬇ Tải Word (.docx)
                 </button>
               </div>
@@ -859,6 +876,14 @@ export default function App() {
               ))}
             </div>
           </div>
+
+          <MediaUploadPanel
+            title="Tải Ảnh Chân Dung / Bàn Tay / Hồ Sơ PDF"
+            acceptHint="Hỗ trợ ảnh khuôn mặt, chỉ tay (.png, .jpg) hoặc file .pdf. Có lưới đối chiếu Tam Đình – Ngũ Nhạc trực tiếp."
+            overlayMode="tuong"
+            media={tuongMedia}
+            onChange={setTuongMedia}
+          />
 
           <div className="card">
             <h2>Tra Cứu Kiến Thức Ma Y Thần Tướng & Chỉ Tay</h2>
@@ -887,6 +912,14 @@ export default function App() {
             ))}
           </div>
         </div>
+      )}
+      {tab === "lunar" && (
+        <LunarCalendarTab
+          onSelectDateForApp={(d) => {
+            setDateStr(d);
+            setTab("cast");
+          }}
+        />
       )}
     </div>
   );
