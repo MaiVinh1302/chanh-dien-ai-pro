@@ -80,6 +80,7 @@ def main(force_check: bool = True) -> None:
                 "grey_gm11",
                 "rl_fgm",
                 "fourier_ridge",
+                "kalman_ucm",
             ]
         ].to_dict("records")
 

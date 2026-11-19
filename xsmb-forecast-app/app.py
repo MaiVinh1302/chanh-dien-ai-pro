@@ -32,6 +32,32 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+if "theme_mode" not in st.session_state:
+    st.session_state["theme_mode"] = "dark"
+
+if st.session_state["theme_mode"] == "light":
+    st.markdown(
+        """
+        <style>
+        .stApp, [data-testid="stAppViewContainer"] { background-color: #f8fafc; color: #0f172a; }
+        [data-testid="stSidebar"] { background-color: #f1f5f9; color: #0f172a; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    PLOTLY_TEMPLATE = "plotly_white"
+else:
+    st.markdown(
+        """
+        <style>
+        .stApp, [data-testid="stAppViewContainer"] { background-color: #020617; color: #f1f5f9; }
+        [data-testid="stSidebar"] { background-color: #0f172a; color: #f1f5f9; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    PLOTLY_TEMPLATE = "plotly_dark"
+
 st.title("📊 Nghiên cứu & Dự báo Số liệu Chuỗi Thời Gian XSMB")
 st.caption(
     "Nguồn dữ liệu trực tiếp từ [xosodaiphat.com](https://xosodaiphat.com/xsmb-xo-so-mien-bac.html) "
@@ -50,6 +76,11 @@ if "sync_notice" not in st.session_state:
 
 # ---------------- Sidebar ----------------
 with st.sidebar:
+    theme_btn_label = "☀️ Chuyển Giao Diện Sáng" if st.session_state["theme_mode"] == "dark" else "🌙 Chuyển Giao Diện Tối"
+    if st.button(theme_btn_label, use_container_width=True):
+        st.session_state["theme_mode"] = "light" if st.session_state["theme_mode"] == "dark" else "dark"
+        st.rerun()
+
     st.header("🤖 Tự động Cập nhật & Dự báo")
 
     auto_watch = st.toggle("Tự động theo dõi khi có KQXS mới", value=True)
@@ -115,15 +146,16 @@ with st.sidebar:
 
     model_choice = st.selectbox(
         "Mô hình chuỗi thời gian",
-        options=["ensemble", "arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge"],
+        options=["ensemble", "arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge", "kalman_ucm"],
         format_func=lambda k: {
-            "ensemble": "Weighted Ensemble (6 mô hình theo nghịch đảo RMSE)",
+            "ensemble": "Walk-Forward Ensemble (7 mô hình)",
             "arima": "ARIMA / SARIMA (Tự động chọn theo AIC)",
             "holt_winters": "Exponential Smoothing (Holt-Winters 7 ngày)",
             "theta": "Theta Seasonal (Phân rã xu hướng & mùa vụ)",
             "grey_gm11": "Grey System GM(1,1) Rolling (Lý thuyết Hệ Xám)",
-            "rl_fgm": "RL-FGM Fractional Grey (Tích lũy phân số Riemann-Liouville)",
+            "rl_fgm": "Markov-RL-FGM (Tích lũy phân số + Markov)",
             "fourier_ridge": "Fourier Harmonic Ridge (Sóng điều hòa 7/14/30d)",
+            "kalman_ucm": "Kalman State-Space (Bộ lọc Kalman UCM 7d)",
         }[k],
         index=0,
     )
@@ -309,6 +341,7 @@ with tab1:
         )
     )
     fig.update_layout(
+        template=PLOTLY_TEMPLATE,
         height=460,
         hovermode="x unified",
         xaxis_title="Ngày",
@@ -333,6 +366,7 @@ with tab1:
             "grey_gm11",
             "rl_fgm",
             "fourier_ridge",
+            "kalman_ucm",
         ]
     ].rename(
         columns={
@@ -346,8 +380,9 @@ with tab1:
             "holt_winters": "Holt-Winters",
             "theta": "Theta",
             "grey_gm11": "Grey GM(1,1)",
-            "rl_fgm": "RL-FGM",
+            "rl_fgm": "Markov-RL-FGM",
             "fourier_ridge": "Fourier Ridge",
+            "kalman_ucm": "Kalman UCM",
         }
     )
     st.dataframe(display_fc, use_container_width=True, hide_index=True)
@@ -383,8 +418,10 @@ with tab2:
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Grey_GM11"], mode="lines", name="Grey GM(1,1)", line=dict(dash="dot")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["RL_FGM"], mode="lines", name="RL-FGM", line=dict(dash="dashdot")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Fourier_Ridge"], mode="lines", name="Fourier Ridge", line=dict(dash="dash")))
+        fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Kalman_UCM"], mode="lines", name="Kalman UCM", line=dict(dash="dot")))
         fig_bt.add_trace(go.Scatter(x=cmp_df["date"], y=cmp_df["Ensemble"], mode="lines+markers", name="Ensemble", line=dict(color="#ff7f0e", width=2.5)))
         fig_bt.update_layout(
+            template=PLOTLY_TEMPLATE,
             height=380,
             hovermode="x unified",
             title=f"So sánh Thực tế vs Dự báo ({test_days} ngày gần nhất)",
@@ -453,7 +490,7 @@ with tab3:
                 hovertemplate="Đầu %{y} - Đuôi %{x}<br>Gan: %{z} ngày<extra></extra>",
             )
         )
-        fig_hm.update_layout(height=480, yaxis=dict(autorange="reversed"), margin=dict(l=20, r=20, t=20, b=20))
+        fig_hm.update_layout(template=PLOTLY_TEMPLATE, height=480, yaxis=dict(autorange="reversed"), margin=dict(l=20, r=20, t=20, b=20))
         st.plotly_chart(fig_hm, use_container_width=True)
 
 # ---------------- TAB 4: RAW DATA ----------------

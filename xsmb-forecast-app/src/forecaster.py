@@ -13,6 +13,7 @@ from scipy.special import gamma
 from statsmodels.tsa.forecasting.theta import ThetaModel
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tsa.statespace.structural import UnobservedComponents
 
 warnings.filterwarnings("ignore")
 
@@ -315,8 +316,9 @@ def forecast_rl_fgm(
         if not np.isfinite(full_hat).all():
             raise ValueError("non-finite RL-FGM output")
         in_sample = full_hat[:n]
-        pred = full_hat[n:]
-        resid_std = float(np.std(vals - in_sample))
+        resid_seq = vals - in_sample
+        pred = full_hat[n:] + _markov_residual_correction(resid_seq, horizon, damping=0.30)
+        resid_std = float(np.std(resid_seq))
     except Exception:
         p, lo, hi = forecast_grey_gm11(series, horizon, target_col)
         return p, lo, hi, 1.0
@@ -368,38 +370,99 @@ def forecast_fourier_ridge(
     )
 
 
+def _markov_residual_correction(residuals: np.ndarray, horizon: int, damping: float = 0.35) -> np.ndarray:
+    """Hiệu chỉnh phần dư bằng Chuỗi Markov 3 trạng thái (Thấp / Trung bình / Cao)."""
+    if len(residuals) < 10 or float(np.std(residuals)) < 1e-6:
+        return np.zeros(horizon)
+    q33, q67 = np.quantile(residuals, [0.33, 0.67])
+    states = np.where(residuals <= q33, 0, np.where(residuals <= q67, 1, 2))
+    means = np.array([
+        float(np.mean(residuals[states == s])) if np.any(states == s) else 0.0
+        for s in range(3)
+    ])
+    P = np.ones((3, 3), dtype=float) * 0.1  # Laplace smoothing
+    for i in range(len(states) - 1):
+        P[states[i], states[i + 1]] += 1.0
+    P = P / P.sum(axis=1, keepdims=True)
+
+    v = np.zeros(3, dtype=float)
+    v[states[-1]] = 1.0
+    corr = np.zeros(horizon, dtype=float)
+    for k in range(horizon):
+        v = v @ P
+        corr[k] = damping * float(v @ means)
+    return corr
+
+
+def forecast_kalman_ucm(
+    series: pd.Series, horizon: int, target_col: str
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Mô hình Không gian Trạng thái Kalman Filter (Unobserved Components: Local Level + Seasonal 7d)."""
+    try:
+        use_seasonal = len(series) >= 28
+        model = UnobservedComponents(
+            series,
+            level="local level",
+            seasonal=7 if use_seasonal else None,
+        )
+        fit = model.fit(disp=False, maxiter=100)
+        fc = fit.get_forecast(steps=horizon)
+        pred = fc.predicted_mean.to_numpy()
+        ci = fc.conf_int(alpha=0.20).to_numpy()
+        return (
+            _clip_series(pred, target_col),
+            _clip_series(ci[:, 0], target_col),
+            _clip_series(ci[:, 1], target_col),
+        )
+    except Exception:
+        ewm = np.full(horizon, float(series.ewm(span=10).mean().iloc[-1]))
+        std_val = float(series.std())
+        return (
+            _clip_series(ewm, target_col),
+            _clip_series(ewm - 1.28 * std_val, target_col),
+            _clip_series(ewm + 1.28 * std_val, target_col),
+        )
+
+
 def _compute_inverse_rmse_weights(series: pd.Series, target_col: str) -> Dict[str, float]:
-    """Tính trọng số tối ưu theo nghịch đảo RMSE trên cửa sổ validation ngắn gần nhất."""
-    keys = ["arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge"]
-    val_days = min(10, max(5, len(series) // 10))
-    if len(series) <= val_days + 21:
+    """Tính trọng số Softmax trên -RMSE qua Walk-Forward 2 cửa sổ kiểm định."""
+    keys = ["arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge", "kalman_ucm"]
+    val_days = min(8, max(5, len(series) // 12))
+    if len(series) <= val_days * 2 + 21:
         return {k: 1.0 / len(keys) for k in keys}
 
-    train = series.iloc[:-val_days]
-    actual = series.iloc[-val_days:].to_numpy()
+    rmse_acc = {k: [] for k in keys}
+    for fold_end in (len(series), len(series) - val_days):
+        sub = series.iloc[:fold_end]
+        train = sub.iloc[:-val_days]
+        actual = sub.iloc[-val_days:].to_numpy()
 
-    p_ar, _, _, _ = forecast_arima(train, val_days, target_col)
-    p_hw, _, _ = forecast_holt_winters(train, val_days, target_col)
-    p_th, _, _ = forecast_theta_seasonal(train, val_days, target_col)
-    p_gm, _, _ = forecast_grey_gm11(train, val_days, target_col)
-    p_rl, _, _, _ = forecast_rl_fgm(train, val_days, target_col)
-    p_fr, _, _ = forecast_fourier_ridge(train, val_days, target_col)
+        p_ar, _, _, _ = forecast_arima(train, val_days, target_col)
+        p_hw, _, _ = forecast_holt_winters(train, val_days, target_col)
+        p_th, _, _ = forecast_theta_seasonal(train, val_days, target_col)
+        p_gm, _, _ = forecast_grey_gm11(train, val_days, target_col)
+        p_rl, _, _, _ = forecast_rl_fgm(train, val_days, target_col)
+        p_fr, _, _ = forecast_fourier_ridge(train, val_days, target_col)
+        p_km, _, _ = forecast_kalman_ucm(train, val_days, target_col)
 
-    preds = {
-        "arima": p_ar,
-        "holt_winters": p_hw,
-        "theta": p_th,
-        "grey_gm11": p_gm,
-        "rl_fgm": p_rl,
-        "fourier_ridge": p_fr,
-    }
-    inv_scores = {}
-    for k, p in preds.items():
-        rmse = float(np.sqrt(np.mean((actual - p) ** 2)))
-        inv_scores[k] = 1.0 / max(rmse, 1e-3)
+        fold_preds = {
+            "arima": p_ar,
+            "holt_winters": p_hw,
+            "theta": p_th,
+            "grey_gm11": p_gm,
+            "rl_fgm": p_rl,
+            "fourier_ridge": p_fr,
+            "kalman_ucm": p_km,
+        }
+        for k, p in fold_preds.items():
+            rmse_acc[k].append(float(np.sqrt(np.mean((actual - p) ** 2))))
 
-    total = sum(inv_scores.values())
-    return {k: v / total for k, v in inv_scores.items()}
+    mean_rmses = np.array([float(np.mean(rmse_acc[k])) for k in keys])
+    temp = max(float(np.std(mean_rmses)), 0.5)
+    logits = -(mean_rmses - np.min(mean_rmses)) / temp
+    exp_w = np.exp(np.clip(logits, -10.0, 0.0))
+    norm_w = exp_w / np.sum(exp_w)
+    return {k: float(norm_w[i]) for i, k in enumerate(keys)}
 
 
 def run_forecast(
@@ -419,6 +482,7 @@ def run_forecast(
     gm_pred, gm_lo, gm_hi = forecast_grey_gm11(series, horizon, target_col)
     rl_pred, rl_lo, rl_hi, rl_order = forecast_rl_fgm(series, horizon, target_col)
     fr_pred, fr_lo, fr_hi = forecast_fourier_ridge(series, horizon, target_col)
+    km_pred, km_lo, km_hi = forecast_kalman_ucm(series, horizon, target_col)
 
     weights = _compute_inverse_rmse_weights(series, target_col)
     ens_pred = _clip_series(
@@ -427,7 +491,8 @@ def run_forecast(
         + weights["theta"] * th_pred
         + weights["grey_gm11"] * gm_pred
         + weights["rl_fgm"] * rl_pred
-        + weights["fourier_ridge"] * fr_pred,
+        + weights["fourier_ridge"] * fr_pred
+        + weights["kalman_ucm"] * km_pred,
         target_col,
     )
     ens_lo = _clip_series(
@@ -436,7 +501,8 @@ def run_forecast(
         + weights["theta"] * th_lo
         + weights["grey_gm11"] * gm_lo
         + weights["rl_fgm"] * rl_lo
-        + weights["fourier_ridge"] * fr_lo,
+        + weights["fourier_ridge"] * fr_lo
+        + weights["kalman_ucm"] * km_lo,
         target_col,
     )
     ens_hi = _clip_series(
@@ -445,7 +511,8 @@ def run_forecast(
         + weights["theta"] * th_hi
         + weights["grey_gm11"] * gm_hi
         + weights["rl_fgm"] * rl_hi
-        + weights["fourier_ridge"] * fr_hi,
+        + weights["fourier_ridge"] * fr_hi
+        + weights["kalman_ucm"] * km_hi,
         target_col,
     )
 
@@ -456,11 +523,12 @@ def run_forecast(
         "grey_gm11": (gm_pred, gm_lo, gm_hi, "Grey System GM(1,1) Rolling"),
         "rl_fgm": (rl_pred, rl_lo, rl_hi, f"RL-FGM Fractional Grey (order={rl_order})"),
         "fourier_ridge": (fr_pred, fr_lo, fr_hi, "Fourier Harmonic Ridge"),
+        "kalman_ucm": (km_pred, km_lo, km_hi, "Kalman State-Space (UCM 7d)"),
         "ensemble": (
             ens_pred,
             ens_lo,
             ens_hi,
-            f"Weighted Ensemble (6 mô hình: {arima_desc} + ETS + Theta + GM(1,1) + RL-FGM(r={rl_order}) + Fourier)",
+            f"Walk-Forward Softmax Ensemble (7 mô hình: {arima_desc} + ETS + Theta + GM(1,1) + RL-FGM(r={rl_order}) + Fourier + Kalman)",
         ),
     }
     pred, lo, hi, used_desc = mapping.get(model_choice, mapping["ensemble"])
@@ -483,6 +551,7 @@ def run_forecast(
             "grey_gm11": np.round(gm_pred, 2),
             "rl_fgm": np.round(rl_pred, 2),
             "fourier_ridge": np.round(fr_pred, 2),
+            "kalman_ucm": np.round(km_pred, 2),
         }
     )
 
@@ -513,6 +582,7 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
     gm_pred, _, _ = forecast_grey_gm11(train, test_days, target_col)
     rl_pred, _, _, rl_order = forecast_rl_fgm(train, test_days, target_col)
     fr_pred, _, _ = forecast_fourier_ridge(train, test_days, target_col)
+    km_pred, _, _ = forecast_kalman_ucm(train, test_days, target_col)
 
     weights = _compute_inverse_rmse_weights(train, target_col)
     ens_pred = _clip_series(
@@ -521,7 +591,8 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
         + weights["theta"] * th_pred
         + weights["grey_gm11"] * gm_pred
         + weights["rl_fgm"] * rl_pred
-        + weights["fourier_ridge"] * fr_pred,
+        + weights["fourier_ridge"] * fr_pred
+        + weights["kalman_ucm"] * km_pred,
         target_col,
     )
 
@@ -537,6 +608,7 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
             "Grey_GM11": np.round(gm_pred, 2),
             "RL_FGM": np.round(rl_pred, 2),
             "Fourier_Ridge": np.round(fr_pred, 2),
+            "Kalman_UCM": np.round(km_pred, 2),
             "Ensemble": np.round(ens_pred, 2),
         }
     )
@@ -549,7 +621,8 @@ def run_backtest(df: pd.DataFrame, target_col: str, test_days: int = 14) -> Tupl
         ("Grey GM(1,1) Rolling", "Grey_GM11"),
         (f"RL-FGM (r={rl_order})", "RL_FGM"),
         ("Fourier Ridge", "Fourier_Ridge"),
-        ("Weighted Ensemble", "Ensemble"),
+        ("Kalman State-Space (UCM)", "Kalman_UCM"),
+        ("Walk-Forward Softmax Ensemble", "Ensemble"),
     ]:
         err = actual - compare_df[col].to_numpy()
         mae = float(np.mean(np.abs(err)))
