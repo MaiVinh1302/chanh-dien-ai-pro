@@ -12,6 +12,7 @@ from src.forecaster import (
     TARGET_CONFIG,
     analyze_loto_00_99,
     evaluate_recent_forecasts,
+    recommend_numbers_for_date,
     run_backtest,
     run_forecast,
     save_forecast_snapshot,
@@ -155,6 +156,98 @@ col2.metric("Kỳ mới nhất", latest["date_vn"])
 col3.metric("Giải ĐB mới nhất", str(latest["gdb"]).zfill(5))
 col4.metric("2 số cuối GĐB", str(latest["de_str"]).zfill(2))
 col5.metric("Trung bình 27 giải", f"{latest['loto_mean']:.2f}")
+
+# ---------------- SMART ADVISOR SECTION ----------------
+with st.container(border=True):
+    st.subheader("🎯 Trợ Lý Tư Vấn Lựa Chọn Tối Ưu Theo Ngày")
+    adv_c1, adv_c2 = st.columns([2, 1])
+    last_dt = latest["date"]
+    day_options = list(range(1, 31))
+    weekday_map = {0: "Thứ 2", 1: "Thứ 3", 2: "Thứ 4", 3: "Thứ 5", 4: "Thứ 6", 5: "Thứ 7", 6: "Chủ Nhật"}
+    with adv_c1:
+        selected_days_ahead = st.selectbox(
+            "Chọn ngày muốn tư vấn số liệu",
+            options=day_options,
+            format_func=lambda d: (
+                f"{(last_dt + timedelta(days=d)).strftime('%d/%m/%Y')} "
+                f"({weekday_map[(last_dt + timedelta(days=d)).dayofweek]} — +{d} ngày)"
+            ),
+            index=0,
+        )
+    with adv_c2:
+        st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
+        run_advisor_btn = st.button(
+            "🎯 Tư vấn Lựa chọn Tối ưu Nhất",
+            use_container_width=True,
+            type="primary",
+        )
+
+    if run_advisor_btn:
+        with st.spinner("Đang tổng hợp 6 mô hình Chuỗi Thời Gian + Hệ Xám GRA + Đà 30 ngày..."):
+            adv = recommend_numbers_for_date(
+                df,
+                days_ahead=selected_days_ahead,
+                model_choice=model_choice,
+                window=min(200, len(df)),
+            )
+            st.session_state["advisor_result"] = adv
+
+    if "advisor_result" in st.session_state:
+        adv = st.session_state["advisor_result"]
+        sm = adv["summary"]
+        st.success(
+            f"**Ngày tư vấn: {sm['date_vn']} ({sm['weekday_vn']})** | "
+            f"Trung tâm GĐB kỳ vọng: **`{sm['de_round']}`** (CI 80%: `{sm['de_ci'][0]} – {sm['de_ci'][1]}`) | "
+            f"Vùng Đầu: **`{', '.join(map(str, sm['dau_range']))}`** | "
+            f"Vùng Đuôi: **`{', '.join(map(str, sm['duoi_range']))}`** | "
+            f"Vùng Tổng: **`{', '.join(map(str, sm['tong_range']))}`** | "
+            f"Chẵn/Tài dự kiến: `{sm['even_exp']}/27` & `{sm['high_exp']}/27`"
+        )
+        r1, r2, r3 = st.columns(3)
+        with r1:
+            st.markdown("##### 🏆 Top 6 Số Tối Ưu Nhất (Giao thoa)")
+            st.dataframe(
+                adv["top_optimal"][["So", "Diem_Toi_Uu", "Gan_hien_tai", "Nhay_30_ngay", "Ly_do"]].rename(
+                    columns={
+                        "So": "Số",
+                        "Diem_Toi_Uu": "Điểm tối ưu",
+                        "Gan_hien_tai": "Gan (ngày)",
+                        "Nhay_30_ngay": "30 ngày",
+                        "Ly_do": "Cơ sở",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with r2:
+            st.markdown("##### 🔥 Top 6 Số Theo Đà (Momentum)")
+            st.dataframe(
+                adv["top_momentum"][["So", "Nhay_30_ngay", "Gan_hien_tai", "Diem_TS"]].rename(
+                    columns={
+                        "So": "Số",
+                        "Nhay_30_ngay": "Nháy 30d",
+                        "Gan_hien_tai": "Gan (ngày)",
+                        "Diem_TS": "Khớp vùng",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with r3:
+            st.markdown("##### ⏳ Top 6 Số Bắt Gan Đỉnh (GRA)")
+            st.dataframe(
+                adv["top_gan"][["So", "Diem_chu_y", "Gan_hien_tai", "Max_gan", "Chenh_ky_vong"]].rename(
+                    columns={
+                        "So": "Số",
+                        "Diem_chu_y": "Điểm GRA",
+                        "Gan_hien_tai": "Gan",
+                        "Max_gan": "Max gan",
+                        "Chenh_ky_vong": "Chênh KV",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
 
 tab1, tab2, tab3, tab4 = st.tabs(
     [

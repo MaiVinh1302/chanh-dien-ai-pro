@@ -108,6 +108,52 @@
       </div>
     </div>
 
+    <!-- SMART ADVISOR CARD -->
+    <div class="glass-card rounded-xl p-5 border-indigo-500/40 space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div class="flex-1 min-w-[240px]">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🎯 Trợ Lý Tư Vấn Lựa Chọn Tối Ưu Theo Ngày</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">6 Mô Hình + GRA</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Chọn ngày muốn đánh giá và bấm nút để tổng hợp vùng Đầu/Đuôi/Tổng kỳ vọng cùng Top bộ số tiềm năng nhất.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="advisorDateSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"></select>
+          <button id="btnRunAdvisor" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-500/20 transition cursor-pointer">
+            🎯 Tư vấn Lựa chọn Tối ưu Nhất
+          </button>
+        </div>
+      </div>
+
+      <div id="advisorResult" class="hidden space-y-4 pt-2 border-t border-slate-800">
+        <div id="advisorSummary" class="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 leading-relaxed"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+            <h3 class="text-xs font-bold text-amber-400 mb-2.5">🏆 Top 6 Số Tối Ưu Nhất (Giao thoa)</h3>
+            <table class="w-full text-xs text-left">
+              <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-1">Số</th><th>Điểm</th><th>Gan</th><th>30d</th><th>Cơ sở</th></tr></thead>
+              <tbody id="advOptBody" class="divide-y divide-slate-800/60"></tbody>
+            </table>
+          </div>
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+            <h3 class="text-xs font-bold text-rose-400 mb-2.5">🔥 Top 6 Số Theo Đà (Momentum)</h3>
+            <table class="w-full text-xs text-left">
+              <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-1">Số</th><th>Nháy 30d</th><th>Gan</th><th>Khớp vùng</th></tr></thead>
+              <tbody id="advMomBody" class="divide-y divide-slate-800/60"></tbody>
+            </table>
+          </div>
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+            <h3 class="text-xs font-bold text-cyan-400 mb-2.5">⏳ Top 6 Số Bắt Gan Đỉnh (GRA)</h3>
+            <table class="w-full text-xs text-left">
+              <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-1">Số</th><th>GRA</th><th>Gan</th><th>Max</th><th>Chênh KV</th></tr></thead>
+              <tbody id="advGanBody" class="divide-y divide-slate-800/60"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TABS -->
     <div class="flex flex-wrap gap-2">
       <button class="tab-btn active px-4 py-2 rounded-lg border border-slate-700 bg-slate-900/60 text-xs font-semibold transition" data-tab="tab-forecast">📈 Dự báo Các Ngày Tiếp Theo</button>
@@ -286,6 +332,15 @@
         sel.appendChild(opt);
       });
 
+      // Populate advisorDateSelect
+      const advSel = document.getElementById("advisorDateSelect");
+      PAYLOAD.forecasts.de_2so.rows.forEach((r, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = `${r.date_vn} (${r.weekday_vn} — +${idx + 1} ngày)`;
+        advSel.appendChild(opt);
+      });
+
       renderAll();
       renderLotoStats();
       renderHistoryTable("");
@@ -462,6 +517,72 @@
       a.download = `xsmb_forecast_${target}_${horizon}d.csv`;
       a.click();
       URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("btnRunAdvisor").addEventListener("click", () => {
+      if (!PAYLOAD) return;
+      const idx = Number(document.getElementById("advisorDateSelect").value || 0);
+      const deRow = PAYLOAD.forecasts.de_2so.rows[idx];
+      const dauRow = PAYLOAD.forecasts.dau_de.rows[idx];
+      const duoiRow = PAYLOAD.forecasts.duoi_de.rows[idx];
+      const tongRow = PAYLOAD.forecasts.tong_de.rows[idx];
+      const evenRow = PAYLOAD.forecasts.even_count.rows[idx];
+      const highRow = PAYLOAD.forecasts.high_count.rows[idx];
+
+      const deExp = Number(deRow.forecast_raw);
+      const dauExp = Number(dauRow.forecast_raw);
+      const duoiExp = Number(duoiRow.forecast_raw);
+      const tongExp = Number(tongRow.forecast_raw);
+
+      const dauC = Math.round(dauExp), duoiC = Math.round(duoiExp), tongC = Math.round(tongExp);
+      const mkRange = (c, mx) => [...new Set([-1, 0, 1].map(d => Math.max(0, Math.min(mx, c + d))))].join(", ");
+
+      document.getElementById("advisorSummary").innerHTML =
+        `<strong>Ngày tư vấn: ${deRow.date_vn} (${deRow.weekday_vn})</strong> | ` +
+        `Trung tâm GĐB kỳ vọng: <strong class="text-amber-300">${String(Math.round(deExp)).padStart(2, "0")}</strong> (CI 80%: ${deRow.lower_80} – ${deRow.upper_80}) | ` +
+        `Vùng Đầu: <strong class="text-white">${mkRange(dauC, 9)}</strong> | ` +
+        `Vùng Đuôi: <strong class="text-white">${mkRange(duoiC, 9)}</strong> | ` +
+        `Vùng Tổng: <strong class="text-white">${mkRange(tongC, 18)}</strong> | ` +
+        `Chẵn/Tài dự kiến: <strong>${Number(evenRow.forecast_raw).toFixed(1)}/27</strong> &amp; <strong>${Number(highRow.forecast_raw).toFixed(1)}/27</strong>`;
+
+      const stats = PAYLOAD.loto_stats;
+      const max30 = Math.max(...stats.map(s => s.Nhay_30_ngay), 1);
+
+      const scored = stats.map(r => {
+        const num = Number(r.So);
+        const a = Math.floor(num / 10), b = num % 10, t = a + b;
+        const ts = Math.max(0, 12 - 4 * Math.abs(a - dauExp))
+                 + Math.max(0, 12 - 4 * Math.abs(b - duoiExp))
+                 + Math.max(0, 10 - 2.5 * Math.abs(t - tongExp))
+                 + Math.max(0, 6 - 0.2 * Math.abs(num - deExp));
+        const gra = 0.40 * Number(r.Diem_chu_y);
+        let mom = 20 * (Number(r.Nhay_30_ngay) / max30);
+        if (r.Gan_hien_tai <= 3) mom = Math.min(20, mom + 4);
+        const total = Number((ts + gra + 0.5 * mom).toFixed(2));
+        const tags = [];
+        if (Math.abs(a - dauExp) <= 1.2) tags.push(`Đầu ${a}`);
+        if (Math.abs(b - duoiExp) <= 1.2) tags.push(`Đuôi ${b}`);
+        if (Math.abs(t - tongExp) <= 2.0) tags.push(`Tổng ${t}`);
+        if (r.Gan_ratio >= 0.85) tags.push("Đỉnh Gan");
+        else if (r.Gan_hien_tai <= 3 && r.Nhay_30_ngay >= 8) tags.push("Đà đều");
+        return { ...r, ts: Number(ts.toFixed(1)), mom: Number(mom.toFixed(1)), total, reason: tags.join(", ") || "Cân bằng" };
+      });
+
+      const topOpt = [...scored].sort((x, y) => y.total - x.total).slice(0, 6);
+      const topMom = scored.filter(x => x.Gan_hien_tai <= 5).sort((x, y) => (y.mom - x.mom) || (y.ts - x.ts)).slice(0, 6);
+      const topGan = [...scored].sort((x, y) => y.Diem_chu_y - x.Diem_chu_y).slice(0, 6);
+
+      document.getElementById("advOptBody").innerHTML = topOpt.map(r =>
+        `<tr><td class="py-1.5 font-bold text-amber-300">${r.So}</td><td class="font-semibold text-white">${r.total}</td><td>${r.Gan_hien_tai}d</td><td>${r.Nhay_30_ngay}</td><td class="text-slate-300 text-[11px]">${r.reason}</td></tr>`
+      ).join("");
+      document.getElementById("advMomBody").innerHTML = topMom.map(r =>
+        `<tr><td class="py-1.5 font-bold text-rose-300">${r.So}</td><td>${r.Nhay_30_ngay}</td><td>${r.Gan_hien_tai}d</td><td>${r.ts}</td></tr>`
+      ).join("");
+      document.getElementById("advGanBody").innerHTML = topGan.map(r =>
+        `<tr><td class="py-1.5 font-bold text-cyan-300">${r.So}</td><td>${r.Diem_chu_y}</td><td>${r.Gan_hien_tai}d</td><td>${r.Max_gan}</td><td>${r.Chenh_ky_vong}</td></tr>`
+      ).join("");
+
+      document.getElementById("advisorResult").classList.remove("hidden");
     });
 
     init();

@@ -694,3 +694,122 @@ def evaluate_recent_forecasts(df: pd.DataFrame, target_col: str, model_choice: s
     merged["Sai_so"] = (merged["Thuc_te"] - merged["forecast_raw"]).abs().round(2)
     merged["Trong_khoang_80"] = (merged["Thuc_te"] >= merged["lower_80"]) & (merged["Thuc_te"] <= merged["upper_80"])
     return merged.sort_values(["target_date", "based_on_date"], ascending=[False, False]).reset_index(drop=True)
+
+
+def recommend_numbers_for_date(
+    df: pd.DataFrame,
+    days_ahead: int = 1,
+    model_choice: str = "ensemble",
+    window: int = 200,
+) -> Dict:
+    """
+    Tư vấn lựa chọn tối ưu nhất và các bộ số có khả năng/tín hiệu thống kê cao
+    cho ngày thứ `days_ahead` tiếp theo (1 = ngày kế tiếp).
+    Kết hợp:
+      1) Vùng kỳ vọng Chuỗi Thời Gian (Weighted Ensemble 6 mô hình: Đầu, Đuôi, Tổng, Đề)
+      2) Điểm Quan hệ Xám GRA (Gan hiện tại, Tỷ lệ Gan/Max, Chênh kỳ vọng)
+      3) Đà tần suất ngắn hạn 30 ngày (Momentum)
+    """
+    horizon = max(1, int(days_ahead))
+    targets = ["de_2so", "dau_de", "duoi_de", "tong_de", "even_count", "high_count"]
+    fc_map = {}
+    for col in targets:
+        fc_df, _ = run_forecast(df, target_col=col, horizon=horizon, model_choice=model_choice)
+        fc_map[col] = fc_df.iloc[horizon - 1]
+
+    target_date_vn = str(fc_map["de_2so"]["date_vn"])
+    target_weekday = str(fc_map["de_2so"]["weekday_vn"])
+
+    de_exp = float(fc_map["de_2so"]["forecast_raw"])
+    dau_exp = float(fc_map["dau_de"]["forecast_raw"])
+    duoi_exp = float(fc_map["duoi_de"]["forecast_raw"])
+    tong_exp = float(fc_map["tong_de"]["forecast_raw"])
+    even_exp = float(fc_map["even_count"]["forecast_raw"])
+    high_exp = float(fc_map["high_count"]["forecast_raw"])
+
+    loto_df = analyze_loto_00_99(df, window=min(window, len(df))).copy()
+    max_30 = max(float(loto_df["Nhay_30_ngay"].max()), 1.0)
+
+    ts_scores = []
+    mom_scores = []
+    total_scores = []
+    reasons = []
+
+    for _, row in loto_df.iterrows():
+        num = int(row["So"])
+        d_dau = num // 10
+        d_duoi = num % 10
+        d_tong = d_dau + d_duoi
+
+        # 1) Điểm khớp vùng Chuỗi Thời Gian (0..40)
+        s_dau = max(0.0, 12.0 - 4.0 * abs(d_dau - dau_exp))
+        s_duoi = max(0.0, 12.0 - 4.0 * abs(d_duoi - duoi_exp))
+        s_tong = max(0.0, 10.0 - 2.5 * abs(d_tong - tong_exp))
+        s_de = max(0.0, 6.0 - 0.2 * abs(num - de_exp))
+        ts_sc = s_dau + s_duoi + s_tong + s_de
+
+        # 2) Điểm GRA (0..40)
+        gra_sc = 0.40 * float(row["Diem_chu_y"])
+
+        # 3) Điểm Đà 30 ngày (0..20) - thưởng các số đang chạy đều
+        mom_sc = 20.0 * (float(row["Nhay_30_ngay"]) / max_30)
+        if int(row["Gan_hien_tai"]) <= 3:
+            mom_sc = min(20.0, mom_sc + 4.0)
+
+        tot_sc = round(ts_sc + gra_sc + 0.5 * mom_sc, 2)
+        ts_scores.append(round(ts_sc, 2))
+        mom_scores.append(round(mom_sc, 2))
+        total_scores.append(tot_sc)
+
+        tags = []
+        if abs(d_dau - dau_exp) <= 1.2:
+            tags.append(f"Khớp Đầu {d_dau}")
+        if abs(d_duoi - duoi_exp) <= 1.2:
+            tags.append(f"Khớp Đuôi {d_duoi}")
+        if abs(d_tong - tong_exp) <= 2.0:
+            tags.append(f"Tổng {d_tong}")
+        if float(row["Gan_ratio"]) >= 0.85:
+            tags.append("Chạm đỉnh Gan")
+        elif int(row["Gan_hien_tai"]) <= 3 and int(row["Nhay_30_ngay"]) >= 8:
+            tags.append("Đà chạy đều")
+        reasons.append(", ".join(tags) if tags else "Cân bằng đa tiêu chí")
+
+    loto_df["Diem_TS"] = ts_scores
+    loto_df["Diem_Da"] = mom_scores
+    loto_df["Diem_Toi_Uu"] = total_scores
+    loto_df["Ly_do"] = reasons
+
+    top_optimal = loto_df.sort_values(["Diem_Toi_Uu", "Diem_chu_y"], ascending=False).head(6).reset_index(drop=True)
+    top_momentum = (
+        loto_df[loto_df["Gan_hien_tai"] <= 5]
+        .sort_values(["Diem_Da", "Diem_TS"], ascending=False)
+        .head(6)
+        .reset_index(drop=True)
+    )
+    top_gan = loto_df.sort_values(["Diem_chu_y", "Gan_hien_tai"], ascending=False).head(6).reset_index(drop=True)
+
+    # Khoanh vùng Đầu / Đuôi / Tổng tốt nhất
+    dau_center = int(round(dau_exp))
+    duoi_center = int(round(duoi_exp))
+    tong_center = int(round(tong_exp))
+
+    summary = {
+        "date_vn": target_date_vn,
+        "weekday_vn": target_weekday,
+        "days_ahead": horizon,
+        "de_exp": round(de_exp, 2),
+        "de_round": f"{int(round(de_exp)):02d}",
+        "de_ci": (float(fc_map["de_2so"]["lower_80"]), float(fc_map["de_2so"]["upper_80"])),
+        "dau_range": sorted({max(0, min(9, dau_center + d)) for d in (-1, 0, 1)}),
+        "duoi_range": sorted({max(0, min(9, duoi_center + d)) for d in (-1, 0, 1)}),
+        "tong_range": sorted({max(0, min(18, tong_center + d)) for d in (-1, 0, 1)}),
+        "even_exp": round(even_exp, 1),
+        "high_exp": round(high_exp, 1),
+    }
+
+    return {
+        "summary": summary,
+        "top_optimal": top_optimal,
+        "top_momentum": top_momentum,
+        "top_gan": top_gan,
+    }
