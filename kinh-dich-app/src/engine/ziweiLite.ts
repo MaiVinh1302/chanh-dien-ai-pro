@@ -76,6 +76,25 @@ const TRANG_SINH_12 = [
 // Khởi Tràng Sinh theo Cục: Thủy(2)->Thân(8), Mộc(3)->Hợi(11), Kim(4)->Tỵ(5), Thổ(5)->Thân(8), Hỏa(6)->Dần(2)
 const TRANG_SINH_START: Record<number, number> = { 2: 8, 3: 11, 4: 5, 5: 8, 6: 2 };
 
+// Mệnh Chủ (theo Chi cung Mệnh) & Thân Chủ (theo Chi năm sinh)
+const MENH_CHU_BY_BRANCH = ["Tham Lang", "Cự Môn", "Lộc Tồn", "Văn Khúc", "Liêm Trinh", "Vũ Khúc", "Phá Quân", "Vũ Khúc", "Liêm Trinh", "Văn Khúc", "Lộc Tồn", "Cự Môn"];
+const THAN_CHU_BY_BRANCH = ["Linh Tinh", "Thiên Tướng", "Thiên Lương", "Thiên Đồng", "Văn Xương", "Thiên Cơ", "Hỏa Tinh", "Thiên Tướng", "Thiên Lương", "Thiên Đồng", "Văn Xương", "Thiên Cơ"];
+
+const CUNG_MEANINGS: Record<string, string> = {
+  "Mệnh": "Bản chất, tính cách cốt lõi, năng lực tự thân và định hướng cuộc đời.",
+  "Phụ Mẫu": "Mối quan hệ với cha mẹ, cấp trên, người bảo trợ và nền tảng gia đình.",
+  "Phúc Đức": "Đời sống tinh thần, tâm lý, phúc ấm dòng họ và khả năng hưởng thụ.",
+  "Điền Trạch": "Nhà cửa, bất động sản, môi trường sống và tài sản cố định.",
+  "Quan Lộc": "Công danh, sự nghiệp, phong cách làm việc và vị thế xã hội.",
+  "Nô Bộc": "Bạn bè, đồng nghiệp, cộng sự, nhân viên và mạng lưới quan hệ.",
+  "Thiên Di": "Xuất hành, giao tiếp xã hội, cơ hội bên ngoài và khả năng thích nghi.",
+  "Tật Ách": "Sức khỏe thể chất, điểm yếu tạng phủ và cách phòng tránh bệnh tật.",
+  "Tài Bạch": "Dòng tiền, năng lực kiếm tiền, quản lý tài chính và tích lũy.",
+  "Tử Nữ": "Con cái, học trò, sản phẩm sáng tạo và thế hệ kế thừa.",
+  "Phu Thê": "Hôn nhân, tình cảm đôi lứa, đối tác gắn bó lâu dài.",
+  "Huynh Đệ": "Anh chị em, bạn thân ngang hàng và sự hỗ trợ nội bộ.",
+};
+
 const STAR_TRAITS: Record<string, { trait: string; appearance: string; career: string; alchemy: string }> = {
   "Tử Vi": {
     trait: "Đế tinh: Tôn quý, tự trọng cao, có khí chất lãnh đạo và bao quát.",
@@ -373,6 +392,50 @@ export function calcZiweiChart(params: ZiweiInput) {
   const currentDaiHan = palaces.find((p) => tuoiMu >= p.daiHanStart && tuoiMu <= p.daiHanStart + 9);
   const luuThaiTuePalace = palaces[luuThaiTueBranchIdx];
 
+  // Phi Tinh Tứ Hóa theo Thiên Can từng cung (Flying Star)
+  const findStarPalace = (starName: string) =>
+    palaces.find((p) => p.rawStars.includes(starName) || p.auxStars.includes(starName))?.cung ?? "—";
+
+  const flyingTuHoa = palaces.map((p) => {
+    const [fl, fq, fk, fky] = TU_HOA[p.stem];
+    return {
+      fromCung: p.cung,
+      stem: p.stem,
+      locTo: `${fl} → ${findStarPalace(fl)}`,
+      quyenTo: `${fq} → ${findStarPalace(fq)}`,
+      khoaTo: `${fk} → ${findStarPalace(fk)}`,
+      kyTo: `${fky} → ${findStarPalace(fky)}`,
+      selfLoc: p.rawStars.includes(fl) || p.auxStars.includes(fl),
+      selfKy: p.rawStars.includes(fky) || p.auxStars.includes(fky),
+    };
+  });
+
+  const menhFly = flyingTuHoa.find((f) => f.fromCung === "Mệnh")!;
+  const taiFly = flyingTuHoa.find((f) => f.fromCung === "Tài Bạch")!;
+  const quanFly = flyingTuHoa.find((f) => f.fromCung === "Quan Lộc")!;
+
+  const menhChu = MENH_CHU_BY_BRANCH[menhIdx];
+  const thanChu = THAN_CHU_BY_BRANCH[yearBranchIdx];
+
+  const allPalaceReadings = palaces.map((p) => {
+    const fly = flyingTuHoa.find((f) => f.fromCung === p.cung)!;
+    const tamHop = [palaces[(p.branchIdx + 4) % 12], palaces[(p.branchIdx + 8) % 12]];
+    const doiXung = palaces[(p.branchIdx + 6) % 12];
+    const sanFangStars = [...tamHop, doiXung].flatMap((x) => x.rawStars);
+    return {
+      cung: p.cung,
+      branch: p.branch,
+      meaning: CUNG_MEANINGS[p.cung],
+      mainText: p.stars.join(", ") || "Vô Chính Diệu (mượn sao cung đối xung " + doiXung.cung + ")",
+      auxText: p.auxStars.join(", ") || "Không",
+      satText: p.satStars.join(", ") || "Không",
+      sanFangText: sanFangStars.slice(0, 6).join(", ") || "—",
+      flyText: `Lộc(${fly.locTo}) · Quyền(${fly.quyenTo}) · Khoa(${fly.khoaTo}) · Kỵ(${fly.kyTo})${
+        fly.selfLoc ? " [Tự Hóa Lộc]" : ""
+      }${fly.selfKy ? " [Tự Hóa Kỵ]" : ""}`,
+    };
+  });
+
   const mainTraitSummary = menhPalace.rawStars.length
     ? menhPalace.rawStars.map((s) => `${s}: ${STAR_TRAITS[s].trait}`).join(" ")
     : "Mệnh Vô Chính Diệu: Linh hoạt, dễ thích nghi, xem thêm cung Thiên Di đối chiếu.";
@@ -412,8 +475,12 @@ export function calcZiweiChart(params: ZiweiInput) {
       }`,
     },
     {
-      title: "5. Gia đạo, Sức khỏe & Chuyển Hóa Sát Tinh (Cải Mệnh)",
-      body: `Phu Thê (${phuPalace.branch}): ${phuPalace.stars.join(", ") || "Vô Chính Diệu"}. Tật Ách (${tatPalace.branch}): ${tatPalace.stars.join(", ") || "Vô Chính Diệu"}. Cải mệnh: ${alchemyTips}`,
+      title: "5. Phi Tinh Tứ Hóa (Mệnh – Tài – Quan)",
+      body: `Mệnh (${menhFly.stem}) phi Lộc (${menhFly.locTo}), Kỵ (${menhFly.kyTo}). Tài Bạch (${taiFly.stem}) phi Lộc (${taiFly.locTo}), Kỵ (${taiFly.kyTo}). Quan Lộc (${quanFly.stem}) phi Lộc (${quanFly.locTo}), Kỵ (${quanFly.kyTo}).`,
+    },
+    {
+      title: "6. Gia đạo, Sức khỏe & Chuyển Hóa Sát Tinh (Cải Mệnh)",
+      body: `Mệnh Chủ: ${menhChu} · Thân Chủ: ${thanChu}. Phu Thê (${phuPalace.branch}): ${phuPalace.stars.join(", ") || "Vô Chính Diệu"}. Tật Ách (${tatPalace.branch}): ${tatPalace.stars.join(", ") || "Vô Chính Diệu"}. Cải mệnh: ${alchemyTips}`,
     },
   ];
 
@@ -424,6 +491,8 @@ export function calcZiweiChart(params: ZiweiInput) {
     gender,
     napAm: `${napAm} (${napAmElem})`,
     cucName,
+    menhChu,
+    thanChu,
     menhBranch: BRANCHES[menhIdx],
     thanBranch: BRANCHES[thanIdx],
     thanCung: palaces[thanIdx].cung,
@@ -432,6 +501,7 @@ export function calcZiweiChart(params: ZiweiInput) {
     diepGia,
     patterns,
     palaces,
+    allPalaceReadings,
     mainTraitSummary,
     detailedAnalysis,
   };

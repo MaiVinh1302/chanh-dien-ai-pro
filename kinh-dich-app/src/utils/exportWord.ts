@@ -192,6 +192,8 @@ export async function exportZiweiWord(
     gender: string;
     napAm: string;
     cucName: string;
+    menhChu?: string;
+    thanChu?: string;
     menhBranch: string;
     thanCung: string;
     thanBranch: string;
@@ -200,6 +202,10 @@ export async function exportZiweiWord(
       branch: string; stem: string; cung: string; isThan: boolean;
       isTuan?: boolean; isTriet?: boolean; trangSinh?: string; daiHan?: string;
       stars: string[]; auxStars?: string[]; satStars?: string[];
+    }[];
+    allPalaceReadings?: {
+      cung: string; branch: string; meaning: string; mainText: string;
+      sanFangText: string; flyText: string;
     }[];
     detailedAnalysis: { title: string; body: string }[];
   },
@@ -211,7 +217,7 @@ export async function exportZiweiWord(
         children: [
           new Paragraph({ text: `BÁO CÁO LÁ SỐ TỬ VI ĐẨU SỐ — ${zwChart.fullName ?? "Đương số"}`, heading: HeadingLevel.HEADING_1 }),
           new Paragraph(`Âm lịch: ${zwChart.lunarDateStr ?? ""} | Tuổi: ${zwChart.yearCanChi} (${zwChart.gender}) | Bản Mệnh: ${zwChart.napAm} | Cục: ${zwChart.cucName}`),
-          new Paragraph(`Mệnh tại: ${zwChart.menhBranch} | Thân cư: ${zwChart.thanCung} (${zwChart.thanBranch})`),
+          new Paragraph(`Mệnh tại: ${zwChart.menhBranch} | Thân cư: ${zwChart.thanCung} (${zwChart.thanBranch}) | Mệnh Chủ: ${zwChart.menhChu ?? "—"} | Thân Chủ: ${zwChart.thanChu ?? "—"}`),
           new Paragraph(
             `Tứ Hóa Can Năm: Lộc (${zwChart.tuHoa.loc}) · Quyền (${zwChart.tuHoa.quyen}) · Khoa (${zwChart.tuHoa.khoa}) · Kỵ (${zwChart.tuHoa.ky})`
           ),
@@ -230,6 +236,16 @@ export async function exportZiweiWord(
             new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
             new Paragraph(s.body),
           ]),
+          ...(zwChart.allPalaceReadings
+            ? [
+                new Paragraph({ text: "Chi tiết 12 Cung & Phi Tinh Tứ Hóa", heading: HeadingLevel.HEADING_2 }),
+                ...zwChart.allPalaceReadings.flatMap((r) => [
+                  new Paragraph({ children: [new TextRun({ text: `Cung ${r.cung} (${r.branch}) — ${r.meaning}`, bold: true })] }),
+                  new Paragraph(`• Chính tinh: ${r.mainText} | Tam phương: ${r.sanFangText}`),
+                  new Paragraph(`• Phi Tinh Tứ Hóa: ${r.flyText}`),
+                ]),
+              ]
+            : []),
           ...(synastry
             ? [
                 new Paragraph({ text: `Song Bàn Đối Chiếu (${synastry.modeLabel})`, heading: HeadingLevel.HEADING_2 }),

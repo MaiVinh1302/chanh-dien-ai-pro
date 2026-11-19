@@ -114,6 +114,7 @@ export default function App() {
   const [zwBDay, setZwBDay] = useState(10);
   const [zwBHourIdx, setZwBHourIdx] = useState(6);
   const [zwBGender, setZwBGender] = useState<"Nam" | "Nữ">("Nữ");
+  const [selectedZwBranch, setSelectedZwBranch] = useState<number | null>(null);
 
   // Feng Shui tab state
   const [birthYear, setBirthYear] = useState(1990);
@@ -768,6 +769,7 @@ export default function App() {
                       </div>
                       <div className="muted">ÂL: {zwChart.lunarDateStr} ({zwChart.yearCanChi})</div>
                       <div className="muted">{zwChart.napAm} · {zwChart.cucName}</div>
+                      <div className="muted" style={{ fontSize: "0.76rem" }}>Mệnh Chủ: {zwChart.menhChu} · Thân Chủ: {zwChart.thanChu}</div>
                       <div style={{ marginTop: 6, fontSize: "0.8rem" }}>
                         <strong>Tứ Hóa:</strong> Lộc ({zwChart.tuHoa.loc}) · Quyền ({zwChart.tuHoa.quyen}) · Khoa ({zwChart.tuHoa.khoa}) · Kỵ ({zwChart.tuHoa.ky})
                       </div>
@@ -783,8 +785,19 @@ export default function App() {
                   );
                 }
                 const p = zwChart.palaces[bIdx];
+                const isSanFang =
+                  selectedZwBranch !== null &&
+                  (bIdx === selectedZwBranch ||
+                    bIdx === (selectedZwBranch + 4) % 12 ||
+                    bIdx === (selectedZwBranch + 8) % 12 ||
+                    bIdx === (selectedZwBranch + 6) % 12);
                 return (
-                  <div className={`zw-cell ${p.cung === "Mệnh" ? "menh" : ""}`} key={p.branch}>
+                  <div
+                    className={`zw-cell ${p.cung === "Mệnh" ? "menh" : ""} ${isSanFang ? "sanfang" : ""}`}
+                    key={p.branch}
+                    onClick={() => setSelectedZwBranch(selectedZwBranch === bIdx ? null : bIdx)}
+                    title="Nhấn để xem Tam Phương Tứ Chính & Phi Tinh Tứ Hóa của cung này"
+                  >
                     <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
                       <span style={{ color: p.cung === "Mệnh" ? "var(--gold)" : "var(--accent)" }}>
                         {p.cung} {p.isThan ? "(Thân)" : ""}
@@ -835,6 +848,20 @@ export default function App() {
             )}
 
             <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+              {selectedZwBranch !== null && (() => {
+                const sp = zwChart.palaces[selectedZwBranch];
+                const sr = zwChart.allPalaceReadings.find((r) => r.cung === sp.cung);
+                return sr ? (
+                  <div style={{ background: "var(--panel-2)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, color: "var(--accent)", marginBottom: 4 }}>
+                      Đang soi Cung {sr.cung} ({sp.stem} {sp.branch}) — Tam Phương Tứ Chính
+                    </div>
+                    <div className="muted" style={{ fontSize: "0.84rem" }}>• <strong>Ý nghĩa:</strong> {sr.meaning}</div>
+                    <div className="muted" style={{ fontSize: "0.84rem" }}>• <strong>Chính tinh:</strong> {sr.mainText} | <strong>Tam phương hội:</strong> {sr.sanFangText}</div>
+                    <div className="muted" style={{ fontSize: "0.84rem" }}>• <strong>Phi Tinh Tứ Hóa:</strong> {sr.flyText}</div>
+                  </div>
+                ) : null;
+              })()}
               <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Bình Giải Chi Tiết Lá Số</h3>
               {zwChart.detailedAnalysis.map((s) => (
                 <div key={s.title} style={{ marginBottom: 8 }}>
