@@ -1,5 +1,6 @@
 :root {
   --bg: #0f1419;
+  --bg-grad: #18222f;
   --panel: #171e26;
   --panel-2: #1e2732;
   --border: #2b3644;
@@ -10,13 +11,30 @@
   --cat: #22c55e;
   --hung: #ef4444;
   --accent: #38bdf8;
+  --yin-bar: #cbd5e1;
+}
+
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --bg-grad: #e2e8f0;
+  --panel: #ffffff;
+  --panel-2: #f1f5f9;
+  --border: #cbd5e1;
+  --gold: #b45309;
+  --gold-soft: rgba(180, 83, 9, 0.12);
+  --text: #0f172a;
+  --muted: #475569;
+  --cat: #15803d;
+  --hung: #dc2626;
+  --accent: #0284c7;
+  --yin-bar: #475569;
 }
 
 * { box-sizing: border-box; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: radial-gradient(circle at top, #18222f 0%, var(--bg) 60%);
+  background: radial-gradient(circle at top, var(--bg-grad) 0%, var(--bg) 60%);
   color: var(--text);
   min-height: 100vh;
 }
@@ -73,7 +91,7 @@ input, select, textarea {
 .bar-row { display: flex; align-items: center; gap: 8px; height: 14px; }
 .bar-yang { flex: 1; height: 8px; background: var(--gold); border-radius: 2px; }
 .bar-yin { flex: 1; display: flex; gap: 10px; height: 8px; }
-.bar-yin span { flex: 1; background: #cbd5e1; border-radius: 2px; }
+.bar-yin span { flex: 1; background: var(--yin-bar); border-radius: 2px; }
 .bar-mark { width: 22px; font-size: 0.78rem; color: #fb7185; font-weight: 700; text-align: center; }
 
 table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }

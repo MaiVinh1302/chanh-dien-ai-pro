@@ -54,7 +54,13 @@ export interface BaziPillar {
   hiddenStems: { stem: string; tenGod: string }[];
 }
 
-export function calcBaziChart(year: number, month: number, day: number, hourBranchIdx: number) {
+export function calcBaziChart(
+  year: number,
+  month: number,
+  day: number,
+  hourBranchIdx: number,
+  gender: "Nam" | "Nữ" = "Nam"
+) {
   const lon = solarLongitude(year, month, day, 12, 7);
   // Bazi Year starts at Lập Xuân (315 deg). If Jan/early Feb before Lập Xuân (lon in [270..315)), use year - 1.
   const baziYear = month <= 2 && lon >= 270 && lon < 315 ? year - 1 : year;
@@ -119,12 +125,31 @@ export function calcBaziChart(year: number, month: number, day: number, hourBran
     ? `${outputElem} (Thực Thương), ${wealthElem} (Tài) hoặc ${powerElem} (Quan Sát) để tiết/chế bớt vượng khí.`
     : `${resourceElem} (Ấn) và ${dayElem} (Tỷ Kiếp) để bồi đắp cho Nhật Chủ.`;
 
+  // Đại Vận 10 năm (Luck Pillars from Month Pillar)
+  const isYangYear = yStemIdx % 2 === 0;
+  const forwardLuck = (isYangYear && gender === "Nam") || (!isYangYear && gender === "Nữ");
+  const luckPillars = Array.from({ length: 8 }, (_, k) => {
+    const step = k + 1;
+    const sIdx = (((mStemIdx + (forwardLuck ? step : -step)) % 10) + 10) % 10;
+    const bIdx = (((mBranchIdx + (forwardLuck ? step : -step)) % 12) + 12) % 12;
+    const startAge = 4 + k * 10;
+    return {
+      ageRange: `${startAge}–${startAge + 9}`,
+      stem: STEMS[sIdx],
+      branch: BRANCHES[bIdx],
+      tenGod: getTenGod(dStem, STEMS[sIdx]),
+      element: STEM_ELEMENTS[STEMS[sIdx]],
+    };
+  });
+
   return {
     dayMaster: `${dStem} (${dayElem}, ${STEM_YANG[dStem] ? "Dương" : "Âm"})`,
     pillars,
     counts,
     strengthLabel: isStrong ? "Thân Vượng" : "Thân Nhược",
     dungThanAdvice: dungThan,
+    luckDirection: forwardLuck ? "Thuận" : "Nghịch",
+    luckPillars,
   };
 }
 

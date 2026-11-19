@@ -172,6 +172,57 @@ export function calcAnnualAfflictions(targetYear: number) {
   };
 }
 
+const HOANG_OC_NAMES = [
+  { name: "Nhất Cát", good: true, desc: "An cư thông đạt, mọi việc hanh thông" },
+  { name: "Nhì Nghi", good: true, desc: "Hưng vượng giàu có, nhà cửa êm ấm" },
+  { name: "Tam Địa Sát", good: false, desc: "Dễ sinh bệnh tật, bất an (Phạm Hoang Ốc)" },
+  { name: "Tứ Tấn Tài", good: true, desc: "Phúc lộc dồi dào, tài vận tăng tiến" },
+  { name: "Ngũ Thọ Tử", good: false, desc: "Chia rẽ gia đạo, sức khỏe suy giảm (Phạm Hoang Ốc)" },
+  { name: "Lục Hoang Ốc", good: false, desc: "Khó thành đạt, hao tán (Phạm Hoang Ốc)" },
+];
+
+export function calcBuildAgeCheck(birthYear: number, buildYear: number) {
+  const tuoiMu = buildYear - birthYear + 1;
+  const bBirth = BRANCHES[(((birthYear - 4) % 12) + 12) % 12];
+  const bBuild = BRANCHES[(((buildYear - 4) % 12) + 12) % 12];
+
+  // Tam Tai
+  let tamTaiList: string[] = [];
+  if (["Thân", "Tý", "Thìn"].includes(bBirth)) tamTaiList = ["Dần", "Mão", "Thìn"];
+  else if (["Dần", "Ngọ", "Tuất"].includes(bBirth)) tamTaiList = ["Thân", "Dậu", "Tuất"];
+  else if (["Tỵ", "Dậu", "Sửu"].includes(bBirth)) tamTaiList = ["Hợi", "Tý", "Sửu"];
+  else tamTaiList = ["Tỵ", "Ngọ", "Mùi"];
+  const isTamTai = tamTaiList.includes(bBuild);
+
+  // Kim Lâu
+  const klRem = ((tuoiMu % 9) + 9) % 9;
+  const klLabels: Record<number, string> = {
+    1: "Kim Lâu Thân (Hại bản thân)",
+    3: "Kim Lâu Thê (Hại người phối ngẫu)",
+    6: "Kim Lâu Tử (Hại con cái)",
+    8: "Kim Lâu Súc (Hại gia súc/tài sản)",
+  };
+  const kimLauReason = klLabels[klRem] ?? null;
+
+  // Hoang Ốc
+  const hoIdx = (((Math.floor(tuoiMu / 10) + (tuoiMu % 10) - 1) % 6) + 6) % 6;
+  const ho = HOANG_OC_NAMES[hoIdx];
+
+  const badCount = (isTamTai ? 1 : 0) + (kimLauReason ? 1 : 0) + (ho.good ? 0 : 1);
+  return {
+    tuoiMu,
+    bBirth,
+    bBuild,
+    isTamTai,
+    tamTaiDetail: isTamTai ? `Phạm Tam Tai (${tamTaiList.join(", ")})` : "Không phạm Tam Tai",
+    kimLauReason,
+    hoangOc: ho,
+    verdict: badCount === 0
+      ? "Tuổi ĐẸP để động thổ / xây dựng / nhập trạch."
+      : `Phạm ${badCount} hạn (${[isTamTai ? "Tam Tai" : "", kimLauReason ? "Kim Lâu" : "", !ho.good ? "Hoang Ốc" : ""].filter(Boolean).join(", ")}). Nếu cần làm gấp nên mượn tuổi người thân hợp tuổi.`,
+  };
+}
+
 const TRUC_12 = [
   ["Kiến", "Bình", "Tốt cho khởi sự, xuất hành; kỵ động thổ"],
   ["Trừ", "Cát", "Tốt cho dọn dẹp, chữa bệnh, giải trừ"],

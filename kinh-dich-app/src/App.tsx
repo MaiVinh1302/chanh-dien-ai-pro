@@ -1,18 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BRANCHES,
   HEXAGRAMS,
   NHAN_TUONG_DATA,
+  REGION_CLIMATE_TIPS,
   STAR_MEANINGS,
   TRIGRAMS,
+  VN_PROVINCES,
   assessNhanTuong,
   buildHexagram,
   buildLayoutAdvice,
   calcAnnualAfflictions,
   calcBatTrach,
   calcBaziChart,
+  calcBuildAgeCheck,
   calcFlyingStars,
   calcTrachNhat,
+  calcTrueSolarTime,
   calcZiweiChart,
   castThiSach,
   castThreeCoins,
@@ -77,6 +81,9 @@ function HexagramBars({ lines, moving }: { lines: number[]; moving?: number[] })
 
 export default function App() {
   const [tab, setTab] = useState<"cast" | "lookup" | "ziwei" | "bazi" | "fengshui" | "tuong" | "lunar">("cast");
+  const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("cd_theme") === "light" ? "light" : "dark"));
+  const [provinceName, setProvinceName] = useState("Hà Nội");
+  const [birthClock, setBirthClock] = useState("09:30");
   const [method, setMethod] = useState<DivinationMethod>("thi_sach");
   const [topic, setTopic] = useState<TopicKey>("career");
   const [question, setQuestion] = useState("Công việc và định hướng sắp tới");
@@ -119,8 +126,22 @@ export default function App() {
 
   // Bazi & Compatibility state (Solar birth date)
   const [bzDate, setBzDate] = useState("1990-06-15");
-  const [bzHourIdx, setBzHourIdx] = useState(5);
+  const [bzGender, setBzGender] = useState<"Nam" | "Nữ">("Nam");
   const [partnerYear, setPartnerYear] = useState(1992);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("cd_theme", theme);
+  }, [theme]);
+
+  const province = useMemo(
+    () => VN_PROVINCES.find((p) => p.name === provinceName) ?? VN_PROVINCES[0],
+    [provinceName]
+  );
+  const solarTime = useMemo(() => {
+    const [hh, mm] = birthClock.split(":").map(Number);
+    return calcTrueSolarTime(hh || 9, mm || 30, province.lon);
+  }, [birthClock, province]);
 
   const castDate = useMemo(() => {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -196,6 +217,7 @@ export default function App() {
   );
 
   const batTrach = useMemo(() => calcBatTrach(birthYear, gender), [birthYear, gender]);
+  const buildAge = useMemo(() => calcBuildAgeCheck(birthYear, fsViewYear), [birthYear, fsViewYear]);
   const layoutAdvice = useMemo(() => buildLayoutAdvice(batTrach.directions), [batTrach]);
   const flyingStars = useMemo(() => calcFlyingStars(period, facingDeg), [period, facingDeg]);
   const annualFs = useMemo(() => calcAnnualAfflictions(fsViewYear), [fsViewYear]);
@@ -203,8 +225,8 @@ export default function App() {
   const tuongReport = useMemo(() => assessNhanTuong(tuongInput), [tuongInput]);
   const baziChart = useMemo(() => {
     const [y, m, d] = bzDate.split("-").map(Number);
-    return calcBaziChart(y || 1990, m || 6, d || 15, bzHourIdx);
-  }, [bzDate, bzHourIdx]);
+    return calcBaziChart(y || 1990, m || 6, d || 15, solarTime.branchIdx, bzGender);
+  }, [bzDate, solarTime.branchIdx, bzGender]);
   const ageCompat = useMemo(() => {
     const y = Number(bzDate.split("-")[0]) || 1990;
     return compareAges(y, partnerYear);
@@ -249,6 +271,13 @@ export default function App() {
           </button>
           <button className={`tab-btn ${tab === "lunar" ? "active" : ""}`} onClick={() => setTab("lunar")}>
             Lịch Vạn Niên
+          </button>
+          <button
+            className="tab-btn"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            title="Chuyển giao diện Sáng / Tối"
+          >
+            {theme === "dark" ? "☀️ Sáng" : "🌙 Tối"}
           </button>
         </div>
       </header>
@@ -669,12 +698,29 @@ export default function App() {
               <h2>Lập Lá Số Bát Tự (Tứ Trụ Tử Bình)</h2>
               <label>Ngày sinh Dương lịch (tính theo Tiết Khí)</label>
               <input type="date" value={bzDate} onChange={(e) => setBzDate(e.target.value)} />
-              <label>Giờ sinh (Địa Chi)</label>
-              <select value={bzHourIdx} onChange={(e) => setBzHourIdx(Number(e.target.value))}>
-                {BRANCHES.map((b, i) => (
-                  <option key={b} value={i}>Giờ {b}</option>
+              <div className="row">
+                <div>
+                  <label>Giờ:Phút sinh</label>
+                  <input type="time" value={birthClock} onChange={(e) => setBirthClock(e.target.value)} />
+                </div>
+                <div>
+                  <label>Giới tính</label>
+                  <select value={bzGender} onChange={(e) => setBzGender(e.target.value as "Nam" | "Nữ")}>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+              </div>
+              <label>Tỉnh / Thành phố nơi sinh (Hiệu chỉnh Chân Thái Dương)</label>
+              <select value={provinceName} onChange={(e) => setProvinceName(e.target.value)}>
+                {VN_PROVINCES.map((p) => (
+                  <option key={p.name} value={p.name}>{p.name} ({p.region})</option>
                 ))}
               </select>
+              <div className="muted" style={{ fontSize: "0.8rem", marginBottom: 8 }}>
+                Giờ Chân Thái Dương ({province.lon}°E, lệch {solarTime.offsetMinutes >= 0 ? `+${solarTime.offsetMinutes}` : solarTime.offsetMinutes} phút):{" "}
+                <strong>{solarTime.formatted} → Giờ {BRANCHES[solarTime.branchIdx]}</strong>
+              </div>
               <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
                 <div><strong>Nhật Chủ:</strong> <span style={{ color: "var(--gold)" }}>{baziChart.dayMaster}</span></div>
                 <div><strong>Trạng thái:</strong> {baziChart.strengthLabel}</div>
@@ -732,6 +778,19 @@ export default function App() {
                 ))}
               </div>
             </div>
+
+            <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+              <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Đại Vận 10 Năm (Đi {baziChart.luckDirection})</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                {baziChart.luckPillars.map((lp) => (
+                  <div key={lp.ageRange} style={{ background: "var(--panel-2)", border: "1px solid var(--border)", borderRadius: 6, padding: 6, fontSize: "0.78rem" }}>
+                    <div className="muted">{lp.ageRange}t</div>
+                    <div style={{ fontWeight: 700 }}>{lp.stem} {lp.branch}</div>
+                    <div style={{ color: "var(--accent)" }}>{lp.tenGod}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -757,6 +816,22 @@ export default function App() {
               <div>
                 Cung Phi: <strong style={{ color: "var(--gold)" }}>{batTrach.cungPhi}</strong> ({batTrach.element}) ·{" "}
                 <span className="muted">{batTrach.group}</span>
+              </div>
+              <label style={{ marginTop: 10 }}>Tỉnh / Thành phố xây dựng (Khí hậu vùng miền)</label>
+              <select value={provinceName} onChange={(e) => setProvinceName(e.target.value)}>
+                {VN_PROVINCES.map((p) => (
+                  <option key={p.name} value={p.name}>{p.name} ({p.region})</option>
+                ))}
+              </select>
+              <div className="muted" style={{ fontSize: "0.8rem" }}>
+                <strong>Lưu ý {province.region}:</strong> {REGION_CLIMATE_TIPS[province.region]}
+              </div>
+              <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8, fontSize: "0.84rem" }}>
+                <strong>Xem Tuổi Làm Nhà năm {fsViewYear} ({buildAge.tuoiMu} tuổi mụ):</strong>
+                <div className="muted">
+                  • {buildAge.tamTaiDetail} · {buildAge.kimLauReason ?? "Không phạm Kim Lâu"} · Hoang Ốc: {buildAge.hoangOc.name} ({buildAge.hoangOc.good ? "Tốt" : "Xấu"})
+                </div>
+                <div style={{ color: "var(--gold)", fontWeight: 600, marginTop: 2 }}>{buildAge.verdict}</div>
               </div>
             </div>
 

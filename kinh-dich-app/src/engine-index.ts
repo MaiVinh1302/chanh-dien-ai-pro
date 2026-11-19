@@ -1,6 +1,7 @@
 export * from "./types.ts";
 export * from "./data/hexagrams.ts";
 export * from "./data/nhanTuong.ts";
+export * from "./data/vnProvinces.ts";
 export * from "./engine/lunarCanChi.ts";
 export * from "./engine/coin.ts";
 export * from "./engine/hexagram.ts";
