@@ -11,6 +11,7 @@ import streamlit as st
 from src.forecaster import (
     TARGET_CONFIG,
     analyze_loto_00_99,
+    compute_adaptive_feedback,
     evaluate_recent_forecasts,
     forecast_all_27_prizes,
     recommend_numbers_for_date,
@@ -304,6 +305,8 @@ with tab1:
         f"Dữ liệu huấn luyện: **{meta['train_days']} ngày** (đến `{meta['last_date']}`) | "
         f"Trung bình lịch sử: **{meta['hist_mean']}** (±{meta['hist_std']})"
     )
+    if meta.get("adaptive"):
+        st.caption(f"🧠 **Tự học thích nghi:** {meta['adaptive']['note']}")
 
     hist_plot = df.sort_values("date").tail(history_view)
 
@@ -430,7 +433,9 @@ with tab2:
         st.plotly_chart(fig_bt, use_container_width=True)
 
     st.divider()
-    st.subheader("📌 Đối chiếu các bản Dự báo đã lưu khi có kết quả ngày mới")
+    st.subheader("🧠 Tự học Thích nghi & Đối chiếu Dự báo Ngày Hôm Trước")
+    fb_info = compute_adaptive_feedback(df, target_col=target_col, model_choice=model_choice)
+    st.info(fb_info["note"])
     eval_df = evaluate_recent_forecasts(df, target_col=target_col, model_choice=model_choice)
     if eval_df.empty:
         st.caption("Chưa có dữ liệu đối chiếu (hệ thống sẽ tự động đối chiếu khi có kết quả của các ngày tiếp theo).")

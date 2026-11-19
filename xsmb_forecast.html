@@ -420,7 +420,8 @@
 
       document.getElementById("fcTitle").textContent = `Dự báo ${horizon} ngày tới: ${cfg.label}`;
       document.getElementById("fcMeta").textContent =
-        `Mô hình: ${fcObj.meta.model_desc} | Huấn luyện: ${fcObj.meta.train_days} ngày (đến ${fcObj.meta.last_date}) | TB lịch sử: ${fcObj.meta.hist_mean} (±${fcObj.meta.hist_std})`;
+        `Mô hình: ${fcObj.meta.model_desc} | Huấn luyện: ${fcObj.meta.train_days} ngày (đến ${fcObj.meta.last_date}) | TB lịch sử: ${fcObj.meta.hist_mean} (±${fcObj.meta.hist_std})` +
+        (fcObj.meta.adaptive ? ` | 🧠 ${fcObj.meta.adaptive.note}` : "");
 
       // Forecast Chart
       const traces = [

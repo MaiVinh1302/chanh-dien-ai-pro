@@ -4,7 +4,7 @@
     "updated": false,
     "added_count": 0,
     "added_dates": [],
-    "last_checked_at": "19/11/2026 15:56:57",
+    "last_checked_at": "19/11/2026 16:14:20",
     "latest_data_date": "2026-11-18",
     "expected_date": "2026-11-18",
     "status": "Chưa có kết quả ngày mới (mới nhất vẫn là 18/11/2026)"
@@ -19,23 +19,23 @@
         {
           "date_vn": "19/11/2026",
           "weekday_vn": "Thứ 5",
-          "forecast": 46,
-          "lower_80": 10.99,
-          "upper_80": 81.18
+          "forecast": 38,
+          "lower_80": 10.59,
+          "upper_80": 80.8
         },
         {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 49,
-          "lower_80": 11.05,
-          "upper_80": 88.86
+          "forecast": 41,
+          "lower_80": 10.66,
+          "upper_80": 87.33
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
-          "forecast": 44,
-          "lower_80": 5.93,
-          "upper_80": 84.08
+          "forecast": 37,
+          "lower_80": 5.87,
+          "upper_80": 82.91
         }
       ]
     },

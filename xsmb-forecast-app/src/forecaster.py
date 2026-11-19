@@ -485,6 +485,18 @@ def run_forecast(
     km_pred, km_lo, km_hi = forecast_kalman_ucm(series, horizon, target_col)
 
     weights = _compute_inverse_rmse_weights(series, target_col)
+    adaptive = compute_adaptive_feedback(df, target_col=target_col, model_choice="ensemble")
+    if adaptive["live_weights"]:
+        blended = {
+            k: 0.60 * weights[k] + 0.40 * adaptive["live_weights"].get(k, weights[k])
+            for k in weights
+        }
+        s_w = sum(blended.values())
+        weights = {k: v / s_w for k, v in blended.items()}
+
+    step_decay = np.exp(-0.12 * np.arange(horizon, dtype=float))
+    bias_vec = adaptive["bias_correction"] * step_decay
+
     ens_pred = _clip_series(
         weights["arima"] * arima_pred
         + weights["holt_winters"] * hw_pred
@@ -492,7 +504,8 @@ def run_forecast(
         + weights["grey_gm11"] * gm_pred
         + weights["rl_fgm"] * rl_pred
         + weights["fourier_ridge"] * fr_pred
-        + weights["kalman_ucm"] * km_pred,
+        + weights["kalman_ucm"] * km_pred
+        + bias_vec,
         target_col,
     )
     ens_lo = _clip_series(
@@ -563,6 +576,7 @@ def run_forecast(
         "hist_std": round(float(series.std()), 2),
         "rl_fgm_order": rl_order,
         "weights": {k: round(v, 3) for k, v in weights.items()},
+        "adaptive": adaptive,
     }
     return out, meta
 
@@ -720,19 +734,32 @@ def save_forecast_snapshot(
     model_choice: str,
     based_on_date: str,
 ) -> None:
-    """Lưu lại bản dự báo theo ngày gốc (`based_on_date`) để đối chiếu khi có KQXS mới."""
+    """Lưu lại bản dự báo theo ngày gốc (`based_on_date`) kèm 7 mô hình thành phần để tự học khi có KQXS mới."""
     if fc_df.empty:
         return
     FORECAST_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    snap = fc_df[["date", "date_vn", "forecast", "forecast_raw", "lower_80", "upper_80"]].copy()
+    base_cols = ["date", "date_vn", "forecast", "forecast_raw", "lower_80", "upper_80"]
+    comp_cols = ["arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge", "kalman_ucm"]
+    avail_comp = [c for c in comp_cols if c in fc_df.columns]
+
+    snap = fc_df[base_cols + avail_comp].copy()
     snap["target_date"] = snap["date"].dt.strftime("%Y-%m-%d")
     snap["target_col"] = target_col
     snap["model_choice"] = model_choice
     snap["based_on_date"] = based_on_date
-    snap = snap[
-        ["based_on_date", "target_col", "model_choice", "target_date", "date_vn", "forecast", "forecast_raw", "lower_80", "upper_80"]
-    ]
+    out_cols = [
+        "based_on_date",
+        "target_col",
+        "model_choice",
+        "target_date",
+        "date_vn",
+        "forecast",
+        "forecast_raw",
+        "lower_80",
+        "upper_80",
+    ] + avail_comp
+    snap = snap[out_cols]
 
     if FORECAST_LOG_PATH.exists():
         old = pd.read_csv(FORECAST_LOG_PATH)
@@ -745,6 +772,78 @@ def save_forecast_snapshot(
         combined = snap
 
     combined.to_csv(FORECAST_LOG_PATH, index=False, encoding="utf-8-sig")
+
+
+def compute_adaptive_feedback(df: pd.DataFrame, target_col: str, model_choice: str = "ensemble") -> Dict:
+    """
+    Tự động đọc các bản dự báo đã lưu ở các ngày hôm trước, đối chiếu với kết quả thực tế
+    mới cập nhật để:
+      1) Tính độ lệch hệ thống (EWMA Bias Correction)
+      2) Tính trọng số thích nghi theo RMSE thực tế (Live Model Weights)
+    """
+    default_out = {
+        "matched_days": 0,
+        "live_mae": None,
+        "live_rmse": None,
+        "bias_ewm": 0.0,
+        "bias_correction": 0.0,
+        "live_weights": {},
+        "note": "Đang tích lũy log dự báo; sẽ tự động hiệu chỉnh khi có kết quả ngày tiếp theo.",
+    }
+    if not FORECAST_LOG_PATH.exists() or df.empty:
+        return default_out
+
+    try:
+        log_df = pd.read_csv(FORECAST_LOG_PATH)
+    except Exception:
+        return default_out
+
+    sub = log_df[(log_df["target_col"] == target_col) & (log_df["model_choice"] == model_choice)].copy()
+    if sub.empty:
+        return default_out
+
+    actual_map = df.assign(target_date=df["date"].dt.strftime("%Y-%m-%d"))[["target_date", target_col]].rename(
+        columns={target_col: "Thuc_te"}
+    )
+    merged = sub.merge(actual_map, on="target_date", how="inner")
+    if merged.empty:
+        return default_out
+
+    # Ưu tiên bản dự báo gần target_date nhất (based_on_date mới nhất cho mỗi target_date)
+    merged = merged.sort_values(["target_date", "based_on_date"]).drop_duplicates(subset=["target_date"], keep="last")
+    errors = (merged["Thuc_te"] - merged["forecast_raw"]).to_numpy(dtype=float)
+
+    # EWMA bias (ưu tiên ngày gần nhất)
+    ewm_bias = float(pd.Series(errors).ewm(alpha=0.45, adjust=True).mean().iloc[-1])
+    bias_corr = round(0.25 * ewm_bias, 3)
+
+    comp_cols = ["arima", "holt_winters", "theta", "grey_gm11", "rl_fgm", "fourier_ridge", "kalman_ucm"]
+    live_weights: Dict[str, float] = {}
+    inv_rmses = {}
+    for c in comp_cols:
+        if c in merged.columns and merged[c].notna().any():
+            valid = merged[merged[c].notna()]
+            rmse_c = float(np.sqrt(np.mean((valid["Thuc_te"] - valid[c]) ** 2)))
+            inv_rmses[c] = 1.0 / max(rmse_c, 1e-3)
+    if len(inv_rmses) == len(comp_cols):
+        tot = sum(inv_rmses.values())
+        live_weights = {k: round(v / tot, 4) for k, v in inv_rmses.items()}
+
+    live_mae = round(float(np.mean(np.abs(errors))), 3)
+    live_rmse = round(float(np.sqrt(np.mean(errors**2))), 3)
+
+    return {
+        "matched_days": int(len(merged)),
+        "live_mae": live_mae,
+        "live_rmse": live_rmse,
+        "bias_ewm": round(ewm_bias, 3),
+        "bias_correction": bias_corr,
+        "live_weights": live_weights,
+        "note": (
+            f"Đã tự học từ {len(merged)} kỳ dự báo trước "
+            f"(Live MAE={live_mae}, RMSE={live_rmse}, hiệu chỉnh bias={bias_corr:+.2f})."
+        ),
+    }
 
 
 def evaluate_recent_forecasts(df: pd.DataFrame, target_col: str, model_choice: str) -> pd.DataFrame:
