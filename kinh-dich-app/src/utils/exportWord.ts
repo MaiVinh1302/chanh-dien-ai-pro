@@ -184,35 +184,45 @@ export async function exportBaziWord(
   downloadBlob(blob, "Bao_Cao_Bat_Tu_Hop_Tuoi.docx");
 }
 
-export async function exportZiweiWord(zwChart: {
-  yearCanChi: string;
-  gender: string;
-  napAm: string;
-  cucName: string;
-  menhBranch: string;
-  thanCung: string;
-  thanBranch: string;
-  tuHoa: { loc: string; quyen: string; khoa: string; ky: string };
-  palaces: { branch: string; stem: string; cung: string; isThan: boolean; stars: string[] }[];
-  detailedAnalysis: { title: string; body: string }[];
-}) {
+export async function exportZiweiWord(
+  zwChart: {
+    fullName?: string;
+    lunarDateStr?: string;
+    yearCanChi: string;
+    gender: string;
+    napAm: string;
+    cucName: string;
+    menhBranch: string;
+    thanCung: string;
+    thanBranch: string;
+    tuHoa: { loc: string; quyen: string; khoa: string; ky: string };
+    palaces: {
+      branch: string; stem: string; cung: string; isThan: boolean;
+      isTuan?: boolean; isTriet?: boolean; trangSinh?: string; daiHan?: string;
+      stars: string[]; auxStars?: string[]; satStars?: string[];
+    }[];
+    detailedAnalysis: { title: string; body: string }[];
+  },
+  synastry?: { modeLabel: string; summary: string; targetCompare: string; tuHoaInteraction: string } | null
+) {
   const doc = new Document({
     sections: [
       {
         children: [
-          new Paragraph({ text: "BÁO CÁO LÁ SỐ TỬ VI ĐẨU SỐ", heading: HeadingLevel.HEADING_1 }),
-          new Paragraph(`Tuổi: ${zwChart.yearCanChi} (${zwChart.gender}) | Bản Mệnh: ${zwChart.napAm} | Cục: ${zwChart.cucName}`),
+          new Paragraph({ text: `BÁO CÁO LÁ SỐ TỬ VI ĐẨU SỐ — ${zwChart.fullName ?? "Đương số"}`, heading: HeadingLevel.HEADING_1 }),
+          new Paragraph(`Âm lịch: ${zwChart.lunarDateStr ?? ""} | Tuổi: ${zwChart.yearCanChi} (${zwChart.gender}) | Bản Mệnh: ${zwChart.napAm} | Cục: ${zwChart.cucName}`),
           new Paragraph(`Mệnh tại: ${zwChart.menhBranch} | Thân cư: ${zwChart.thanCung} (${zwChart.thanBranch})`),
           new Paragraph(
             `Tứ Hóa Can Năm: Lộc (${zwChart.tuHoa.loc}) · Quyền (${zwChart.tuHoa.quyen}) · Khoa (${zwChart.tuHoa.khoa}) · Kỵ (${zwChart.tuHoa.ky})`
           ),
           new Paragraph({ text: "Bảng 12 Cung Mệnh Bàn", heading: HeadingLevel.HEADING_2 }),
           makeTable(
-            ["Cung Chức", "Can Chi", "Chính Tinh & Tứ Hóa"],
+            ["Cung Chức", "Can Chi / ĐH", "Chính Tinh", "Phụ / Sát Tinh & Tuần Triệt"],
             zwChart.palaces.map((p) => [
               `${p.cung}${p.isThan ? " (Thân)" : ""}`,
-              `${p.stem} ${p.branch}`,
+              `${p.stem} ${p.branch} (${p.trangSinh ?? ""}) ĐH:${p.daiHan ?? ""}`,
               p.stars.join(", ") || "(Vô Chính Diệu)",
+              [...(p.auxStars ?? []), ...(p.satStars ?? []), p.isTuan ? "Tuần" : "", p.isTriet ? "Triệt" : ""].filter(Boolean).join(", ") || "—",
             ])
           ),
           new Paragraph({ text: "Luận giải chuyên sâu", heading: HeadingLevel.HEADING_2 }),
@@ -220,6 +230,14 @@ export async function exportZiweiWord(zwChart: {
             new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
             new Paragraph(s.body),
           ]),
+          ...(synastry
+            ? [
+                new Paragraph({ text: `Song Bàn Đối Chiếu (${synastry.modeLabel})`, heading: HeadingLevel.HEADING_2 }),
+                new Paragraph(synastry.summary),
+                new Paragraph(synastry.targetCompare),
+                new Paragraph(synastry.tuHoaInteraction),
+              ]
+            : []),
         ],
       },
     ],

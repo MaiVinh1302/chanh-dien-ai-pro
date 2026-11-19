@@ -18,6 +18,7 @@ import {
   calcTrachNhat,
   calcTrueSolarTime,
   calcZiweiChart,
+  calcZiweiSynastry,
   castThiSach,
   castThreeCoins,
   compareAges,
@@ -97,12 +98,22 @@ export default function App() {
   const [selectedHex, setSelectedHex] = useState<Hexagram>(HEXAGRAMS[0]);
 
   // ZiWei tab state
+  const [zwName, setZwName] = useState("Đương số");
+  const [zwCalType, setZwCalType] = useState<"solar" | "lunar">("solar");
   const [zwYear, setZwYear] = useState(1990);
-  const [zwMonth, setZwMonth] = useState(5);
+  const [zwMonth, setZwMonth] = useState(6);
   const [zwDay, setZwDay] = useState(15);
-  const [zwHourIdx, setZwHourIdx] = useState(5);
   const [zwGender, setZwGender] = useState<"Nam" | "Nữ">("Nam");
   const [zwViewYear, setZwViewYear] = useState(2026);
+  const [zwCalibrate, setZwCalibrate] = useState(false);
+  const [zwSynastryOn, setZwSynastryOn] = useState(false);
+  const [zwSynMode, setZwSynMode] = useState<"hon_nhan" | "hop_tac">("hon_nhan");
+  const [zwBName, setZwBName] = useState("Đối tác / Phối ngẫu");
+  const [zwBYear, setZwBYear] = useState(1992);
+  const [zwBMonth, setZwBMonth] = useState(8);
+  const [zwBDay, setZwBDay] = useState(10);
+  const [zwBHourIdx, setZwBHourIdx] = useState(6);
+  const [zwBGender, setZwBGender] = useState<"Nam" | "Nữ">("Nữ");
 
   // Feng Shui tab state
   const [birthYear, setBirthYear] = useState(1990);
@@ -206,15 +217,53 @@ export default function App() {
   const zwChart = useMemo(
     () =>
       calcZiweiChart({
-        lunarYear: zwYear,
-        lunarMonth: zwMonth,
-        lunarDay: zwDay,
-        hourBranchIdx: zwHourIdx,
+        fullName: zwName,
+        calendarType: zwCalType,
+        year: zwYear,
+        month: zwMonth,
+        day: zwDay,
+        hourBranchIdx: solarTime.branchIdx,
         gender: zwGender,
         viewYear: zwViewYear,
       }),
-    [zwYear, zwMonth, zwDay, zwHourIdx, zwGender, zwViewYear]
+    [zwName, zwCalType, zwYear, zwMonth, zwDay, solarTime.branchIdx, zwGender, zwViewYear]
   );
+
+  const zwCalibrateCharts = useMemo(() => {
+    if (!zwCalibrate) return [];
+    return [-1, 0, 1].map((delta) => {
+      const hIdx = (((solarTime.branchIdx + delta) % 12) + 12) % 12;
+      return {
+        label: delta === -1 ? "Canh trước" : delta === 0 ? "Giờ hiện tại" : "Canh sau",
+        hourBranch: BRANCHES[hIdx],
+        chart: calcZiweiChart({
+          fullName: zwName,
+          calendarType: zwCalType,
+          year: zwYear,
+          month: zwMonth,
+          day: zwDay,
+          hourBranchIdx: hIdx,
+          gender: zwGender,
+          viewYear: zwViewYear,
+        }),
+      };
+    });
+  }, [zwCalibrate, zwName, zwCalType, zwYear, zwMonth, zwDay, solarTime.branchIdx, zwGender, zwViewYear]);
+
+  const zwSynastry = useMemo(() => {
+    if (!zwSynastryOn) return null;
+    const chartB = calcZiweiChart({
+      fullName: zwBName,
+      calendarType: zwCalType,
+      year: zwBYear,
+      month: zwBMonth,
+      day: zwBDay,
+      hourBranchIdx: zwBHourIdx,
+      gender: zwBGender,
+      viewYear: zwViewYear,
+    });
+    return calcZiweiSynastry(zwChart, chartB, zwSynMode);
+  }, [zwSynastryOn, zwBName, zwCalType, zwBYear, zwBMonth, zwBDay, zwBHourIdx, zwBGender, zwViewYear, zwChart, zwSynMode]);
 
   const batTrach = useMemo(() => calcBatTrach(birthYear, gender), [birthYear, gender]);
   const buildAge = useMemo(() => calcBuildAgeCheck(birthYear, fsViewYear), [birthYear, fsViewYear]);
@@ -572,59 +621,140 @@ export default function App() {
 
       {tab === "ziwei" && (
         <div className="grid-2">
-          <div className="card">
-            <h2>Thông tin Lập Lá Số Tử Vi (Âm Lịch)</h2>
-            <div className="row">
-              <div>
-                <label>Năm sinh (AL)</label>
-                <input type="number" value={zwYear} onChange={(e) => setZwYear(Number(e.target.value) || 1990)} />
+          <div>
+            <div className="card">
+              <h2>Thông tin Lập Lá Số Tử Vi</h2>
+              <div className="row">
+                <div>
+                  <label>Họ tên đương số</label>
+                  <input value={zwName} onChange={(e) => setZwName(e.target.value)} />
+                </div>
+                <div>
+                  <label>Loại lịch nhập</label>
+                  <select value={zwCalType} onChange={(e) => setZwCalType(e.target.value as "solar" | "lunar")}>
+                    <option value="solar">Dương lịch (Tự đổi ÂL)</option>
+                    <option value="lunar">Âm lịch</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label>Tháng (AL)</label>
-                <input type="number" min={1} max={12} value={zwMonth} onChange={(e) => setZwMonth(Math.min(12, Math.max(1, Number(e.target.value) || 1)))} />
+
+              <div className="row">
+                <div>
+                  <label>Năm sinh</label>
+                  <input type="number" value={zwYear} onChange={(e) => setZwYear(Number(e.target.value) || 1990)} />
+                </div>
+                <div>
+                  <label>Tháng</label>
+                  <input type="number" min={1} max={12} value={zwMonth} onChange={(e) => setZwMonth(Math.min(12, Math.max(1, Number(e.target.value) || 1)))} />
+                </div>
+                <div>
+                  <label>Ngày</label>
+                  <input type="number" min={1} max={31} value={zwDay} onChange={(e) => setZwDay(Math.min(31, Math.max(1, Number(e.target.value) || 1)))} />
+                </div>
               </div>
-              <div>
-                <label>Ngày (AL)</label>
-                <input type="number" min={1} max={30} value={zwDay} onChange={(e) => setZwDay(Math.min(30, Math.max(1, Number(e.target.value) || 1)))} />
+
+              <div className="row">
+                <div>
+                  <label>Giờ:Phút sinh</label>
+                  <input type="time" value={birthClock} onChange={(e) => setBirthClock(e.target.value)} />
+                </div>
+                <div>
+                  <label>Giới tính</label>
+                  <select value={zwGender} onChange={(e) => setZwGender(e.target.value as "Nam" | "Nữ")}>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Năm xem (Lưu Niên)</label>
+                  <input type="number" value={zwViewYear} onChange={(e) => setZwViewYear(Number(e.target.value) || 2026)} />
+                </div>
               </div>
-            </div>
-            <div className="row">
-              <div>
-                <label>Giờ sinh (Địa Chi)</label>
-                <select value={zwHourIdx} onChange={(e) => setZwHourIdx(Number(e.target.value))}>
-                  {BRANCHES.map((b, i) => (
-                    <option key={b} value={i}>
-                      Giờ {b}
-                    </option>
-                  ))}
-                </select>
+
+              <label>Tỉnh / Thành nơi sinh (Giờ Chân Thái Dương)</label>
+              <select value={provinceName} onChange={(e) => setProvinceName(e.target.value)}>
+                {VN_PROVINCES.map((p) => (
+                  <option key={p.name} value={p.name}>{p.name} ({p.region})</option>
+                ))}
+              </select>
+              <div className="muted" style={{ fontSize: "0.78rem", marginBottom: 8 }}>
+                Chân Thái Dương: <strong>{solarTime.formatted} → Giờ {BRANCHES[solarTime.branchIdx]}</strong> · Âm lịch: <strong>{zwChart.lunarDateStr}</strong>
               </div>
-              <div>
-                <label>Giới tính</label>
-                <select value={zwGender} onChange={(e) => setZwGender(e.target.value as "Nam" | "Nữ")}>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                </select>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                <button className={`tab-btn ${zwCalibrate ? "active" : ""}`} onClick={() => setZwCalibrate(!zwCalibrate)}>
+                  Biện chứng giờ sinh
+                </button>
+                <button className={`tab-btn ${zwSynastryOn ? "active" : ""}`} onClick={() => setZwSynastryOn(!zwSynastryOn)}>
+                  Song Bàn Đối Chiếu
+                </button>
               </div>
-              <div>
-                <label>Năm xem (Lưu Niên)</label>
-                <input type="number" value={zwViewYear} onChange={(e) => setZwViewYear(Number(e.target.value) || 2026)} />
+
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                <div><strong>Can Chi:</strong> {zwChart.yearCanChi} ({zwChart.gender}) · <strong>{zwChart.cucName}</strong></div>
+                <div><strong>Bản Mệnh:</strong> {zwChart.napAm} · <strong>Thân cư:</strong> {zwChart.thanCung} ({zwChart.thanBranch})</div>
+                {zwChart.patterns.length > 0 && (
+                  <div style={{ marginTop: 6 }}>
+                    {zwChart.patterns.map((pt) => (
+                      <span key={pt} className="badge badge-gold" style={{ marginRight: 4, marginBottom: 4 }}>{pt}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-              <div><strong>Can Chi:</strong> {zwChart.yearCanChi} ({zwChart.gender})</div>
-              <div><strong>Bản Mệnh:</strong> {zwChart.napAm}</div>
-              <div><strong>Cục Số:</strong> {zwChart.cucName}</div>
-              <div><strong>Thân cư:</strong> {zwChart.thanCung} ({zwChart.thanBranch})</div>
-              <div className="muted" style={{ marginTop: 8 }}>{zwChart.mainTraitSummary}</div>
-            </div>
+            {zwSynastryOn && (
+              <div className="card">
+                <h3>Song Bàn Đối Chiếu (Người B)</h3>
+                <div className="row">
+                  <div>
+                    <label>Tên Người B</label>
+                    <input value={zwBName} onChange={(e) => setZwBName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Mục đích</label>
+                    <select value={zwSynMode} onChange={(e) => setZwSynMode(e.target.value as "hon_nhan" | "hop_tac")}>
+                      <option value="hon_nhan">Hợp Hôn / Tình Duyên</option>
+                      <option value="hop_tac">Đối Tác Làm Ăn</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="row">
+                  <div><label>Năm</label><input type="number" value={zwBYear} onChange={(e) => setZwBYear(Number(e.target.value) || 1992)} /></div>
+                  <div><label>Tháng</label><input type="number" min={1} max={12} value={zwBMonth} onChange={(e) => setZwBMonth(Number(e.target.value) || 1)} /></div>
+                  <div><label>Ngày</label><input type="number" min={1} max={31} value={zwBDay} onChange={(e) => setZwBDay(Number(e.target.value) || 1)} /></div>
+                </div>
+                <div className="row">
+                  <div>
+                    <label>Giờ sinh B</label>
+                    <select value={zwBHourIdx} onChange={(e) => setZwBHourIdx(Number(e.target.value))}>
+                      {BRANCHES.map((b, i) => (<option key={b} value={i}>Giờ {b}</option>))}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Giới tính B</label>
+                    <select value={zwBGender} onChange={(e) => setZwBGender(e.target.value as "Nam" | "Nữ")}>
+                      <option value="Nữ">Nữ</option>
+                      <option value="Nam">Nam</option>
+                    </select>
+                  </div>
+                </div>
+                {zwSynastry && (
+                  <div className="muted" style={{ fontSize: "0.84rem", borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+                    <div style={{ color: "var(--gold)", fontWeight: 700 }}>{zwSynastry.modeLabel}</div>
+                    <div>• {zwSynastry.summary}</div>
+                    <div>• {zwSynastry.targetCompare}</div>
+                    <div>• {zwSynastry.tuHoaInteraction}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <h2 style={{ margin: 0 }}>Mệnh Bàn 12 Cung (14 Chính Tinh & Tứ Hóa)</h2>
-              <button className="btn-ghost" onClick={() => exportZiweiWord(zwChart)}>
+              <h2 style={{ margin: 0 }}>Mệnh Bàn 12 Cung ({zwChart.fullName})</h2>
+              <button className="btn-ghost" onClick={() => exportZiweiWord(zwChart, zwSynastry)}>
                 ⬇ Tải Word (.docx)
               </button>
             </div>
@@ -633,14 +763,22 @@ export default function App() {
                 if (bIdx === -1) {
                   return (
                     <div className="zw-center" key={`center-${i}`}>
-                      <div style={{ color: "var(--gold)", fontWeight: 700, fontSize: "1.05rem", marginBottom: 6 }}>
-                        THIÊN BÀN TỬ VI
+                      <div style={{ color: "var(--gold)", fontWeight: 700, fontSize: "1.02rem", marginBottom: 4 }}>
+                        THIÊN BÀN TỬ VI · {zwChart.fullName}
                       </div>
-                      <div className="muted">Năm: {zwChart.yearCanChi} · {zwChart.napAm}</div>
-                      <div className="muted">Cục: {zwChart.cucName} · Mệnh tại {zwChart.menhBranch}</div>
-                      <div style={{ marginTop: 8, fontSize: "0.82rem" }}>
-                        <strong>Tứ Hóa Can Năm:</strong> Lộc ({zwChart.tuHoa.loc}) · Quyền ({zwChart.tuHoa.quyen}) · Khoa ({zwChart.tuHoa.khoa}) · Kỵ ({zwChart.tuHoa.ky})
+                      <div className="muted">ÂL: {zwChart.lunarDateStr} ({zwChart.yearCanChi})</div>
+                      <div className="muted">{zwChart.napAm} · {zwChart.cucName}</div>
+                      <div style={{ marginTop: 6, fontSize: "0.8rem" }}>
+                        <strong>Tứ Hóa:</strong> Lộc ({zwChart.tuHoa.loc}) · Quyền ({zwChart.tuHoa.quyen}) · Khoa ({zwChart.tuHoa.khoa}) · Kỵ ({zwChart.tuHoa.ky})
                       </div>
+                      <div className="muted" style={{ fontSize: "0.78rem", marginTop: 2 }}>
+                        <strong>Lưu {zwViewYear}:</strong> L.Lộc ({zwChart.luuTuHoa.loc}) · L.Kỵ ({zwChart.luuTuHoa.ky})
+                      </div>
+                      {zwChart.diepGia.length > 0 && (
+                        <div style={{ fontSize: "0.76rem", color: "var(--gold)", marginTop: 4 }}>
+                          {zwChart.diepGia.join(" | ")}
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -662,16 +800,17 @@ export default function App() {
                         <span className="muted">(Vô Chính Diệu)</span>
                       )}
                       {p.auxStars.length > 0 && (
-                        <div style={{ fontSize: "0.75rem", color: "var(--cat)" }}>{p.auxStars.join(", ")}</div>
+                        <div style={{ fontSize: "0.74rem", color: "var(--cat)" }}>{p.auxStars.join(", ")}</div>
                       )}
                       {p.satStars.length > 0 && (
-                        <div style={{ fontSize: "0.75rem", color: "var(--hung)" }}>{p.satStars.join(", ")}</div>
+                        <div style={{ fontSize: "0.74rem", color: "var(--hung)" }}>{p.satStars.join(", ")}</div>
                       )}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginTop: 4 }} className="muted">
-                      <span>ĐH: {p.daiHan}</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", marginTop: 4 }} className="muted">
+                      <span>{p.trangSinh} · ĐH {p.daiHan}</span>
                       <span>
-                        {p.isTuan ? "[Tuần] " : ""}
+                        {p.isTuan ? "[Tuần]" : ""}
+                        {p.isTriet ? "[Triệt]" : ""}
                         {p.isLuuThaiTue ? `★${zwViewYear}` : ""}
                       </span>
                     </div>
@@ -679,6 +818,22 @@ export default function App() {
                 );
               })}
             </div>
+
+            {zwCalibrate && zwCalibrateCharts.length > 0 && (
+              <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                <h3 style={{ margin: "0 0 8px", color: "var(--accent)" }}>Biện Chứng Định Giờ Sinh (Đối chiếu 3 canh giờ)</h3>
+                <div className="hex-boxes" style={{ marginBottom: 0 }}>
+                  {zwCalibrateCharts.map((c) => (
+                    <div className="hex-box" key={c.hourBranch}>
+                      <div className="tag">{c.label} · Giờ {c.hourBranch}</div>
+                      <div className="name">Mệnh tại {c.chart.menhBranch}</div>
+                      <div className="muted" style={{ fontSize: "0.8rem" }}>{c.chart.mainTraitSummary}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
               <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Bình Giải Chi Tiết Lá Số</h3>
               {zwChart.detailedAnalysis.map((s) => (
