@@ -813,3 +813,118 @@ def recommend_numbers_for_date(
         "top_momentum": top_momentum,
         "top_gan": top_gan,
     }
+
+
+PRIZE_SLOTS: List[Tuple[str, str]] = [
+    ("G.ĐB", "Giải Đặc Biệt"),
+    ("G.1", "Giải Nhất"),
+    ("G.2", "Giải Nhì (1)"),
+    ("G.2", "Giải Nhì (2)"),
+    ("G.3", "Giải Ba (1)"),
+    ("G.3", "Giải Ba (2)"),
+    ("G.3", "Giải Ba (3)"),
+    ("G.3", "Giải Ba (4)"),
+    ("G.3", "Giải Ba (5)"),
+    ("G.3", "Giải Ba (6)"),
+    ("G.4", "Giải Tư (1)"),
+    ("G.4", "Giải Tư (2)"),
+    ("G.4", "Giải Tư (3)"),
+    ("G.4", "Giải Tư (4)"),
+    ("G.5", "Giải Năm (1)"),
+    ("G.5", "Giải Năm (2)"),
+    ("G.5", "Giải Năm (3)"),
+    ("G.5", "Giải Năm (4)"),
+    ("G.5", "Giải Năm (5)"),
+    ("G.5", "Giải Năm (6)"),
+    ("G.6", "Giải Sáu (1)"),
+    ("G.6", "Giải Sáu (2)"),
+    ("G.6", "Giải Sáu (3)"),
+    ("G.7", "Giải Bảy (1)"),
+    ("G.7", "Giải Bảy (2)"),
+    ("G.7", "Giải Bảy (3)"),
+    ("G.7", "Giải Bảy (4)"),
+]
+
+
+def forecast_all_27_prizes(df: pd.DataFrame, horizon: int = 14) -> pd.DataFrame:
+    """
+    Dự báo 2 số cuối (00–99) cho toàn bộ 27 vị trí giải (G.ĐB -> G.7)
+    trong `horizon` ngày tiếp theo, dùng tổ hợp (Holt-Winters + Theta + Grey GM(1,1) + Fourier Ridge)
+    kết hợp GRA để gợi ý Top 3 ứng viên cho từng vị trí.
+    """
+    sub = df.sort_values("date").reset_index(drop=True)
+    if sub.empty:
+        return pd.DataFrame()
+
+    # Xây dựng ma trận N x 27
+    mat = []
+    valid_dates = []
+    for _, row in sub.iterrows():
+        parts = [x.strip() for x in str(row["loto_27"]).split(",") if x.strip()]
+        if len(parts) == 27:
+            mat.append([int(x) for x in parts])
+            valid_dates.append(row["date"])
+
+    if not mat:
+        return pd.DataFrame()
+
+    mat_arr = np.array(mat, dtype=float)
+    date_idx = pd.to_datetime(valid_dates)
+    full_idx = pd.date_range(start=date_idx.min(), end=date_idx.max(), freq="D")
+    last_date = full_idx.max()
+    future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=horizon, freq="D")
+    weekday_map = {0: "Thứ 2", 1: "Thứ 3", 2: "Thứ 4", 3: "Thứ 5", 4: "Thứ 6", 5: "Thứ 7", 6: "Chủ Nhật"}
+
+    loto_df = analyze_loto_00_99(sub, window=min(200, len(sub)))
+    gra_map = dict(zip(loto_df["So"], loto_df["Diem_chu_y"]))
+
+    rows = []
+    for pos_idx, (tier, slot_name) in enumerate(PRIZE_SLOTS):
+        s_raw = pd.Series(mat_arr[:, pos_idx], index=date_idx)
+        s = s_raw.reindex(full_idx).interpolate(method="linear").bfill().ffill()
+
+        hw_p, hw_lo, hw_hi = forecast_holt_winters(s, horizon, "de_2so")
+        th_p, th_lo, th_hi = forecast_theta_seasonal(s, horizon, "de_2so")
+        gm_p, gm_lo, gm_hi = forecast_grey_gm11(s, horizon, "de_2so")
+        fr_p, fr_lo, fr_hi = forecast_fourier_ridge(s, horizon, "de_2so")
+
+        ens = np.clip(0.30 * hw_p + 0.30 * th_p + 0.20 * gm_p + 0.20 * fr_p, 0, 99)
+        lo = np.clip(0.30 * hw_lo + 0.30 * th_lo + 0.20 * gm_lo + 0.20 * fr_lo, 0, 99)
+        hi = np.clip(0.30 * hw_hi + 0.30 * th_hi + 0.20 * gm_hi + 0.20 * fr_hi, 0, 99)
+
+        # Tần suất xuất hiện tại đúng vị trí giải này
+        pos_counts = pd.Series(mat_arr[:, pos_idx].astype(int)).value_counts().to_dict()
+
+        for step_idx in range(horizon):
+            center = float(ens[step_idx])
+            center_int = int(round(center))
+            # Chấm điểm Top 3 ứng viên quanh vùng trung tâm của giải + GRA + tần suất vị trí
+            cand_scores = []
+            for num in range(100):
+                code = f"{num:02d}"
+                dist_score = max(0.0, 50.0 - 1.5 * abs(num - center))
+                gra_sc = 0.35 * float(gra_map.get(code, 50.0))
+                pos_sc = min(15.0, float(pos_counts.get(num, 0)) * 3.0)
+                cand_scores.append((dist_score + gra_sc + pos_sc, code))
+            cand_scores.sort(reverse=True)
+            top3 = ", ".join(c[1] for c in cand_scores[:3])
+
+            fut_dt = future_dates[step_idx]
+            rows.append(
+                {
+                    "day_ahead": step_idx + 1,
+                    "date": fut_dt.strftime("%Y-%m-%d"),
+                    "date_vn": fut_dt.strftime("%d/%m/%Y"),
+                    "weekday_vn": weekday_map[fut_dt.dayofweek],
+                    "pos_idx": pos_idx + 1,
+                    "tier": tier,
+                    "slot_name": slot_name,
+                    "forecast_2so": f"{center_int:02d}",
+                    "forecast_raw": round(center, 2),
+                    "lower_80": round(float(lo[step_idx]), 1),
+                    "upper_80": round(float(hi[step_idx]), 1),
+                    "top3_candidates": top3,
+                }
+            )
+
+    return pd.DataFrame(rows)

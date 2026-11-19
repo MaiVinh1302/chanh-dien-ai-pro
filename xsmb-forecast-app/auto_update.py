@@ -8,6 +8,7 @@ from pathlib import Path
 from src.forecaster import (
     TARGET_CONFIG,
     analyze_loto_00_99,
+    forecast_all_27_prizes,
     run_backtest,
     run_forecast,
     save_forecast_snapshot,
@@ -57,6 +58,7 @@ def main(force_check: bool = True) -> None:
         "forecasts": {},
         "backtests": {},
         "loto_stats": analyze_loto_00_99(df, window=min(200, len(df))).to_dict("records"),
+        "all_prizes_14d": forecast_all_27_prizes(df, horizon=14).to_dict("records"),
     }
 
     for target_col in list(TARGET_CONFIG.keys()):

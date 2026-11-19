@@ -12,6 +12,7 @@ from src.forecaster import (
     TARGET_CONFIG,
     analyze_loto_00_99,
     evaluate_recent_forecasts,
+    forecast_all_27_prizes,
     recommend_numbers_for_date,
     run_backtest,
     run_forecast,
@@ -249,9 +250,10 @@ with st.container(border=True):
                 hide_index=True,
             )
 
-tab1, tab2, tab3, tab4 = st.tabs(
+tab1, tab5, tab2, tab3, tab4 = st.tabs(
     [
         "📈 Dự báo Các Ngày Tiếp Theo",
+        "🎰 Dự báo 27 Giải (G.ĐB → G.7)",
         "🧪 Kiểm thử & Đối chiếu Dự báo",
         "🔥 Thống kê Tần suất & Loto Gan (00–99)",
         "🗂️ Dữ liệu Lịch sử 27 Giải",
@@ -474,3 +476,72 @@ with tab4:
         file_name="xsmb_history.csv",
         mime="text/csv",
     )
+
+# ---------------- TAB 5: ALL 27 PRIZES FORECAST ----------------
+with tab5:
+    st.subheader("🎰 Dự báo 2 Số Cuối Của Tất Cả 27 Giải (G.ĐB → G.7)")
+    st.caption(
+        "Mỗi vị trí giải (từ G.ĐB đến G.7.4) được dự báo độc lập bằng tổ hợp Holt-Winters + Theta + Grey GM(1,1) + Fourier Ridge, "
+        "kết hợp GRA để gợi ý Top 3 cặp số ứng viên tại từng giải."
+    )
+
+    p_col1, p_col2 = st.columns([2, 1])
+    with p_col1:
+        prize_day_ahead = st.slider("Chọn ngày dự báo 27 giải (+ngày tới)", min_value=1, max_value=14, value=1, step=1)
+    with p_col2:
+        st.markdown("<div style='height: 24px'></div>", unsafe_allow_html=True)
+        run_27_btn = st.button("🚀 Tính dự báo 27 giải", use_container_width=True)
+
+    if run_27_btn or "all_27_df" not in st.session_state or st.session_state.get("all_27_base") != based_on_date:
+        with st.spinner("Đang mô hình hóa chuỗi thời gian cho cả 27 vị trí giải..."):
+            st.session_state["all_27_df"] = forecast_all_27_prizes(df, horizon=14)
+            st.session_state["all_27_base"] = based_on_date
+
+    all_27_df = st.session_state["all_27_df"]
+    if not all_27_df.empty:
+        day_27 = all_27_df[all_27_df["day_ahead"] == prize_day_ahead].copy()
+        if not day_27.empty:
+            st.info(f"📅 **Bảng dự kiến 2 số cuối 27 giải cho ngày `{day_27['date_vn'].iloc[0]}` ({day_27['weekday_vn'].iloc[0]})**")
+
+            # Tóm tắt theo từng hạng giải (G.ĐB -> G.7)
+            tier_rows = []
+            for t_name in ["G.ĐB", "G.1", "G.2", "G.3", "G.4", "G.5", "G.6", "G.7"]:
+                sub_t = day_27[day_27["tier"] == t_name]
+                tier_rows.append(
+                    {
+                        "Hạng giải": t_name,
+                        "2 số cuối dự kiến": "  |  ".join(sub_t["forecast_2so"].tolist()),
+                        "Gợi ý ứng viên (Top theo vị trí)": " ; ".join(
+                            [f"({r['slot_name']}: {r['top3_candidates']})" for _, r in sub_t.iterrows()]
+                        ),
+                    }
+                )
+            st.dataframe(pd.DataFrame(tier_rows), use_container_width=True, hide_index=True)
+
+            st.markdown("#### Chi tiết từng vị trí giải (1 → 27)")
+            st.dataframe(
+                day_27[
+                    ["pos_idx", "tier", "slot_name", "forecast_2so", "forecast_raw", "lower_80", "upper_80", "top3_candidates"]
+                ].rename(
+                    columns={
+                        "pos_idx": "STT",
+                        "tier": "Giải",
+                        "slot_name": "Vị trí",
+                        "forecast_2so": "2 số cuối dự kiến",
+                        "forecast_raw": "Kỳ vọng",
+                        "lower_80": "Cận dưới 80%",
+                        "upper_80": "Cận trên 80%",
+                        "top3_candidates": "Top 3 ứng viên (Vị trí + GRA)",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            csv_27 = day_27.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                "⬇️ Tải bảng dự báo 27 giải (.csv)",
+                data=csv_27,
+                file_name=f"xsmb_27_prizes_{day_27['date'].iloc[0]}.csv",
+                mime="text/csv",
+            )
