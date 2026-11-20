@@ -1,68 +1,70 @@
 {
   "sync_info": {
     "checked": true,
-    "updated": false,
-    "added_count": 0,
-    "added_dates": [],
-    "last_checked_at": "19/11/2026 16:14:20",
-    "latest_data_date": "2026-11-18",
-    "expected_date": "2026-11-18",
-    "status": "Chưa có kết quả ngày mới (mới nhất vẫn là 18/11/2026)"
+    "updated": true,
+    "added_count": 1,
+    "added_dates": [
+      "19/11/2026"
+    ],
+    "last_checked_at": "20/11/2026 08:36:08",
+    "latest_data_date": "2026-11-19",
+    "expected_date": "2026-11-19",
+    "status": "Đã tự động cập nhật thêm 1 kỳ mới: 19/11/2026"
   },
-  "based_on_date": "2026-11-18",
-  "total_records": 200,
+  "based_on_date": "2026-11-19",
+  "total_records": 201,
   "forecasts": {
     "de_2so": {
       "label": "2 số cuối Giải Đặc Biệt (Đề: 00–99)",
-      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=0.5) + Fourier + Kalman)",
+      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=1.0) + Fourier + Kalman)",
       "next_3_days": [
-        {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 38,
-          "lower_80": 10.59,
-          "upper_80": 80.8
-        },
         {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 41,
-          "lower_80": 10.66,
-          "upper_80": 87.33
+          "forecast": 54,
+          "lower_80": 14.76,
+          "upper_80": 84.98
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
-          "forecast": 37,
-          "lower_80": 5.87,
-          "upper_80": 82.91
+          "forecast": 49,
+          "lower_80": 8.11,
+          "upper_80": 85.08
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 51,
+          "lower_80": 9.81,
+          "upper_80": 87.22
         }
       ]
     },
     "dau_de": {
       "label": "Chữ số Đầu Giải Đặc Biệt (0–9)",
-      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=1.0) + Fourier + Kalman)",
+      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=0.75) + Fourier + Kalman)",
       "next_3_days": [
-        {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 4,
-          "lower_80": 0.65,
-          "upper_80": 7.65
-        },
         {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 4,
-          "lower_80": 0.74,
-          "upper_80": 8.16
+          "forecast": 5,
+          "lower_80": 0.89,
+          "upper_80": 7.86
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
-          "forecast": 4,
-          "lower_80": 0.33,
-          "upper_80": 7.79
+          "forecast": 5,
+          "lower_80": 0.43,
+          "upper_80": 7.77
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 5,
+          "lower_80": 0.57,
+          "upper_80": 7.92
         }
       ]
     },
@@ -71,106 +73,106 @@
       "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=1.0) + Fourier + Kalman)",
       "next_3_days": [
         {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 4,
-          "lower_80": 0.75,
-          "upper_80": 7.55
-        },
-        {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 5,
-          "lower_80": 1.12,
-          "upper_80": 8.08
+          "forecast": 6,
+          "lower_80": 1.78,
+          "upper_80": 8.35
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
-          "forecast": 4,
-          "lower_80": 0.34,
-          "upper_80": 7.54
+          "forecast": 5,
+          "lower_80": 0.66,
+          "upper_80": 7.93
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 5,
+          "lower_80": 0.8,
+          "upper_80": 8.12
         }
       ]
     },
     "tong_de": {
       "label": "Tổng 2 số cuối Giải Đặc Biệt (0–18)",
-      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=1.0) + Fourier + Kalman)",
+      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=0.75) + Fourier + Kalman)",
       "next_3_days": [
-        {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 8,
-          "lower_80": 3.81,
-          "upper_80": 13.1
-        },
         {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 9,
-          "lower_80": 3.68,
-          "upper_80": 14.27
+          "forecast": 11,
+          "lower_80": 4.69,
+          "upper_80": 14.13
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
-          "forecast": 8,
-          "lower_80": 2.64,
-          "upper_80": 13.55
+          "forecast": 10,
+          "lower_80": 3.08,
+          "upper_80": 13.85
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 10,
+          "lower_80": 3.12,
+          "upper_80": 14.2
         }
       ]
     },
     "loto_mean": {
       "label": "Trung bình cộng 27 giải Loto (0–99)",
-      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=0.75) + Fourier + Kalman)",
+      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=1.0) + Fourier + Kalman)",
       "next_3_days": [
-        {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 47.1,
-          "lower_80": 40.37,
-          "upper_80": 53.83
-        },
         {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 47.45,
-          "lower_80": 39.8,
-          "upper_80": 55.11
+          "forecast": 51.41,
+          "lower_80": 43.07,
+          "upper_80": 56.11
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
-          "forecast": 48.0,
-          "lower_80": 39.69,
-          "upper_80": 56.31
+          "forecast": 52.18,
+          "lower_80": 43.23,
+          "upper_80": 57.9
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 49.9,
+          "lower_80": 40.55,
+          "upper_80": 56.38
         }
       ]
     },
     "even_count": {
       "label": "Số lượng Loto Chẵn trong ngày (0–27)",
-      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=1.0) + Fourier + Kalman)",
+      "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=0.25) + Fourier + Kalman)",
       "next_3_days": [
-        {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 14,
-          "lower_80": 10.68,
-          "upper_80": 17.07
-        },
         {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
           "forecast": 14,
-          "lower_80": 10.16,
-          "upper_80": 17.14
+          "lower_80": 10.54,
+          "upper_80": 16.8
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
           "forecast": 14,
-          "lower_80": 10.7,
-          "upper_80": 18.11
+          "lower_80": 10.68,
+          "upper_80": 17.58
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 14,
+          "lower_80": 9.77,
+          "upper_80": 17.13
         }
       ]
     },
@@ -179,25 +181,25 @@
       "model": "Walk-Forward Softmax Ensemble (7 mô hình: SARIMA(1, 0, 1)x(1, 0, 1, 7) + ETS + Theta + GM(1,1) + RL-FGM(r=0.75) + Fourier + Kalman)",
       "next_3_days": [
         {
-          "date_vn": "19/11/2026",
-          "weekday_vn": "Thứ 5",
-          "forecast": 13,
-          "lower_80": 9.68,
-          "upper_80": 15.86
-        },
-        {
           "date_vn": "20/11/2026",
           "weekday_vn": "Thứ 6",
-          "forecast": 13,
-          "lower_80": 9.72,
-          "upper_80": 16.54
+          "forecast": 14,
+          "lower_80": 10.15,
+          "upper_80": 16.42
         },
         {
           "date_vn": "21/11/2026",
           "weekday_vn": "Thứ 7",
           "forecast": 14,
-          "lower_80": 9.95,
-          "upper_80": 17.23
+          "lower_80": 10.19,
+          "upper_80": 17.14
+        },
+        {
+          "date_vn": "22/11/2026",
+          "weekday_vn": "Chủ Nhật",
+          "forecast": 13,
+          "lower_80": 8.86,
+          "upper_80": 16.3
         }
       ]
     }

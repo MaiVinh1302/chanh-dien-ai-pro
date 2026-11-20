@@ -1,10 +1,12 @@
 {
   "checked": true,
-  "updated": false,
-  "added_count": 0,
-  "added_dates": [],
-  "last_checked_at": "19/11/2026 16:14:20",
-  "latest_data_date": "2026-11-18",
-  "expected_date": "2026-11-18",
-  "status": "Chưa có kết quả ngày mới (mới nhất vẫn là 18/11/2026)"
+  "updated": true,
+  "added_count": 1,
+  "added_dates": [
+    "19/11/2026"
+  ],
+  "last_checked_at": "20/11/2026 08:36:08",
+  "latest_data_date": "2026-11-19",
+  "expected_date": "2026-11-19",
+  "status": "Đã tự động cập nhật thêm 1 kỳ mới: 19/11/2026"
 }

@@ -45,6 +45,9 @@
       </div>
 
       <div class="flex items-center space-x-2 text-xs">
+        <button id="btnLiveSync" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg font-semibold transition cursor-pointer">
+          ⚡ Cập nhật thực tế
+        </button>
         <button id="btnThemeToggle" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded-lg font-semibold transition cursor-pointer">
           ☀️ Giao diện Sáng
         </button>
@@ -355,11 +358,242 @@
       });
     });
 
-    async function init() {
-      const res = await fetch("xsmb-forecast-app/data/xsmb_web_payload.json?t=" + Date.now());
-      PAYLOAD = await res.json();
+    function getExpectedLatestDrawISO() {
+      // Tính ngày mở thưởng kỳ vọng theo giờ Việt Nam (UTC+7), quay xong lúc 18:35
+      const nowUtc = new Date();
+      const vnMs = nowUtc.getTime() + (7 * 60 + nowUtc.getTimezoneOffset()) * 60000;
+      const vn = new Date(vnMs);
+      const mins = vn.getHours() * 60 + vn.getMinutes();
+      if (mins < 18 * 60 + 35) {
+        vn.setDate(vn.getDate() - 1);
+      }
+      const y = vn.getFullYear();
+      const m = String(vn.getMonth() + 1).padStart(2, "0");
+      const d = String(vn.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
 
-      // KPIs
+    async function fetchHtmlViaCorsProxy(targetUrl) {
+      const proxies = [
+        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+      ];
+      for (const mk of proxies) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 9000);
+          const res = await fetch(mk(targetUrl), { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.length > 5000) return text;
+          }
+        } catch (e) { /* try next proxy */ }
+      }
+      return null;
+    }
+
+    function buildRowFromPrizes(dateVn, gdb, allNums) {
+      const [dd, mm, yyyy] = dateVn.split("/");
+      const iso = `${yyyy}-${mm}-${dd}`;
+      const dt = new Date(`${iso}T00:00:00`);
+      const weekdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      const loto27 = allNums.map(n => n.slice(-2).padStart(2, "0"));
+      const lotoInts = loto27.map(Number);
+      const de2 = Number(gdb.slice(-2));
+      const dau = Math.floor(de2 / 10);
+      const duoi = de2 % 10;
+      return {
+        date: iso,
+        date_vn: dateVn,
+        weekday: weekdays[dt.getDay()],
+        gdb,
+        de_str: String(de2).padStart(2, "0"),
+        de_2so: de2,
+        dau_de: dau,
+        duoi_de: duoi,
+        tong_de: dau + duoi,
+        loto_mean: Number((lotoInts.reduce((a, b) => a + b, 0) / Math.max(lotoInts.length, 1)).toFixed(2)),
+        even_count: lotoInts.filter(x => x % 2 === 0).length,
+        high_count: lotoInts.filter(x => x >= 50).length,
+        loto_27: loto27.join(",")
+      };
+    }
+
+    function parseXsmbLiveHtml(html) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const tables = doc.querySelectorAll("table.table-xsmb");
+      const out = [];
+      tables.forEach(tbl => {
+        let cur = tbl.previousElementSibling;
+        let dateVn = null;
+        for (let i = 0; i < 6 && cur; i++) {
+          const m = (cur.textContent || "").match(/(\d{2}\/\d{2}\/\d{4})/);
+          if (m) { dateVn = m[1]; break; }
+          cur = cur.previousElementSibling;
+        }
+        if (!dateVn && tbl.parentElement) {
+          const m = (tbl.parentElement.textContent || "").match(/(\d{2}\/\d{2}\/\d{4})/);
+          if (m) dateVn = m[1];
+        }
+        if (!dateVn) return;
+
+        const allNums = [];
+        let gdb = "";
+        tbl.querySelectorAll("tr").forEach(tr => {
+          const tds = tr.querySelectorAll("td");
+          if (tds.length < 2) return;
+          const label = (tds[0].textContent || "").trim();
+          if (!/^G\.(ĐB|1|2|3|4|5|6|7)$/.test(label)) return;
+          const spans = [...tds[1].querySelectorAll("span")].map(s => (s.textContent || "").replace(/\D/g, "")).filter(s => s.length >= 2);
+          if (label === "G.ĐB" && spans.length) gdb = spans[0];
+          spans.forEach(s => allNums.push(s));
+        });
+        if (gdb && allNums.length >= 20) out.push(buildRowFromPrizes(dateVn, gdb, allNums));
+      });
+      return out;
+    }
+
+    function parseMinhNgocLiveHtml(html) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const boxes = doc.querySelectorAll("div.box_kqxs");
+      const out = [];
+      const classes = ["giaidb","giai1","giai2","giai3","giai4","giai5","giai6","giai7"];
+      boxes.forEach(box => {
+        const ngayEl = box.querySelector(".ngay");
+        if (!ngayEl) return;
+        const m = (ngayEl.textContent || "").match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (!m) return;
+        const dateVn = m[1];
+        const allNums = [];
+        let gdb = "";
+        classes.forEach(cls => {
+          box.querySelectorAll(`.${cls} div`).forEach(d => {
+            const num = (d.textContent || "").replace(/\D/g, "");
+            if (num.length >= 2) {
+              if (cls === "giaidb" && !gdb) gdb = num;
+              allNums.push(num);
+            }
+          });
+        });
+        if (gdb && allNums.length >= 20) out.push(buildRowFromPrizes(dateVn, gdb, allNums));
+      });
+      return out;
+    }
+
+    function recomputeLotoStatsFromHistory() {
+      const sub = PAYLOAD.history.slice(-200);
+      const totalDays = sub.length;
+      if (!totalDays) return;
+      const dayLists = sub.map(r => String(r.loto_27).split(",").map(s => s.trim().padStart(2, "0")));
+      const daySets = dayLists.map(lst => new Set(lst));
+      const deList = sub.map(r => String(r.de_str).padStart(2, "0"));
+
+      const rows = [];
+      for (let num = 0; num < 100; num++) {
+        const code = String(num).padStart(2, "0");
+        let freqAll = 0, daysHit = 0, freq30 = 0, deHits = 0;
+        dayLists.forEach((lst, i) => {
+          const c = lst.filter(x => x === code).length;
+          freqAll += c;
+          if (daySets[i].has(code)) daysHit++;
+          if (i >= totalDays - 30) freq30 += c;
+        });
+        deList.forEach(d => { if (d === code) deHits++; });
+
+        let curGan = 0;
+        for (let i = totalDays - 1; i >= 0; i--) {
+          if (daySets[i].has(code)) break;
+          curGan++;
+        }
+        let maxGan = 0, tmp = 0;
+        for (let i = 0; i < totalDays; i++) {
+          if (daySets[i].has(code)) { maxGan = Math.max(maxGan, tmp); tmp = 0; }
+          else tmp++;
+        }
+        maxGan = Math.max(maxGan, tmp);
+
+        const dev = Number((freqAll - 0.27 * totalDays).toFixed(2));
+        const ratio = curGan / Math.max(maxGan, 1);
+        rows.push({
+          So: code, So_nhay: freqAll, So_ngay_ve: daysHit, Nhay_30_ngay: freq30,
+          Ve_G_DB: deHits, Gan_hien_tai: curGan, Max_gan: maxGan, Chenh_ky_vong: dev,
+          Gan_ratio: Number(ratio.toFixed(3))
+        });
+      }
+
+      const mm = arr => {
+        const mn = Math.min(...arr), mx = Math.max(...arr);
+        return mx - mn < 1e-9 ? arr.map(() => 0) : arr.map(v => (v - mn) / (mx - mn));
+      };
+      const nGan = mm(rows.map(r => r.Gan_hien_tai));
+      const nRatio = mm(rows.map(r => r.Gan_ratio));
+      const nDef = mm(rows.map(r => -r.Chenh_ky_vong));
+      const deltas = rows.map((_, i) => [1 - nGan[i], 1 - nRatio[i], 1 - nDef[i]]);
+      const flat = deltas.flat();
+      const dMin = Math.min(...flat), dMax = Math.max(...flat), rho = 0.5;
+      rows.forEach((r, i) => {
+        const grc = deltas[i].map(d => (dMin + rho * dMax) / (d + rho * dMax + 1e-9));
+        r.Diem_chu_y = Number(((grc[0] + grc[1] + grc[2]) / 3 * 100).toFixed(2));
+      });
+      PAYLOAD.loto_stats = rows;
+    }
+
+    function recomputeLiveForecastsIfStale() {
+      const latestIso = PAYLOAD.history[PAYLOAD.history.length - 1].date;
+      if (PAYLOAD.based_on_date >= latestIso) return;
+      const lastDt = new Date(`${latestIso}T00:00:00`);
+      const wkMap = ["Chủ Nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
+
+      Object.entries(PAYLOAD.target_config).forEach(([col, cfg]) => {
+        const vals = PAYLOAD.history.slice(-60).map(r => Number(r[col]));
+        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+        let ewm = vals[0];
+        vals.forEach(v => { ewm = 0.25 * v + 0.75 * ewm; });
+        const fcRows = [];
+        for (let k = 1; k <= 30; k++) {
+          const dt = new Date(lastDt);
+          dt.setDate(dt.getDate() + k);
+          const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, "0"), d = String(dt.getDate()).padStart(2, "0");
+          const raw = Math.max(cfg.min_val, Math.min(cfg.max_val, Number((ewm * Math.exp(-0.08 * k) + mean * (1 - Math.exp(-0.08 * k))).toFixed(2))));
+          const lo = Math.max(cfg.min_val, Number((raw - 1.28 * std).toFixed(2)));
+          const hi = Math.min(cfg.max_val, Number((raw + 1.28 * std).toFixed(2)));
+          fcRows.push({
+            date: `${y}-${m}-${d}`,
+            date_vn: `${d}/${m}/${y}`,
+            weekday_vn: wkMap[dt.getDay()],
+            forecast: cfg.is_int ? Math.round(raw) : raw,
+            forecast_raw: raw, lower_80: lo, upper_80: hi,
+            arima: raw, holt_winters: raw, theta: raw, grey_gm11: raw, rl_fgm: raw, fourier_ridge: raw, kalman_ucm: raw
+          });
+        }
+        PAYLOAD.forecasts[col].rows = fcRows;
+        PAYLOAD.forecasts[col].meta.last_date = PAYLOAD.history[PAYLOAD.history.length - 1].date_vn;
+        PAYLOAD.forecasts[col].meta.train_days = PAYLOAD.history.length;
+      });
+      PAYLOAD.based_on_date = latestIso;
+    }
+
+    function applyMergedRows(newRows) {
+      if (!newRows || !newRows.length) return 0;
+      const map = new Map(PAYLOAD.history.map(r => [r.date, r]));
+      let added = 0;
+      newRows.forEach(r => {
+        if (!map.has(r.date)) added++;
+        map.set(r.date, r);
+      });
+      if (added > 0) {
+        PAYLOAD.history = [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+        PAYLOAD.total_records = PAYLOAD.history.length;
+        recomputeLotoStatsFromHistory();
+        recomputeLiveForecastsIfStale();
+      }
+      return added;
+    }
+
+    function refreshAllUI(statusText) {
       const hist = PAYLOAD.history;
       const latest = hist[hist.length - 1];
       document.getElementById("kpiTotal").textContent = PAYLOAD.total_records + " ngày";
@@ -367,21 +601,11 @@
       document.getElementById("kpiGdb").textContent = String(latest.gdb).padStart(5, "0");
       document.getElementById("kpiDe").textContent = String(latest.de_str).padStart(2, "0");
       document.getElementById("kpiMean").textContent = Number(latest.loto_mean).toFixed(2);
-
       document.getElementById("syncBadge").innerHTML =
-        `<i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> Cập nhật đến ${latest.date_vn} (${PAYLOAD.sync_info.last_checked_at || ""})`;
+        `<i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> ${statusText || ("Cập nhật đến " + latest.date_vn)}`;
 
-      // Populate targetSelect
-      const sel = document.getElementById("targetSelect");
-      Object.entries(PAYLOAD.target_config).forEach(([k, v]) => {
-        const opt = document.createElement("option");
-        opt.value = k;
-        opt.textContent = v.label;
-        sel.appendChild(opt);
-      });
-
-      // Populate advisorDateSelect
       const advSel = document.getElementById("advisorDateSelect");
+      advSel.innerHTML = "";
       PAYLOAD.forecasts.de_2so.rows.forEach((r, idx) => {
         const opt = document.createElement("option");
         opt.value = idx;
@@ -389,8 +613,8 @@
         advSel.appendChild(opt);
       });
 
-      // Populate prizeDaySelect (14 days)
       const pSel = document.getElementById("prizeDaySelect");
+      pSel.innerHTML = "";
       PAYLOAD.forecasts.de_2so.rows.slice(0, 14).forEach((r, idx) => {
         const opt = document.createElement("option");
         opt.value = idx + 1;
@@ -401,8 +625,65 @@
       renderAll();
       renderAllPrizes();
       renderLotoStats();
-      renderHistoryTable("");
+      renderHistoryTable(document.getElementById("historyFilter").value || "");
     }
+
+    async function syncLiveFromWeb(isManual = false) {
+      const badge = document.getElementById("syncBadge");
+      badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-cyan-400 mr-1"></i> Đang kiểm tra KQXS thực tế...`;
+      let fetched = [];
+      const html1 = await fetchHtmlViaCorsProxy("https://xosodaiphat.com/xsmb-xo-so-mien-bac.html");
+      if (html1) fetched = parseXsmbLiveHtml(html1);
+      if (!fetched.length) {
+        const html2 = await fetchHtmlViaCorsProxy("https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac.html");
+        if (html2) fetched = parseMinhNgocLiveHtml(html2);
+      }
+
+      const added = applyMergedRows(fetched);
+      if (added > 0) {
+        try {
+          const oldExtra = JSON.parse(localStorage.getItem("xsmb_live_extra_rows") || "[]");
+          const mergedExtra = [...oldExtra, ...fetched].reduce((acc, r) => { acc[r.date] = r; return acc; }, {});
+          localStorage.setItem("xsmb_live_extra_rows", JSON.stringify(Object.values(mergedExtra)));
+        } catch (e) {}
+        const latest = PAYLOAD.history[PAYLOAD.history.length - 1];
+        refreshAllUI(`Đã tự động cập nhật đến ${latest.date_vn} (+${added} kỳ mới)`);
+      } else {
+        const latest = PAYLOAD.history[PAYLOAD.history.length - 1];
+        badge.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-400 mr-1"></i> Cập nhật đến ${latest.date_vn}` + (isManual ? " (Đã mới nhất)" : "");
+      }
+    }
+
+    async function init() {
+      const res = await fetch("xsmb-forecast-app/data/xsmb_web_payload.json?t=" + Date.now());
+      PAYLOAD = await res.json();
+
+      // Hợp nhất dữ liệu thực tế đã lưu trong localStorage (nếu mới hơn payload)
+      try {
+        const extra = JSON.parse(localStorage.getItem("xsmb_live_extra_rows") || "[]");
+        if (extra.length) applyMergedRows(extra);
+      } catch (e) {}
+
+      // Populate targetSelect
+      const sel = document.getElementById("targetSelect");
+      Object.entries(PAYLOAD.target_config).forEach(([k, v]) => {
+        const opt = document.createElement("option");
+        opt.value = k;
+        opt.textContent = v.label;
+        sel.appendChild(opt);
+      });
+
+      refreshAllUI();
+
+      // Tự động kiểm tra cập nhật nếu dữ liệu hiện tại cũ hơn ngày mở thưởng kỳ vọng
+      const latestIso = PAYLOAD.history[PAYLOAD.history.length - 1].date;
+      const expectedIso = getExpectedLatestDrawISO();
+      if (latestIso < expectedIso) {
+        await syncLiveFromWeb(false);
+      }
+    }
+
+    document.getElementById("btnLiveSync").addEventListener("click", () => syncLiveFromWeb(true));
 
     function renderAll() {
       if (!PAYLOAD) return;
