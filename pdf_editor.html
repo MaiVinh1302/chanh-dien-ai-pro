@@ -326,6 +326,12 @@
         <span>AI Copilot</span>
         <span id="nav-ai-status-tag" class="bg-purple-600 text-white text-[9px] px-1 py-0.2 rounded-full uppercase tracking-wider">Tự Động Kết Nối</span>
       </button>
+
+      <button onclick="openSnapOtterModal()" id="tab-nav-snapotter" class="ribbon-tab px-3.5 py-2 hover:bg-emerald-100 rounded-t text-emerald-700 font-bold flex items-center gap-1.5 border border-transparent hover:border-emerald-200">
+        <i class="fa-solid fa-otter text-emerald-600"></i>
+        <span>SnapOtter Tools</span>
+        <span class="bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded-full uppercase tracking-wider">20+ Offline</span>
+      </button>
     </div>
   </nav>
 
@@ -6892,6 +6898,577 @@ Hãy lập báo cáo so sánh ngắn gọn, đanh thép:
       initSignaturePad();
       initSampleDocument();
     };
+  </script>
+
+  <!-- ==================== SNAPOTTER MULTI-TOOL STUDIO MODAL ==================== -->
+  <div id="snapOtterModal" class="fixed inset-0 z-[100] hidden bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white w-full max-w-5xl max-h-[92vh] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-otter text-emerald-300"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-extrabold text-base sm:text-lg tracking-tight">SnapOtter Studio — Bộ Công Cụ File &amp; PDF Đa Năng</h2>
+              <span class="text-[10px] bg-emerald-400/20 border border-emerald-300/40 text-emerald-100 px-2 py-0.5 rounded-full font-semibold">100% Privacy • Chạy tại trình duyệt</span>
+            </div>
+            <p class="text-xs text-emerald-100/80">Xử lý PDF, Ảnh, Excel/CSV/JSON &amp; ZIP hoàn toàn trên máy bạn — không tải tài liệu lên máy chủ ngoài.</p>
+          </div>
+        </div>
+        <button onclick="closeSnapOtterModal()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center gap-2 overflow-x-auto flex-shrink-0 text-xs font-semibold">
+        <button onclick="switchSnapTab('pdf')" id="so-tab-pdf" class="so-tab-btn px-3.5 py-2 rounded-lg bg-emerald-600 text-white shadow-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-file-pdf"></i> PDF Suite (Gộp / Tách / Ảnh / Đóng dấu)
+        </button>
+        <button onclick="switchSnapTab('image')" id="so-tab-image" class="so-tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-images"></i> Xử Lý Ảnh Hàng Loạt
+        </button>
+        <button onclick="switchSnapTab('data')" id="so-tab-data" class="so-tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-table"></i> Excel / CSV / JSON / ZIP
+        </button>
+        <button onclick="switchSnapTab('docker')" id="so-tab-docker" class="so-tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-200 flex items-center gap-1.5">
+          <i class="fa-brands fa-docker"></i> Kết Nối SnapOtter Docker (200+ Tools)
+        </button>
+      </div>
+
+      <!-- Body Content -->
+      <div class="p-5 overflow-y-auto flex-1 space-y-5 bg-slate-50/40 text-slate-800 text-xs">
+
+        <!-- TAB 1: PDF SUITE -->
+        <div id="so-panel-pdf" class="so-panel grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 1. Merge PDF -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-object-group text-emerald-600"></i> 1. Gộp Nhiều File PDF
+              </h3>
+              <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold">Merge PDF</span>
+            </div>
+            <p class="text-slate-500">Chọn 2 hoặc nhiều file PDF để ghép nối liền mạch thành 1 tài liệu duy nhất.</p>
+            <input type="file" id="soMergeInput" accept=".pdf,application/pdf" multiple class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-semibold hover:file:bg-emerald-100">
+            <button onclick="soRunMergePdf()" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-layer-group"></i> Gộp &amp; Tải Xuống PDF
+            </button>
+          </div>
+
+          <!-- 2. Split / Extract PDF -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-scissors text-orange-600"></i> 2. Tách Trang / Trích Xuất PDF
+              </h3>
+              <span class="text-[10px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded font-semibold">Split PDF</span>
+            </div>
+            <input type="file" id="soSplitInput" accept=".pdf,application/pdf" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-50 file:text-orange-700 file:font-semibold hover:file:bg-orange-100">
+            <input type="text" id="soSplitPages" placeholder="Ví dụ: 1-3, 5 (để trống = tách từng trang thành .ZIP)" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-orange-500">
+            <button onclick="soRunSplitPdf()" class="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-export"></i> Tách &amp; Tải Xuống
+            </button>
+          </div>
+
+          <!-- 3. PDF to Images ZIP -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-file-image text-indigo-600"></i> 3. Chuyển PDF Sang Ảnh (ZIP)
+              </h3>
+              <span class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold">PDF → PNG/JPG</span>
+            </div>
+            <input type="file" id="soPdf2ImgInput" accept=".pdf,application/pdf" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-semibold hover:file:bg-indigo-100">
+            <div class="grid grid-cols-2 gap-2">
+              <select id="soPdf2ImgFmt" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white">
+                <option value="image/png">PNG (Sắc nét)</option>
+                <option value="image/jpeg">JPG (Nhẹ hơn)</option>
+              </select>
+              <select id="soPdf2ImgScale" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white">
+                <option value="1.5">Độ nét Tiêu chuẩn (1.5x)</option>
+                <option value="2.0" selected>Độ nét Cao (2.0x)</option>
+                <option value="3.0">Siêu nét In ấn (3.0x)</option>
+              </select>
+            </div>
+            <button onclick="soRunPdfToImages()" class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-zipper"></i> Xuất Toàn Bộ Ảnh (.ZIP)
+            </button>
+          </div>
+
+          <!-- 4. Images to PDF -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-images text-purple-600"></i> 4. Ghép Nhiều Ảnh Thành PDF
+              </h3>
+              <span class="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-semibold">IMG → PDF</span>
+            </div>
+            <p class="text-slate-500">Chọn nhiều ảnh PNG/JPG/WebP để đóng thành 1 file PDF hoàn chỉnh.</p>
+            <input type="file" id="soImg2PdfInput" accept="image/*" multiple class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-purple-50 file:text-purple-700 file:font-semibold hover:file:bg-purple-100">
+            <button onclick="soRunImagesToPdf()" class="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-pdf"></i> Tạo &amp; Tải Xuống PDF
+            </button>
+          </div>
+
+          <!-- 5. Watermark & Page Numbers -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3 md:col-span-2">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-stamp text-rose-600"></i> 5. Đóng Dấu Chìm (Watermark) &amp; Đánh Số Trang PDF
+              </h3>
+              <span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-semibold">Watermark + Page #</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <input type="file" id="soWatermarkInput" accept=".pdf,application/pdf" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-rose-50 file:text-rose-700 file:font-semibold">
+              <input type="text" id="soWatermarkText" value="TAI LIEU NOI BO" placeholder="Chữ đóng dấu (không dấu hoặc có dấu)" class="px-3 py-1.5 rounded-lg border border-slate-300">
+              <label class="flex items-center gap-2 text-slate-700 font-medium cursor-pointer">
+                <input type="checkbox" id="soAddPageNum" checked class="rounded text-rose-600">
+                <span>Kèm đánh số trang (1/N)</span>
+              </label>
+            </div>
+            <button onclick="soRunWatermarkPdf()" class="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold transition inline-flex items-center gap-2">
+              <i class="fa-solid fa-check-double"></i> Đóng Dấu &amp; Tải Về PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 2: IMAGE ENGINE -->
+        <div id="so-panel-image" class="so-panel hidden space-y-4">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-teal-600"></i> Nén, Đổi Định Dạng &amp; Resize Ảnh Hàng Loạt (HTML5 Canvas)
+              </h3>
+              <span class="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded font-semibold">WebP / JPG / PNG</span>
+            </div>
+            <input type="file" id="soImgBatchInput" accept="image/*" multiple class="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-50 file:text-teal-700 file:font-semibold hover:file:bg-teal-100">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Định dạng xuất</label>
+                <select id="soImgOutFmt" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white">
+                  <option value="image/webp">WebP (Siêu nhẹ cho Web)</option>
+                  <option value="image/jpeg">JPG (Phổ thông)</option>
+                  <option value="image/png">PNG (Không mất nét)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Chất lượng (10-100%)</label>
+                <input type="number" id="soImgQuality" value="82" min="10" max="100" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Chiều rộng tối đa (px)</label>
+                <input type="number" id="soImgMaxW" value="1920" min="100" placeholder="0 = giữ nguyên" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Chữ đóng dấu (tùy chọn)</label>
+                <input type="text" id="soImgWatermark" placeholder="VD: © ChanhDienAI" class="w-full px-3 py-2 rounded-lg border border-slate-300">
+              </div>
+            </div>
+            <button onclick="soRunBatchImages()" class="px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold transition inline-flex items-center gap-2">
+              <i class="fa-solid fa-bolt"></i> Xử Lý Hàng Loạt &amp; Tải (.ZIP / File)
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 3: DATA & FILE TOOLS -->
+        <div id="so-panel-data" class="so-panel hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i> Chuyển Đổi Excel (.xlsx) / CSV ↔ JSON
+            </h3>
+            <p class="text-slate-500">Đọc bảng tính Excel hoặc CSV bằng SheetJS ngay trên máy, xem trước &amp; tải về JSON hoặc CSV sạch UTF-8.</p>
+            <input type="file" id="soDataFileInput" accept=".xlsx,.xls,.csv,.json" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-semibold">
+            <div class="flex gap-2">
+              <button onclick="soConvertData('json')" class="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition">Xuất JSON</button>
+              <button onclick="soConvertData('csv')" class="flex-1 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold transition">Xuất CSV (UTF-8)</button>
+              <button onclick="soConvertData('xlsx')" class="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition">Xuất Excel (.xlsx)</button>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-file-zipper text-amber-600"></i> Nén Nhiều File Thành .ZIP Nhanh
+            </h3>
+            <p class="text-slate-500">Gom nhiều tài liệu, ảnh, bảng tính bất kỳ thành 1 gói nén `.zip` để gửi qua Zalo/Email.</p>
+            <input type="file" id="soZipInput" multiple class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 file:font-semibold">
+            <button onclick="soRunMakeZip()" class="w-full py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-box-archive"></i> Tạo &amp; Tải File .ZIP
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 4: DOCKER SERVER BRIDGE -->
+        <div id="so-panel-docker" class="so-panel hidden space-y-4">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-brands fa-docker text-sky-600"></i> Cầu Nối SnapOtter Self-Hosted Server (Mở khóa 200+ Tool Video/Audio/Local AI)
+              </h3>
+              <span id="soDockerBadge" class="text-[10px] bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">Chưa kết nối</span>
+            </div>
+            <p class="text-slate-600">GitHub Pages chỉ chạy được HTML/JS tĩnh. Nếu máy bạn hoặc server công ty có cài Docker, hãy chạy 1 lệnh dưới đây để bật toàn bộ sức mạnh 200+ tool (xóa nền AI, chuyển đổi Video/Audio, bóc băng Transcribe):</p>
+            <pre class="bg-slate-900 text-emerald-300 p-3 rounded-xl font-mono text-[11px] overflow-x-auto select-all">docker run -d --name SnapOtter -p 1349:1349 -v SnapOtter-data:/data snapotter/snapotter:latest</pre>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Địa chỉ SnapOtter Server</label>
+                <input type="text" id="soServerUrl" value="http://localhost:1349" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">API Key (lấy trong phần Settings của SnapOtter)</label>
+                <input type="password" id="soServerApiKey" placeholder="snapotter_..." class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono">
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="soTestDockerServer()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold transition flex items-center gap-2">
+                <i class="fa-solid fa-plug"></i> Kiểm Tra Kết Nối Server
+              </button>
+              <a href="https://github.com/snapotter-hq/SnapOtter" target="_blank" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center gap-2">
+                <i class="fa-brands fa-github"></i> Xem Mã Nguồn SnapOtter
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Log -->
+        <div id="soStatusBox" class="hidden bg-slate-900 text-emerald-300 px-4 py-2.5 rounded-xl font-mono text-xs flex items-center justify-between">
+          <span id="soStatusText">Sẵn sàng...</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== SNAPOTTER CLIENT-SIDE STUDIO ENGINE ====================
+    function openSnapOtterModal() {
+      document.getElementById('snapOtterModal')?.classList.remove('hidden');
+    }
+
+    function closeSnapOtterModal() {
+      document.getElementById('snapOtterModal')?.classList.add('hidden');
+    }
+
+    function switchSnapTab(tab) {
+      document.querySelectorAll('.so-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`so-panel-${tab}`)?.classList.remove('hidden');
+      document.querySelectorAll('.so-tab-btn').forEach(b => {
+        b.className = 'so-tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-200 flex items-center gap-1.5';
+      });
+      const active = document.getElementById(`so-tab-${tab}`);
+      if (active) active.className = 'so-tab-btn px-3.5 py-2 rounded-lg bg-emerald-600 text-white shadow-xs flex items-center gap-1.5';
+    }
+
+    function soSetStatus(msg) {
+      const box = document.getElementById('soStatusBox');
+      const txt = document.getElementById('soStatusText');
+      if (box && txt) {
+        box.classList.remove('hidden');
+        txt.innerText = msg;
+      }
+    }
+
+    function soDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    async function soRunMergePdf() {
+      const files = document.getElementById('soMergeInput')?.files;
+      if (!files || files.length < 2) return alert('Vui lòng chọn ít nhất 2 file PDF để gộp.');
+      try {
+        soSetStatus(`⏳ Đang gộp ${files.length} file PDF...`);
+        const merged = await PDFLib.PDFDocument.create();
+        for (const f of files) {
+          const buf = await f.arrayBuffer();
+          const doc = await PDFLib.PDFDocument.load(buf);
+          const pages = await merged.copyPages(doc, doc.getPageIndices());
+          pages.forEach(p => merged.addPage(p));
+        }
+        const bytes = await merged.save();
+        soDownloadBlob(new Blob([bytes], { type: 'application/pdf' }), `SnapOtter_Merged_${Date.now()}.pdf`);
+        soSetStatus(`✅ Đã gộp thành công ${files.length} file PDF!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi gộp PDF: ${e.message}`);
+      }
+    }
+
+    function soParsePageRanges(spec, total) {
+      const indices = new Set();
+      spec.split(',').map(s => s.trim()).filter(Boolean).forEach(part => {
+        if (part.includes('-')) {
+          const [a, b] = part.split('-').map(n => parseInt(n.trim(), 10));
+          if (!isNaN(a) && !isNaN(b)) {
+            for (let i = Math.max(1, a); i <= Math.min(total, b); i++) indices.add(i - 1);
+          }
+        } else {
+          const n = parseInt(part, 10);
+          if (!isNaN(n) && n >= 1 && n <= total) indices.add(n - 1);
+        }
+      });
+      return Array.from(indices).sort((a, b) => a - b);
+    }
+
+    async function soRunSplitPdf() {
+      const file = document.getElementById('soSplitInput')?.files?.[0];
+      if (!file) return alert('Vui lòng chọn 1 file PDF.');
+      const rangeStr = (document.getElementById('soSplitPages')?.value || '').trim();
+      try {
+        soSetStatus('⏳ Đang đọc và tách trang PDF...');
+        const srcDoc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+        const total = srcDoc.getPageCount();
+        if (!rangeStr) {
+          const zip = new JSZip();
+          for (let i = 0; i < total; i++) {
+            const outDoc = await PDFLib.PDFDocument.create();
+            const [p] = await outDoc.copyPages(srcDoc, [i]);
+            outDoc.addPage(p);
+            zip.file(`page_${String(i + 1).padStart(3, '0')}.pdf`, await outDoc.save());
+          }
+          const zipBlob = await zip.generateAsync({ type: 'blob' });
+          soDownloadBlob(zipBlob, `${file.name.replace(/\.pdf$/i, '')}_pages.zip`);
+          soSetStatus(`✅ Đã tách toàn bộ ${total} trang thành file ZIP!`);
+        } else {
+          const picks = soParsePageRanges(rangeStr, total);
+          if (!picks.length) return alert('Khoảng trang không hợp lệ.');
+          const outDoc = await PDFLib.PDFDocument.create();
+          const copied = await outDoc.copyPages(srcDoc, picks);
+          copied.forEach(p => outDoc.addPage(p));
+          soDownloadBlob(new Blob([await outDoc.save()], { type: 'application/pdf' }), `${file.name.replace(/\.pdf$/i, '')}_extracted.pdf`);
+          soSetStatus(`✅ Đã trích xuất ${picks.length} trang thành công!`);
+        }
+      } catch (e) {
+        soSetStatus(`❌ Lỗi tách PDF: ${e.message}`);
+      }
+    }
+
+    async function soRunPdfToImages() {
+      const file = document.getElementById('soPdf2ImgInput')?.files?.[0];
+      if (!file) return alert('Vui lòng chọn 1 file PDF.');
+      const fmt = document.getElementById('soPdf2ImgFmt')?.value || 'image/png';
+      const scale = parseFloat(document.getElementById('soPdf2ImgScale')?.value || '2.0');
+      const ext = fmt === 'image/png' ? 'png' : 'jpg';
+      try {
+        soSetStatus('⏳ Đang render từng trang PDF thành ảnh...');
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        const zip = new JSZip();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        for (let i = 1; i <= pdf.numPages; i++) {
+          soSetStatus(`⏳ Đang xuất trang ${i}/${pdf.numPages}...`);
+          const page = await pdf.getPage(i);
+          const vp = page.getViewport({ scale });
+          canvas.width = vp.width;
+          canvas.height = vp.height;
+          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+          const blob = await new Promise(res => canvas.toBlob(res, fmt, 0.92));
+          zip.file(`page_${String(i).padStart(3, '0')}.${ext}`, blob);
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        soDownloadBlob(zipBlob, `${file.name.replace(/\.pdf$/i, '')}_images.zip`);
+        soSetStatus(`✅ Đã xuất ${pdf.numPages} ảnh (${ext.toUpperCase()}) vào file ZIP!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi chuyển PDF sang ảnh: ${e.message}`);
+      }
+    }
+
+    async function soRunImagesToPdf() {
+      const files = document.getElementById('soImg2PdfInput')?.files;
+      if (!files || !files.length) return alert('Vui lòng chọn ít nhất 1 file ảnh.');
+      try {
+        soSetStatus(`⏳ Đang ghép ${files.length} ảnh thành PDF...`);
+        const pdfDoc = await PDFLib.PDFDocument.create();
+        for (const f of files) {
+          let bytes = await f.arrayBuffer();
+          let img;
+          if (/png/i.test(f.type)) {
+            img = await pdfDoc.embedPng(bytes);
+          } else if (/jpe?g/i.test(f.type)) {
+            img = await pdfDoc.embedJpg(bytes);
+          } else {
+            // Convert WebP/other via canvas to PNG
+            const bmp = await createImageBitmap(f);
+            const c = document.createElement('canvas');
+            c.width = bmp.width; c.height = bmp.height;
+            c.getContext('2d').drawImage(bmp, 0, 0);
+            const pngBlob = await new Promise(r => c.toBlob(r, 'image/png'));
+            img = await pdfDoc.embedPng(await pngBlob.arrayBuffer());
+          }
+          const page = pdfDoc.addPage([img.width, img.height]);
+          page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+        }
+        soDownloadBlob(new Blob([await pdfDoc.save()], { type: 'application/pdf' }), `SnapOtter_Images_${Date.now()}.pdf`);
+        soSetStatus(`✅ Đã tạo PDF từ ${files.length} ảnh thành công!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi ghép ảnh thành PDF: ${e.message}`);
+      }
+    }
+
+    async function soRunWatermarkPdf() {
+      const file = document.getElementById('soWatermarkInput')?.files?.[0];
+      if (!file) return alert('Vui lòng chọn 1 file PDF.');
+      const wmText = (document.getElementById('soWatermarkText')?.value || '').trim();
+      const addNum = document.getElementById('soAddPageNum')?.checked;
+      try {
+        soSetStatus('⏳ Đang đóng dấu & đánh số trang PDF...');
+        const doc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+        const font = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const pages = doc.getPages();
+        const total = pages.length;
+        const safeAscii = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        pages.forEach((p, idx) => {
+          const { width, height } = p.getSize();
+          if (wmText) {
+            p.drawText(safeAscii(wmText), {
+              x: width * 0.2,
+              y: height * 0.45,
+              size: Math.min(width, height) * 0.07,
+              font,
+              color: PDFLib.rgb(0.85, 0.15, 0.15),
+              opacity: 0.22,
+              rotate: PDFLib.degrees(35)
+            });
+          }
+          if (addNum) {
+            p.drawText(`${idx + 1} / ${total}`, {
+              x: width / 2 - 15,
+              y: 18,
+              size: 10,
+              font,
+              color: PDFLib.rgb(0.3, 0.3, 0.35)
+            });
+          }
+        });
+        soDownloadBlob(new Blob([await doc.save()], { type: 'application/pdf' }), `${file.name.replace(/\.pdf$/i, '')}_stamped.pdf`);
+        soSetStatus(`✅ Đã đóng dấu xong ${total} trang PDF!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi đóng dấu PDF: ${e.message}`);
+      }
+    }
+
+    async function soRunBatchImages() {
+      const files = document.getElementById('soImgBatchInput')?.files;
+      if (!files || !files.length) return alert('Vui lòng chọn ít nhất 1 file ảnh.');
+      const fmt = document.getElementById('soImgOutFmt')?.value || 'image/webp';
+      const quality = Math.min(1, Math.max(0.1, (parseInt(document.getElementById('soImgQuality')?.value || '82', 10)) / 100));
+      const maxW = parseInt(document.getElementById('soImgMaxW')?.value || '0', 10);
+      const wm = (document.getElementById('soImgWatermark')?.value || '').trim();
+      const ext = fmt === 'image/webp' ? 'webp' : fmt === 'image/png' ? 'png' : 'jpg';
+      try {
+        soSetStatus(`⏳ Đang xử lý ${files.length} ảnh...`);
+        const zip = new JSZip();
+        let lastBlob = null, lastName = '';
+        for (const f of files) {
+          const bmp = await createImageBitmap(f);
+          let w = bmp.width, h = bmp.height;
+          if (maxW > 0 && w > maxW) {
+            h = Math.round(h * (maxW / w));
+            w = maxW;
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(bmp, 0, 0, w, h);
+          if (wm) {
+            ctx.font = `bold ${Math.max(14, Math.round(w * 0.03))}px sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.strokeText(wm, 20, h - 24);
+            ctx.fillText(wm, 20, h - 24);
+          }
+          const blob = await new Promise(r => c.toBlob(r, fmt, quality));
+          const outName = f.name.replace(/\.[^.]+$/, '') + `.${ext}`;
+          zip.file(outName, blob);
+          lastBlob = blob; lastName = outName;
+        }
+        if (files.length === 1 && lastBlob) {
+          soDownloadBlob(lastBlob, lastName);
+        } else {
+          soDownloadBlob(await zip.generateAsync({ type: 'blob' }), `SnapOtter_Images_${Date.now()}.zip`);
+        }
+        soSetStatus(`✅ Đã nén & chuyển đổi xong ${files.length} ảnh sang ${ext.toUpperCase()}!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi xử lý ảnh: ${e.message}`);
+      }
+    }
+
+    async function soConvertData(target) {
+      const file = document.getElementById('soDataFileInput')?.files?.[0];
+      if (!file) return alert('Vui lòng chọn file Excel, CSV hoặc JSON.');
+      try {
+        soSetStatus(`⏳ Đang chuyển đổi ${file.name} sang ${target.toUpperCase()}...`);
+        let wb;
+        if (/\.json$/i.test(file.name)) {
+          const json = JSON.parse(await file.text());
+          const arr = Array.isArray(json) ? json : [json];
+          wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(arr), 'Data');
+        } else {
+          wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        }
+        const firstSheet = wb.Sheets[wb.SheetNames[0]];
+        const base = file.name.replace(/\.[^.]+$/, '');
+        if (target === 'json') {
+          const rows = XLSX.utils.sheet_to_json(firstSheet);
+          soDownloadBlob(new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json;charset=utf-8' }), `${base}.json`);
+        } else if (target === 'csv') {
+          const csv = '\uFEFF' + XLSX.utils.sheet_to_csv(firstSheet);
+          soDownloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `${base}.csv`);
+        } else {
+          const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          soDownloadBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${base}.xlsx`);
+        }
+        soSetStatus(`✅ Đã chuyển đổi thành công sang ${target.toUpperCase()}!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi chuyển đổi dữ liệu: ${e.message}`);
+      }
+    }
+
+    async function soRunMakeZip() {
+      const files = document.getElementById('soZipInput')?.files;
+      if (!files || !files.length) return alert('Vui lòng chọn ít nhất 1 file.');
+      try {
+        soSetStatus(`⏳ Đang nén ${files.length} file vào gói ZIP...`);
+        const zip = new JSZip();
+        for (const f of files) zip.file(f.name, await f.arrayBuffer());
+        soDownloadBlob(await zip.generateAsync({ type: 'blob' }), `SnapOtter_Archive_${Date.now()}.zip`);
+        soSetStatus(`✅ Đã nén thành công ${files.length} file!`);
+      } catch (e) {
+        soSetStatus(`❌ Lỗi tạo ZIP: ${e.message}`);
+      }
+    }
+
+    async function soTestDockerServer() {
+      const url = (document.getElementById('soServerUrl')?.value || 'http://localhost:1349').trim().replace(/\/+$/, '');
+      const key = (document.getElementById('soServerApiKey')?.value || '').trim();
+      const badge = document.getElementById('soDockerBadge');
+      try {
+        soSetStatus(`⏳ Đang kiểm tra SnapOtter Docker tại ${url}...`);
+        const headers = key ? { 'x-api-key': key } : {};
+        const res = await fetch(`${url}/api/docs`, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (badge) {
+          badge.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold';
+          badge.innerText = 'Đã kết nối';
+        }
+        soSetStatus(`✅ Đã kết nối thành công tới SnapOtter Server tại ${url}!`);
+      } catch (e) {
+        if (badge) {
+          badge.className = 'text-[10px] bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full font-bold';
+          badge.innerText = 'Chưa kết nối';
+        }
+        soSetStatus(`⚠️ Chưa kết nối được Docker Server (${e.message}). Các công cụ Offline vẫn dùng bình thường!`);
+      }
+    }
   </script>
 </body>
 </html>
