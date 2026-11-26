@@ -207,6 +207,7 @@ export async function exportZiweiWord(
       cung: string; branch: string; meaning: string; mainText: string;
       sanFangText: string; flyText: string;
     }[];
+    palaceScores?: { cung: string; score: number; evidence: string }[];
     monthlyForecast?: { month: number; cung: string; branch: string; rating: string; note: string }[];
     detailedAnalysis: { title: string; body: string }[];
   },
@@ -237,6 +238,15 @@ export async function exportZiweiWord(
             new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
             new Paragraph(s.body),
           ]),
+          ...(zwChart.palaceScores
+            ? [
+                new Paragraph({ text: "Chấm điểm định lượng 6 phương diện", heading: HeadingLevel.HEADING_2 }),
+                makeTable(
+                  ["Phương diện", "Điểm (/100)", "Chứng cứ sao & Tam phương"],
+                  zwChart.palaceScores.map((s) => [s.cung, String(s.score), s.evidence])
+                ),
+              ]
+            : []),
           ...(zwChart.allPalaceReadings
             ? [
                 new Paragraph({ text: "Chi tiết 12 Cung & Phi Tinh Tứ Hóa", heading: HeadingLevel.HEADING_2 }),

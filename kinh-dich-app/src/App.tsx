@@ -869,6 +869,30 @@ export default function App() {
                   </div>
                 ) : null;
               })()}
+              <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Chấm Điểm 6 Phương Diện (Có Chứng Cứ)</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8, marginBottom: 14 }}>
+                {zwChart.palaceScores.map((ps) => (
+                  <div key={ps.cung} style={{ background: "var(--panel-2)", border: "1px solid var(--border)", borderRadius: 8, padding: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: "0.85rem" }}>
+                      <span>{ps.cung}</span>
+                      <span style={{ color: ps.score >= 75 ? "var(--cat)" : ps.score >= 60 ? "var(--gold)" : "var(--hung)" }}>
+                        {ps.score}/100
+                      </span>
+                    </div>
+                    <div style={{ height: 6, background: "var(--border)", borderRadius: 4, overflow: "hidden", margin: "5px 0" }}>
+                      <div
+                        style={{
+                          width: `${ps.score}%`,
+                          height: "100%",
+                          background: ps.score >= 75 ? "var(--cat)" : ps.score >= 60 ? "var(--gold)" : "var(--hung)",
+                        }}
+                      />
+                    </div>
+                    <div className="muted" style={{ fontSize: "0.73rem" }}>{ps.evidence}</div>
+                  </div>
+                ))}
+              </div>
+
               <h3 style={{ margin: "0 0 8px", color: "var(--gold)" }}>Bình Giải Chi Tiết Lá Số</h3>
               {zwChart.detailedAnalysis.map((s) => (
                 <div key={s.title} style={{ marginBottom: 8 }}>

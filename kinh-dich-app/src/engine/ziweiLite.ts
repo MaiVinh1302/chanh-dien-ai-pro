@@ -92,6 +92,38 @@ function tieuHanStart(yearBranchIdx: number): number {
   return 1; // Hợi Mão Mùi -> Sửu
 }
 
+function extraMiscStars(yearBranchIdx: number): { hoaCai: number; daoHoa: number; kiepSat: number; coThan: number; quaTu: number } {
+  const b = yearBranchIdx;
+  const hoaCai = [8, 0, 4].includes(b) ? 4 : [2, 6, 10].includes(b) ? 10 : [5, 9, 1].includes(b) ? 1 : 7;
+  const daoHoa = [2, 6, 10].includes(b) ? 3 : [8, 0, 4].includes(b) ? 9 : [5, 9, 1].includes(b) ? 6 : 0;
+  const kiepSat = [2, 6, 10].includes(b) ? 11 : [8, 0, 4].includes(b) ? 5 : [5, 9, 1].includes(b) ? 2 : 8;
+  const [coThan, quaTu] = [11, 0, 1].includes(b)
+    ? [2, 10]
+    : [2, 3, 4].includes(b)
+    ? [5, 1]
+    : [5, 6, 7].includes(b)
+    ? [8, 4]
+    : [11, 7];
+  return { hoaCai, daoHoa, kiepSat, coThan, quaTu };
+}
+
+const STAR_ORGAN_MAP: Record<string, string> = {
+  "Thái Dương": "Tim mạch, huyết áp, thị lực (Hỏa)",
+  "Thái Âm": "Thận, thủy dịch, nội tiết, giấc ngủ (Thủy)",
+  "Thiên Cơ": "Hệ thần kinh, gan mật, đau đầu mất ngủ (Mộc)",
+  "Vũ Khúc": "Hệ hô hấp, phổi, xương khớp (Kim)",
+  "Thiên Phủ": "Tỳ vị, tiêu hóa, dạ dày (Thổ)",
+  "Liêm Trinh": "Tuần hoàn máu, da liễu, nhiệt độc (Hỏa)",
+  "Tham Lang": "Gan thận, sinh lực, chuyển hóa (Mộc/Thủy)",
+  "Cự Môn": "Họng, phế quản, đường ruột (Thủy/Thổ)",
+  "Thiên Lương": "Tỳ vị, xương sống, hô hấp (Thổ/Mộc)",
+  "Thất Sát": "Phổi, chấn thương ngoại khoa (Kim)",
+  "Phá Quân": "Thận thủy, răng xương, tiêu hao thể lực (Thủy)",
+  "Thiên Đồng": "Bàng quang, tiêu hóa, phù nề (Thủy)",
+  "Tử Vi": "Tỳ vị, huyết áp, tim (Thổ)",
+  "Thiên Tướng": "Thận, da mặt, thủy dịch (Thủy)",
+};
+
 // Mệnh Chủ (theo Chi cung Mệnh) & Thân Chủ (theo Chi năm sinh)
 const MENH_CHU_BY_BRANCH = ["Tham Lang", "Cự Môn", "Lộc Tồn", "Văn Khúc", "Liêm Trinh", "Vũ Khúc", "Phá Quân", "Vũ Khúc", "Liêm Trinh", "Văn Khúc", "Lộc Tồn", "Cự Môn"];
 const THAN_CHU_BY_BRANCH = ["Linh Tinh", "Thiên Tướng", "Thiên Lương", "Thiên Đồng", "Văn Xương", "Thiên Cơ", "Hỏa Tinh", "Thiên Tướng", "Thiên Lương", "Thiên Đồng", "Văn Xương", "Thiên Cơ"];
@@ -323,8 +355,14 @@ export function calcZiweiChart(params: ZiweiInput) {
   const hongLoanIdx = (((3 - yearBranchIdx) % 12) + 12) % 12; // Mão(3) nghịch Chi năm
   auxByBranch[hongLoanIdx].push("Hồng Loan");
   auxByBranch[(hongLoanIdx + 6) % 12].push("Thiên Hỷ");
+  // Tứ Linh (Long Trì, Phượng Các, Hoa Cái) & Đào Hoa
+  auxByBranch[(4 + yearBranchIdx) % 12].push("Long Trì");
+  auxByBranch[(((10 - yearBranchIdx) % 12) + 12) % 12].push("Phượng Các");
+  const misc = extraMiscStars(yearBranchIdx);
+  auxByBranch[misc.hoaCai].push("Hoa Cái");
+  auxByBranch[misc.daoHoa].push("Đào Hoa");
 
-  // Lục Sát đầy đủ (Kình, Đà, Không, Kiếp, Hỏa, Linh)
+  // Lục Sát đầy đủ + Kiếp Sát, Cô Thần, Quả Tú
   satByBranch[(locIdx + 1) % 12].push("Kình Dương");
   satByBranch[(locIdx + 11) % 12].push("Đà La");
   satByBranch[(((11 - hourBranchIdx) % 12) + 12) % 12].push("Địa Không");
@@ -332,6 +370,9 @@ export function calcZiweiChart(params: ZiweiInput) {
   const [hoaStart, linhStart] = hoaLinhStart(yearBranchIdx);
   satByBranch[(hoaStart + (clockwise ? hourBranchIdx : -hourBranchIdx) + 12) % 12].push("Hỏa Tinh");
   satByBranch[(linhStart + (clockwise ? -hourBranchIdx : hourBranchIdx) + 12) % 12].push("Linh Tinh");
+  satByBranch[misc.kiepSat].push("Kiếp Sát");
+  satByBranch[misc.coThan].push("Cô Thần");
+  satByBranch[misc.quaTu].push("Quả Tú");
 
   // Tuần & Triệt
   const diff60 = ((yearBranchIdx - yearStemIdx) % 12 + 12) % 12;
@@ -508,6 +549,48 @@ export function calcZiweiChart(params: ZiweiInput) {
       : "Cung Mệnh ít sát tinh cản trở, thuận lợi phát triển tự nhiên.",
   ].join(" ");
 
+  // Chấm điểm định lượng 6 phương diện (Evidence-backed scoring)
+  const SCORE_CUNGS = ["Mệnh", "Quan Lộc", "Tài Bạch", "Phu Thê", "Phúc Đức", "Tật Ách"];
+  const BRIGHT_PTS: Record<string, number> = { M: 14, V: 11, Đ: 7, B: 2, H: -6 };
+  const palaceScores = SCORE_CUNGS.map((cungName) => {
+    const p = palaces.find((x) => x.cung === cungName)!;
+    const sanFang = [
+      p,
+      palaces[(p.branchIdx + 4) % 12],
+      palaces[(p.branchIdx + 8) % 12],
+      palaces[(p.branchIdx + 6) % 12],
+    ];
+    let score = 62;
+    const reasons: string[] = [];
+    for (const s of p.rawStars) {
+      const br = BRIGHT_PTS[BRIGHTNESS[s]?.[p.branchIdx] ?? "B"] ?? 0;
+      score += br;
+      reasons.push(`${s} (${BRIGHTNESS[s]?.[p.branchIdx]}): ${br >= 0 ? `+${br}` : br}`);
+    }
+    const auxCount = sanFang.reduce((acc, x) => acc + x.auxStars.length, 0);
+    const satCount = p.satStars.length * 2 + sanFang.slice(1).reduce((acc, x) => acc + x.satStars.length, 0);
+    score += auxCount * 2 - satCount * 3;
+    if (p.rawStars.includes(loc) || p.auxStars.includes(loc)) {
+      score += 8;
+      reasons.push(`Hóa Lộc (+8)`);
+    }
+    if (p.rawStars.includes(ky) || p.auxStars.includes(ky)) {
+      score -= 8;
+      reasons.push(`Hóa Kỵ (-8)`);
+    }
+    score = Math.max(25, Math.min(98, score));
+    return {
+      cung: cungName,
+      score,
+      evidence: reasons.length ? reasons.join(", ") : `Hội ${auxCount} cát tinh / ${satCount} sát tinh tam phương`,
+    };
+  });
+
+  // Sức khỏe Ngũ Tạng Đông Y từ cung Tật Ách
+  const tatHealthNotes = tatPalace.rawStars.length
+    ? tatPalace.rawStars.map((s) => `${s}: ${STAR_ORGAN_MAP[s] ?? "Cân bằng khí huyết"}`).join(" | ")
+    : "Tật Ách Vô Chính Diệu: Xem thêm cung Phụ Mẫu đối xung; chú ý dưỡng sinh theo Bản Mệnh " + napAmElem + ".";
+
   const detailedAnalysis = [
     {
       title: "1. Bản Mệnh, Cục Số & Cách Cục",
@@ -536,8 +619,8 @@ export function calcZiweiChart(params: ZiweiInput) {
       body: `Mệnh (${menhFly.stem}) phi Lộc (${menhFly.locTo}), Kỵ (${menhFly.kyTo}). Tài Bạch (${taiFly.stem}) phi Lộc (${taiFly.locTo}), Kỵ (${taiFly.kyTo}). Quan Lộc (${quanFly.stem}) phi Lộc (${quanFly.locTo}), Kỵ (${quanFly.kyTo}).`,
     },
     {
-      title: "6. Gia đạo, Sức khỏe & Chuyển Hóa Sát Tinh (Cải Mệnh)",
-      body: `Mệnh Chủ: ${menhChu} · Thân Chủ: ${thanChu}. Phu Thê (${phuPalace.branch}): ${phuPalace.stars.join(", ") || "Vô Chính Diệu"}. Tật Ách (${tatPalace.branch}): ${tatPalace.stars.join(", ") || "Vô Chính Diệu"}. Cải mệnh: ${alchemyTips}`,
+      title: "6. Gia đạo, Sức khỏe Đông Y & Chuyển Hóa Sát Tinh (Cải Mệnh)",
+      body: `Mệnh Chủ: ${menhChu} · Thân Chủ: ${thanChu}. Phu Thê (${phuPalace.branch}): ${phuPalace.stars.join(", ") || "Vô Chính Diệu"}. Tật Ách (${tatPalace.branch}): ${tatHealthNotes} Cải mệnh: ${alchemyTips}`,
     },
   ];
 
@@ -558,6 +641,8 @@ export function calcZiweiChart(params: ZiweiInput) {
     diepGia,
     patterns,
     palaces,
+    palaceScores,
+    tatHealthNotes,
     allPalaceReadings,
     monthlyForecast,
     mainTraitSummary,
