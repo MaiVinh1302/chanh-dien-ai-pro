@@ -101,6 +101,7 @@ export function lucHaoForHexagram(
 
   return {
     palace: TRIGRAMS[base.palace].hanViet,
+    palaceKey: base.palace,
     palaceElement: base.palaceElement,
     palaceRank: base.palaceRank,
     shi: base.shi,
@@ -109,4 +110,31 @@ export function lucHaoForHexagram(
     nguyetKien: nk,
     rows,
   };
+}
+
+export function findHiddenSpirit(
+  palaceKey: TrigramKey,
+  palaceElement: Element,
+  targetRelation: string,
+  baseRows: LucHaoRow[]
+) {
+  const palaceBranches = NA_JIA[palaceKey];
+  for (let i = 0; i < 6; i++) {
+    const br = palaceBranches[i];
+    const el = BRANCH_ELEMENTS[br];
+    const rel = sixRelatives(palaceElement, el);
+    if (rel === targetRelation) {
+      const phiRow = baseRows[i];
+      return {
+        position: i + 1,
+        phucBranch: br,
+        phucElement: el,
+        phucRelation: rel,
+        phiBranch: phiRow.branch,
+        phiElement: phiRow.element,
+        phiRelation: phiRow.relation,
+      };
+    }
+  }
+  return null;
 }

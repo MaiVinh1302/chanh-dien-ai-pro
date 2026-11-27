@@ -25,6 +25,23 @@ export function mutualHexagram(lines: number[]): Hexagram {
   return hexagramByLines([...lower, ...upper]);
 }
 
+export function inverseHexagram(lines: number[]): Hexagram {
+  return hexagramByLines([...lines].reverse());
+}
+
+export function oppositeHexagram(lines: number[]): Hexagram {
+  return hexagramByLines(lines.map((b) => (b === 1 ? 0 : 1)));
+}
+
+const LUC_XUNG_IDS = new Set([1, 2, 29, 30, 51, 52, 57, 58, 25, 34]);
+const LUC_HOP_IDS = new Set([11, 12, 16, 24, 22, 56, 47, 60]);
+
+export function hexagramStructureType(hexId: number): "Lục Xung Quái" | "Lục Hợp Quái" | "Thường Quái" {
+  if (LUC_XUNG_IDS.has(hexId)) return "Lục Xung Quái";
+  if (LUC_HOP_IDS.has(hexId)) return "Lục Hợp Quái";
+  return "Thường Quái";
+}
+
 export function buildHexagram(values: LineValue[]) {
   if (values.length !== 6) {
     throw new Error("Need exactly 6 line values (bottom to top).");
@@ -40,6 +57,8 @@ export function buildHexagram(values: LineValue[]) {
   const base = hexagramByLines(baseBits);
   const changed = movingPositions.length > 0 ? hexagramByLines(changedBits) : null;
   const mutual = mutualHexagram(baseBits);
+  const inverse = inverseHexagram(baseBits);
+  const opposite = oppositeHexagram(baseBits);
 
   return {
     values,
@@ -47,6 +66,9 @@ export function buildHexagram(values: LineValue[]) {
     base,
     changed,
     mutual,
+    inverse,
+    opposite,
+    structureType: hexagramStructureType(base.id),
     chuHyRule: chuHyRule(base.id, movingPositions),
   };
 }

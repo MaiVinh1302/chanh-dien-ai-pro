@@ -27,6 +27,7 @@ import {
   lucHaoForHexagram,
   maiHoaFromNumbers,
 } from "./engine-index.ts";
+import { HEXAGRAM_TEXTS } from "./data/hexagramTexts.ts";
 import { LunarCalendarTab } from "./components/LunarCalendarTab.tsx";
 import { MediaUploadPanel, type UploadedMedia } from "./components/MediaUploadPanel.tsx";
 import type { TuongAssessmentInput } from "./data/nhanTuong.ts";
@@ -173,6 +174,9 @@ export default function App() {
         base: built.base,
         changed: built.changed,
         mutual: built.mutual,
+        inverse: built.inverse,
+        opposite: built.opposite,
+        structureType: built.structureType,
         movingPositions: built.movingPositions,
         chuHyRule: built.chuHyRule,
         lucHao,
@@ -454,7 +458,7 @@ export default function App() {
           <div>
             <div className="hex-boxes">
               <div className="hex-box">
-                <div className="tag">Quẻ Bản · #{built.base.id}</div>
+                <div className="tag">Quẻ Bản · #{built.base.id} · {built.structureType}</div>
                 <div className="name">
                   {built.base.hanViet} ({built.base.chinese})
                 </div>
@@ -473,11 +477,14 @@ export default function App() {
               </div>
 
               <div className="hex-box">
-                <div className="tag">Quẻ Hỗ · #{built.mutual.id}</div>
+                <div className="tag">Hỗ · Đảo · Đối Quái</div>
                 <div className="name">
-                  {built.mutual.hanViet} ({built.mutual.chinese})
+                  Hỗ: #{built.mutual.id} {built.mutual.hanViet}
                 </div>
                 <HexagramBars lines={built.mutual.lines} />
+                <div className="muted" style={{ fontSize: "0.75rem", marginTop: 6 }}>
+                  Đảo: #{built.inverse.id} {built.inverse.hanViet} · Đối: #{built.opposite.id} {built.opposite.hanViet}
+                </div>
               </div>
             </div>
 
@@ -582,6 +589,16 @@ export default function App() {
               <div>Thế: Hào {selectedHex.shi} · Ứng: Hào {selectedHex.ying}</div>
               <div>Nhị phân (dưới→trên): <code>{selectedHex.binary}</code></div>
             </div>
+            {HEXAGRAM_TEXTS[selectedHex.id] && (
+              <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10, fontSize: "0.84rem" }}>
+                <div><strong>Quái từ:</strong> <span className="muted">{HEXAGRAM_TEXTS[selectedHex.id].thoan}</span></div>
+                <div style={{ marginTop: 4 }}><strong>Đại tượng:</strong> <span className="muted">{HEXAGRAM_TEXTS[selectedHex.id].daiTuong}</span></div>
+                <div style={{ marginTop: 6 }}><strong>6 Hào từ:</strong></div>
+                {HEXAGRAM_TEXTS[selectedHex.id].haos.map((ht, idx) => (
+                  <div key={idx} className="muted" style={{ fontSize: "0.78rem", marginTop: 2 }}>• {ht}</div>
+                ))}
+              </div>
+            )}
             <button
               className="btn-primary"
               style={{ marginTop: 12 }}

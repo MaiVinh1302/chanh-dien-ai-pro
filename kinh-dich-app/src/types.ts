@@ -71,6 +71,7 @@ export interface LucHaoRow {
 
 export interface LucHaoResult {
   palace: string;
+  palaceKey?: TrigramKey;
   palaceElement: Element;
   palaceRank: number;
   shi: number;
