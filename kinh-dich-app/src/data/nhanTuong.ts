@@ -152,3 +152,96 @@ export function assessNhanTuong(input: TuongAssessmentInput) {
   });
   return sections;
 }
+
+export interface HealthSignItem {
+  id: string;
+  group: "Khuôn mặt & Tai (Y học + Vọng Chẩn)" | "Bàn tay & Móng tay (Lâm sàng)";
+  label: string;
+  easternNote: string;
+  modernLink: string;
+  screeningTests: string;
+}
+
+export const HEALTH_SIGN_CHECKLIST: HealthSignItem[] = [
+  {
+    id: "franks_sign",
+    group: "Khuôn mặt & Tai (Y học + Vọng Chẩn)",
+    label: "Nếp nhăn dái tai chéo 45° (Frank's Sign)",
+    easternNote: "Tai thuộc Thận khí; nếp gấp sâu báo hiệu suy giảm tuần hoàn ngoại vi.",
+    modernLink: "Liên quan thống kê với xơ vữa động mạch và bệnh mạch vành.",
+    screeningTests: "Đo huyết áp, Lipid máu (LDL/HDL/Triglyceride), Điện tâm đồ.",
+  },
+  {
+    id: "xanthelasma",
+    group: "Khuôn mặt & Tai (Y học + Vọng Chẩn)",
+    label: "Ban vàng quanh mí mắt (Xanthelasma)",
+    easternNote: "Mí mắt thuộc Tỳ; đàm thấp ứ trệ tích tụ dưới da.",
+    modernLink: "Cảnh báo rối loạn chuyển hóa mỡ máu (dyslipidemia) và nguy cơ tim mạch.",
+    screeningTests: "Xét nghiệm bộ mỡ máu (Cholesterol toàn phần, LDL-C), đường huyết.",
+  },
+  {
+    id: "jaundice",
+    group: "Khuôn mặt & Tai (Y học + Vọng Chẩn)",
+    label: "Vàng da / Vàng củng mạc mắt",
+    easternNote: "Hoàng đản: Thấp nhiệt uất kết tại Can Đởm và Tỳ Vị.",
+    modernLink: "Liên quan tăng Bilirubin, viêm gan, tắc mật hoặc bệnh lý gan mật.",
+    screeningTests: "Men gan (AST, ALT, GGT), Bilirubin, Siêu âm gan mật.",
+  },
+  {
+    id: "dark_undereye",
+    group: "Khuôn mặt & Tai (Y học + Vọng Chẩn)",
+    label: "Sắc đen / Quầng thâm sâu quanh mắt & cằm",
+    easternNote: "Sắc Đen chủ Thận hư, thủy ẩm ứ trệ hoặc huyết ứ mạn tính.",
+    modernLink: "Thường gặp khi thiếu ngủ kéo dài, rối loạn nội tiết hoặc suy giảm chức năng thận.",
+    screeningTests: "Tổng phân tích nước tiểu, Creatinine/eGFR, kiểm tra giấc ngủ.",
+  },
+  {
+    id: "pale_face",
+    group: "Khuôn mặt & Tai (Y học + Vọng Chẩn)",
+    label: "Sắc mặt & môi trắng bệch",
+    easternNote: "Sắc Trắng chủ Phế khí hư, khí huyết lưỡng hư.",
+    modernLink: "Dấu hiệu gợi ý thiếu máu, tụt huyết áp hoặc suy giảm hô hấp.",
+    screeningTests: "Công thức máu (Hemoglobin, Hematocrit), Ferritin huyết thanh.",
+  },
+  {
+    id: "palmar_erythema",
+    group: "Bàn tay & Móng tay (Lâm sàng)",
+    label: "Lòng bàn tay son — đỏ ửng mô cái/út (Palmar Erythema)",
+    easternNote: "Can hỏa vượng, huyết nhiệt ứ tại lòng bàn tay.",
+    modernLink: "Gặp trong bệnh gan mạn/xơ gan, cường giáp hoặc viêm khớp dạng thấp.",
+    screeningTests: "Men gan, Albumin, INR, chức năng tuyến giáp (TSH, FT4).",
+  },
+  {
+    id: "nail_clubbing",
+    group: "Bàn tay & Móng tay (Lâm sàng)",
+    label: "Ngón tay dùi trống — đầu ngón phình, móng khum >180°",
+    easternNote: "Phế khí suy lâu ngày gây ứ huyết đầu chi.",
+    modernLink: "Cảnh báo mạnh bệnh phổi mạn tính, tim mạch hoặc viêm ruột mạn.",
+    screeningTests: "Chụp X-quang / CT ngực, đo SpO2, Siêu âm tim.",
+  },
+  {
+    id: "koilonychia",
+    group: "Bàn tay & Móng tay (Lâm sàng)",
+    label: "Móng tay hình thìa — mỏng, lõm giữa (Koilonychia)",
+    easternNote: "Can huyết bất túc (móng là phần dư của cân/gan).",
+    modernLink: "Dấu hiệu kinh điển của thiếu máu thiếu sắt mạn tính hoặc suy giáp.",
+    screeningTests: "Công thức máu, Sắt huyết thanh, Ferritin, TIBC, TSH.",
+  },
+];
+
+export function assessHealthSigns(selectedIds: string[]) {
+  const matched = HEALTH_SIGN_CHECKLIST.filter((x) => selectedIds.includes(x.id));
+  if (matched.length === 0) {
+    return {
+      matched: [],
+      summary: "Chưa chọn dấu hiệu bất thường nào. Duy trì lối sống điều độ và khám sức khỏe định kỳ 6–12 tháng/lần.",
+      disclaimer: "Thông tin chỉ mang tính sàng lọc tham khảo (Đông Y + Y học hiện đại), không thay thế chẩn đoán của bác sĩ.",
+    };
+  }
+  const tests = Array.from(new Set(matched.map((m) => m.screeningTests)));
+  return {
+    matched,
+    summary: `Ghi nhận ${matched.length} dấu hiệu cần lưu ý. Đề xuất trao đổi với bác sĩ để thực hiện các xét nghiệm sàng lọc: ${tests.join(" | ")}`,
+    disclaimer: "Các dấu hiệu ngoại hình chỉ là cờ cảnh báo sớm (screening triggers), không phải chẩn đoán xác định bệnh lý.",
+  };
+}

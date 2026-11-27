@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BRANCHES,
+  HEALTH_SIGN_CHECKLIST,
   HEXAGRAMS,
   NHAN_TUONG_DATA,
   REGION_CLIMATE_TIPS,
   STAR_MEANINGS,
   TRIGRAMS,
   VN_PROVINCES,
+  assessHealthSigns,
   assessNhanTuong,
   buildHexagram,
   buildLayoutAdvice,
@@ -136,6 +138,7 @@ export default function App() {
   });
   const [fsMedia, setFsMedia] = useState<UploadedMedia | null>(null);
   const [tuongMedia, setTuongMedia] = useState<UploadedMedia | null>(null);
+  const [selectedHealthSigns, setSelectedHealthSigns] = useState<string[]>([]);
 
   // Bazi & Compatibility state (Solar birth date)
   const [bzDate, setBzDate] = useState("1990-06-15");
@@ -277,6 +280,7 @@ export default function App() {
   const annualFs = useMemo(() => calcAnnualAfflictions(fsViewYear), [fsViewYear]);
   const fsAnalysis = useMemo(() => detailedFengShuiAnalysis(batTrach, flyingStars), [batTrach, flyingStars]);
   const tuongReport = useMemo(() => assessNhanTuong(tuongInput), [tuongInput]);
+  const healthReport = useMemo(() => assessHealthSigns(selectedHealthSigns), [selectedHealthSigns]);
   const baziChart = useMemo(() => {
     const [y, m, d] = bzDate.split("-").map(Number);
     return calcBaziChart(y || 1990, m || 6, d || 15, solarTime.branchIdx, bzGender);
@@ -1277,7 +1281,7 @@ export default function App() {
             <div className="card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <h2 style={{ margin: 0 }}>Báo Cáo Luận Giải Nhân Tướng</h2>
-                <button className="btn-ghost" onClick={() => exportNhanTuongWord(tuongReport, tuongMedia)}>
+                <button className="btn-ghost" onClick={() => exportNhanTuongWord(tuongReport, tuongMedia, healthReport)}>
                   ⬇ Tải Word (.docx)
                 </button>
               </div>
@@ -1296,6 +1300,58 @@ export default function App() {
             media={tuongMedia}
             onChange={setTuongMedia}
           />
+
+          <div className="card">
+            <h2>Tầm Soát Sức Khỏe Qua Diện Tướng & Bàn Tay (Đông Y + Y Học Hiện Đại)</h2>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Chọn các dấu hiệu quan sát thấy trên khuôn mặt, tai hoặc bàn tay/móng tay để đối chiếu Vọng Chẩn Đông Y và gợi ý xét nghiệm y khoa:
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 8, marginBottom: 12 }}>
+              {HEALTH_SIGN_CHECKLIST.map((item) => {
+                const checked = selectedHealthSigns.includes(item.id);
+                return (
+                  <label
+                    key={item.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      padding: 8,
+                      background: checked ? "var(--gold-soft)" : "var(--panel-2)",
+                      border: `1px solid ${checked ? "var(--gold)" : "var(--border)"}`,
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      margin: 0,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      style={{ width: "auto", marginTop: 2 }}
+                      checked={checked}
+                      onChange={() =>
+                        setSelectedHealthSigns((prev) =>
+                          prev.includes(item.id) ? prev.filter((x) => x !== item.id) : [...prev, item.id]
+                        )
+                      }
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, color: "var(--text)", fontSize: "0.86rem" }}>{item.label}</div>
+                      <div className="muted" style={{ fontSize: "0.75rem" }}>{item.group}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+              <div style={{ fontWeight: 600, color: "var(--gold)", marginBottom: 6 }}>{healthReport.summary}</div>
+              {healthReport.matched.map((m) => (
+                <div key={m.id} className="muted" style={{ fontSize: "0.84rem", marginBottom: 6 }}>
+                  • <strong style={{ color: "var(--text)" }}>{m.label}:</strong> {m.easternNote} | <em>Y học:</em> {m.modernLink} | <strong>Gợi ý:</strong> {m.screeningTests}
+                </div>
+              ))}
+              <div className="muted" style={{ fontSize: "0.78rem", fontStyle: "italic" }}>{healthReport.disclaimer}</div>
+            </div>
+          </div>
 
           <div className="card">
             <h2>Tra Cứu Kiến Thức Ma Y Thần Tướng & Chỉ Tay</h2>

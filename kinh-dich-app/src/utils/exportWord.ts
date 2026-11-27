@@ -127,17 +127,33 @@ export async function exportKinhDichWord(params: {
 
 export async function exportNhanTuongWord(
   sections: { title: string; body: string }[],
-  media?: UploadedMedia | null
+  media?: UploadedMedia | null,
+  health?: {
+    matched: { label: string; easternNote: string; modernLink: string; screeningTests: string }[];
+    summary: string;
+    disclaimer: string;
+  } | null
 ) {
   const doc = new Document({
     sections: [
       {
         children: [
-          new Paragraph({ text: "BÁO CÁO ĐÁNH GIÁ NHÂN TƯỚNG HỌC & CHỈ TAY", heading: HeadingLevel.HEADING_1 }),
+          new Paragraph({ text: "BÁO CÁO ĐÁNH GIÁ NHÂN TƯỚNG HỌC, CHỈ TAY & TẦM SOÁT SỨC KHỎE", heading: HeadingLevel.HEADING_1 }),
           ...sections.flatMap((s) => [
             new Paragraph({ children: [new TextRun({ text: s.title, bold: true })] }),
             new Paragraph(s.body),
           ]),
+          ...(health && health.matched.length > 0
+            ? [
+                new Paragraph({ text: "Tầm soát sức khỏe qua Diện tướng & Bàn tay (Đông Y + Y học hiện đại)", heading: HeadingLevel.HEADING_2 }),
+                makeTable(
+                  ["Dấu hiệu", "Đông Y (Vọng chẩn)", "Y học Hiện đại", "Xét nghiệm gợi ý"],
+                  health.matched.map((m) => [m.label, m.easternNote, m.modernLink, m.screeningTests])
+                ),
+                new Paragraph(health.summary),
+                new Paragraph({ children: [new TextRun({ text: health.disclaimer, italics: true })] }),
+              ]
+            : []),
           ...buildMediaParagraphs(media),
         ],
       },
